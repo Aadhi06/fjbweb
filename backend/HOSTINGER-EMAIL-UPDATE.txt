@@ -1,0 +1,31 @@
+EMAIL + SMTP TEST — Hostinger upload guide
+============================================
+
+Upload these files to public_html/api/ (keep same folder structure):
+
+  app/Services/MailConfigService.php          ← NEW file
+  app/Services/FormSubmissionService.php      ← replace
+  app/Providers/AppServiceProvider.php        ← replace
+  app/Http/Controllers/Api/SettingController.php  ← replace
+  app/Http/Controllers/Api/BookingController.php    ← replace
+  routes/api.php                              ← replace
+
+After upload:
+  1. Delete bootstrap/cache/config.php (File Manager)
+  2. Admin → Settings → SMTP / Email — fill in Hostinger SMTP
+  3. Save Settings
+  4. Enter your email → click "Send Test Email"
+
+Hostinger SMTP (typical):
+  Host:     smtp.hostinger.com
+  Port:     465
+  Encryption: SSL
+  Username: noreply@finejewellerybuyers.co.uk
+  Password: (your Hostinger email password)
+  From:     noreply@finejewellerybuyers.co.uk
+
+Frontend (Vercel): redeploy from GitHub for "Send Test Email" button in admin.
+
+Test API directly (optional, after login token):
+  POST https://api.finejewellerybuyers.co.uk/api/admin/settings/test-email
+  Body: {"email":"you@example.com"}
