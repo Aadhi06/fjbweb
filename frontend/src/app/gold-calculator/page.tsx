@@ -16,7 +16,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
-import { showFormError, showFormSuccess } from "@/lib/alerts";
+import { showFormError, showFormSuccess, showFormWarning } from "@/lib/alerts";
 import { useSettings } from "@/lib/useSettings";
 
 const goldCarats = [
@@ -124,10 +124,18 @@ export default function GoldCalculatorPage() {
   async function handleValuationSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const formEl = e.currentTarget;
-    setValuationSubmitting(true);
     setValuationError("");
 
     const fd = new FormData(formEl);
+    const photo = fd.get("photos");
+    if (!(photo instanceof File) || photo.size === 0) {
+      const message = "Please upload at least one photo of your gold or silver items.";
+      setValuationError(message);
+      await showFormWarning("Photo Required", message);
+      return;
+    }
+
+    setValuationSubmitting(true);
     fd.append("_honeypot", "");
     fd.append("_loaded_at", String(formLoadedAt));
 
@@ -143,16 +151,25 @@ export default function GoldCalculatorPage() {
         method: "POST",
         body: fd,
       });
-      if (!res.ok) throw new Error("Submission failed");
+      if (!res.ok) {
+        const errData = await res.json().catch(() => null);
+        const firstError = errData?.errors
+          ? Object.values(errData.errors as Record<string, string[]>)[0]?.[0]
+          : null;
+        throw new Error(firstError || "Submission failed");
+      }
       await showFormSuccess(
         "Thank You!",
         `We've received your valuation request with your gold estimate of ${formatCurrency(grandTotal)}. Our experts will contact you within 24 hours with an exact valuation.`
       );
       formEl.reset();
       setShowValuationForm(false);
-    } catch {
-      setValuationError("Something went wrong. Please try again or call us directly.");
-      await showFormError("Submission Failed", "Something went wrong. Please try again or call us directly.");
+    } catch (err) {
+      const message = err instanceof Error && err.message !== "Submission failed"
+        ? err.message
+        : "Something went wrong. Please try again or call us directly.";
+      setValuationError(message);
+      await showFormError("Submission Failed", message);
     } finally {
       setValuationSubmitting(false);
     }
@@ -203,6 +220,17 @@ export default function GoldCalculatorPage() {
                   <div>
                     <label className="block text-sm font-semibold text-secondary mb-2">Phone Number <span className="text-destructive">*</span></label>
                     <input type="tel" name="phone" required placeholder="07XXX XXXXXX" className="w-full px-4 py-3 rounded-xl border border-border bg-white text-secondary placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-secondary mb-2">Upload Photos <span className="text-destructive">*</span></label>
+                    <p className="text-sm text-muted-foreground mb-2">Add at least one clear photo of your gold or silver items.</p>
+                    <input
+                      type="file"
+                      name="photos"
+                      required
+                      accept="image/*"
+                      className="w-full text-sm text-muted-foreground file:mr-4 file:py-3 file:px-6 file:rounded-full file:border-0 file:text-sm file:font-bold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 cursor-pointer"
+                    />
                   </div>
 
                   <div style={{ position: "absolute", left: "-9999px", opacity: 0, height: 0, overflow: "hidden" }} aria-hidden="true">
