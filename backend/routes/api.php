@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\TeamMemberController;
 use App\Http\Controllers\Api\MarketingContactController;
 use App\Http\Controllers\Api\MarketingCampaignController;
 use App\Http\Controllers\Api\NewsletterController;
+use App\Http\Controllers\Api\CronController;
 use App\Http\Controllers\Admin\DashboardController;
 
 /*
@@ -37,6 +38,9 @@ Route::get('/services', [ServiceController::class, 'index']);
 Route::get('/services/{slug}', [ServiceController::class, 'show']);
 
 Route::get('/settings', [SettingController::class, 'index']);
+
+// cPanel cron (no SSH): curl -s "https://api.yourdomain.co.uk/api/cron?key=YOUR_CRON_SECRET"
+Route::get('/cron', [CronController::class, 'run']);
 
 Route::post('/newsletter/subscribe', [NewsletterController::class, 'subscribe'])
     ->middleware(\App\Http\Middleware\AntiSpam::class);

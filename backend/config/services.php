@@ -32,4 +32,7 @@ return [
         'place_id' => env('GOOGLE_PLACE_ID'),
     ],
 
+    'setup_secret' => env('SETUP_SECRET'),
+    'cron_secret' => env('CRON_SECRET'),
+
 ];
