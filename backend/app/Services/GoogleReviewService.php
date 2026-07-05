@@ -1,0 +1,146 @@
+<?php
+
+namespace App\Services;
+
+use App\Models\GoogleReviewCache;
+use App\Models\ManualReview;
+use App\Models\Setting;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
+
+class GoogleReviewService
+{
+    public function fetchAndCacheReviews(): bool
+    {
+        $apiKey = Setting::get('google_api_key', config('services.google.places_api_key'));
+        $placeId = Setting::get('google_place_id', config('services.google.place_id'));
+
+        if (!$apiKey || !$placeId) {
+            Log::warning('Google Places API key or Place ID not configured');
+            return false;
+        }
+
+        try {
+            $response = Http::get('https://maps.googleapis.com/maps/api/place/details/json', [
+                'place_id' => $placeId,
+                'fields' => 'name,rating,user_ratings_total,reviews',
+                'key' => $apiKey,
+                'reviews_sort' => 'newest',
+            ]);
+
+            if (!$response->successful()) {
+                Log::error('Google Places API error: ' . $response->body());
+                return false;
+            }
+
+            $data = $response->json();
+            $status = $data['status'] ?? 'UNKNOWN';
+
+            if ($status !== 'OK') {
+                $message = $data['error_message'] ?? "Google Places API returned status: {$status}";
+                Log::error('Google Places API error: ' . $message);
+                Cache::put('google_reviews_last_error', $message, 3600);
+                return false;
+            }
+
+            Cache::forget('google_reviews_last_error');
+            $result = $data['result'] ?? [];
+            $reviews = collect($result['reviews'] ?? [])->map(fn ($r) => [
+                'author_name' => $r['author_name'] ?? 'Anonymous',
+                'rating' => $r['rating'] ?? 5,
+                'text' => $r['text'] ?? '',
+                'relative_time_description' => $r['relative_time_description'] ?? '',
+                'profile_photo_url' => $r['profile_photo_url'] ?? null,
+                'time' => $r['time'] ?? 0,
+            ])->toArray();
+
+            GoogleReviewCache::updateOrCreate(
+                ['place_id' => $placeId],
+                [
+                    'place_name' => $result['name'] ?? 'Fine Jewellery Buyers',
+                    'rating' => $result['rating'] ?? 0,
+                    'total_reviews' => $result['user_ratings_total'] ?? 0,
+                    'reviews' => $reviews,
+                    'fetched_at' => now(),
+                ]
+            );
+
+            // Also update the setting so frontend can display it
+            if (isset($result['rating'])) {
+                Setting::set('google_rating', $result['rating'], 'number', 'google', 'Google Rating');
+            }
+            if (isset($result['user_ratings_total'])) {
+                Setting::set('total_reviews', $result['user_ratings_total'], 'number', 'google', 'Total Reviews');
+            }
+
+            Cache::forget('google_reviews');
+            return true;
+        } catch (\Exception $e) {
+            Log::error('Failed to fetch Google reviews: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    public function getReviews(): array
+    {
+        return Cache::remember('google_reviews', 86400, function () {
+            $placeId = Setting::get('google_place_id', config('services.google.place_id'));
+            $cached = GoogleReviewCache::where('place_id', $placeId)->latest('fetched_at')->first();
+
+            $googleReviews = $cached && count($cached->reviews ?? []) > 0
+                ? ($cached->reviews ?? [])
+                : [];
+
+            $hasGoogleReviews = count($googleReviews) > 0;
+
+            $manualReviews = ManualReview::active()
+                ->orderBy('sort_order')
+                ->orderByDesc('review_date')
+                ->get()
+                ->map(fn ($r) => [
+                    'author_name' => $r->name,
+                    'rating' => $r->rating,
+                    'text' => $r->text,
+                    'relative_time_description' => $r->review_date
+                        ? $r->review_date->diffForHumans()
+                        : 'recently',
+                    'profile_photo_url' => $r->photo_url,
+                    'time' => $r->review_date ? $r->review_date->timestamp : $r->created_at->timestamp,
+                    'source' => 'manual',
+                ])
+                ->toArray();
+
+            $allReviews = array_merge($googleReviews, $manualReviews);
+
+            usort($allReviews, fn ($a, $b) => ($b['time'] ?? 0) <=> ($a['time'] ?? 0));
+
+            return [
+                'place_name' => $cached->place_name ?? Setting::get('business_name', 'Fine Jewellery Buyers'),
+                'rating' => $hasGoogleReviews
+                    ? (float) $cached->rating
+                    : (float) Setting::get('google_rating', 4.9),
+                'total_reviews' => $hasGoogleReviews
+                    ? (int) $cached->total_reviews
+                    : (int) Setting::get('total_reviews', 0),
+                'reviews' => $allReviews,
+                'google_review_count' => count($googleReviews),
+                'manual_review_count' => count($manualReviews),
+            ];
+        });
+    }
+
+    public function getCachedReviewCount(): int
+    {
+        $placeId = Setting::get('google_place_id', config('services.google.place_id'));
+        $cached = GoogleReviewCache::where('place_id', $placeId)->latest('fetched_at')->first();
+        return $cached ? count($cached->reviews ?? []) : 0;
+    }
+
+    public function getLastFetchedAt(): ?string
+    {
+        $placeId = Setting::get('google_place_id', config('services.google.place_id'));
+        $cached = GoogleReviewCache::where('place_id', $placeId)->latest('fetched_at')->first();
+        return $cached?->fetched_at?->toIso8601String();
+    }
+}

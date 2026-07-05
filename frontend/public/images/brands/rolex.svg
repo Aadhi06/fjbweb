@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 64" role="img" aria-label="Rolex">
+  <g fill="#000" transform="translate(78, 4) scale(0.9)">
+    <path d="M22 0 L26 8 L34 6 L30 14 L38 18 L28 18 L28 26 L22 20 L16 26 L16 18 L6 18 L14 14 L10 6 L18 8 Z"/>
+    <rect x="20" y="22" width="4" height="6" rx="1"/>
+  </g>
+  <text x="100" y="52" text-anchor="middle" font-family="Georgia, serif" font-size="18" letter-spacing="3" fill="#000">ROLEX</text>
+</svg>
