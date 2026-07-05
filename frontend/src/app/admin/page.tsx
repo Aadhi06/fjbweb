@@ -519,7 +519,13 @@ function SettingsContent() {
 
       if (!res.ok || data.ok === false) {
         setSmtpTestLog({ ok: false, lines: logLines });
-        throw new Error(data.error || data.message || "Test email failed");
+        const errMsg = data.error || data.message || "Test email failed";
+        if (String(errMsg).includes("could not be found") || res.status === 404) {
+          logLines.push("FIX: Upload routes/api.php to Hostinger public_html/api/routes/");
+          logLines.push("Then open: /clear-cache.php?key=CRON_SECRET on your API domain");
+          setSmtpTestLog({ ok: false, lines: logLines });
+        }
+        throw new Error(errMsg);
       }
 
       setSmtpTestLog({ ok: true, lines: logLines });

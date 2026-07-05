@@ -4,21 +4,24 @@ FULL BACKEND UPDATE — Hostinger (cPanel File Manager)
 Upload to: public_html/api/
 Extract zip here, then merge folders (app/, routes/).
 
-FILES INCLUDED:
+FILES INCLUDED (upload ALL — especially routes/api.php):
 ---------------
-app/Services/MailConfigService.php          NEW — SMTP from admin
-app/Services/FormSubmissionService.php      emails on form submit
-app/Providers/AppServiceProvider.php        loads SMTP settings
+routes/api.php                              ← REQUIRED for test-email route
 app/Http/Controllers/Api/SettingController.php
-    — Maintenance mode (maintenance_mode, maintenance_message)
-    — SMTP test email endpoint
-    — Favicon / social share settings
-app/Http/Controllers/Api/BookingController.php  booking emails (send not queue)
-routes/api.php                              test-email route + cron
+app/Services/MailConfigService.php
+app/Services/FormSubmissionService.php
+app/Providers/AppServiceProvider.php
+app/Http/Controllers/Api/BookingController.php
+public/clear-cache.php                      ← run once to clear route cache
 
 AFTER UPLOAD:
 -------------
-1. Delete: bootstrap/cache/config.php
+1. Open: https://api.finejewellerybuyers.co.uk/clear-cache.php?key=YOUR_CRON_SECRET
+2. Delete bootstrap/cache/routes-v7.php if it still exists (File Manager)
+3. Delete public/clear-cache.php after use
+
+If you see "route test-email could not be found":
+  → routes/api.php was NOT uploaded. Upload it again.
 2. Admin → Settings → SMTP — configure email
 3. Admin → Settings → Maintenance Mode — toggle (admin UI needs Vercel deploy)
 
