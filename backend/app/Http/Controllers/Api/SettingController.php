@@ -168,18 +168,20 @@ class SettingController extends Controller
     {
         $request->validate([
             'email' => 'required|email',
+            'smtp' => 'sometimes|array',
         ]);
 
+        $smtpOverride = $request->input('smtp');
         $mailConfig = app(MailConfigService::class);
 
-        if (!$mailConfig->isConfigured()) {
+        if (!$mailConfig->isConfigured($smtpOverride)) {
             return response()->json([
                 'ok' => false,
-                'error' => 'SMTP not configured. Set SMTP details in Settings → SMTP / Email, or add MAIL_HOST to .env on the server.',
+                'error' => 'SMTP host is required. Enter SMTP Host and try again.',
             ], 400);
         }
 
-        $mailConfig->applyFromSettings();
+        $mailConfig->applyFromSettings($smtpOverride);
 
         try {
             Mail::raw(
@@ -192,7 +194,16 @@ class SettingController extends Controller
 
             return response()->json(['ok' => true, 'message' => 'Test email sent successfully']);
         } catch (\Exception $e) {
-            return response()->json(['ok' => false, 'error' => $e->getMessage()], 500);
+            $hint = '';
+            $port = (int) ($smtpOverride['smtp_port'] ?? Setting::get('smtp_port', 587));
+            if ($port === 587) {
+                $hint = ' For Brevo/587 use Encryption: TLS (not SSL).';
+            }
+
+            return response()->json([
+                'ok' => false,
+                'error' => $e->getMessage() . $hint,
+            ], 500);
         }
     }
 }

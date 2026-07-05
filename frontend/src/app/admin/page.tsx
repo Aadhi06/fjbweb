@@ -483,7 +483,18 @@ function SettingsContent() {
       const res = await fetch(`${API_URL}/admin/settings/test-email`, {
         method: "POST",
         headers: getAuthHeaders(),
-        body: JSON.stringify({ email: testEmail.trim() }),
+        body: JSON.stringify({
+          email: testEmail.trim(),
+          smtp: {
+            smtp_host: settings.smtp_host ?? "",
+            smtp_port: settings.smtp_port ?? "587",
+            smtp_username: settings.smtp_username ?? "",
+            smtp_password: settings.smtp_password ?? "",
+            smtp_encryption: settings.smtp_encryption ?? "tls",
+            smtp_from_address: settings.smtp_from_address ?? "",
+            smtp_from_name: settings.smtp_from_name ?? "",
+          },
+        }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || "Test email failed");
@@ -873,7 +884,9 @@ function SettingsContent() {
             </button>
           </div>
           <p className="text-xs text-gray-500 mt-2">
-            Save SMTP settings first, then send a test. Form and booking emails use these settings.
+            Brevo: host <code className="bg-gray-100 px-1 rounded">smtp-relay.brevo.com</code>, port{" "}
+            <strong>587</strong>, encryption <strong>TLS</strong>. From email must be verified in Brevo.
+            Test uses the values above (save after a successful test).
           </p>
           <SaveButton keys={smtpKeys} />
         </CollapsibleSection>
