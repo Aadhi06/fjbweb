@@ -5,6 +5,8 @@ import "./globals.css";
 import { ClientLayout } from "@/components/layout/ClientLayout";
 import {
   buildMetadata,
+  DEFAULT_FAVICON,
+  DEFAULT_OG_IMAGE,
   organizationJsonLd,
   PAGE_SEO,
   resolveSiteImageUrl,
@@ -19,8 +21,10 @@ const playfair = Playfair_Display({ variable: "--font-playfair", subsets: ["lati
 
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getSettings();
-  const favicon = settings.favicon_url || settings.logo_url || `${SITE_URL}/images/gold-bar-icon.png`;
-  const ogImage = resolveSiteImageUrl(settings.social_share_image);
+  const favicon = settings.favicon_url || settings.logo_url || DEFAULT_FAVICON;
+  const ogImage = settings.social_share_image
+    ? resolveSiteImageUrl(settings.social_share_image)
+    : settings.logo_url || DEFAULT_OG_IMAGE;
 
   return {
     metadataBase: new URL(SITE_URL),

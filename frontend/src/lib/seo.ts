@@ -5,7 +5,8 @@ export const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ||
   "https://finejewellerybuyers.co.uk";
 
-export const DEFAULT_OG_IMAGE = `${SITE_URL}/images/og-share.jpg`;
+export const DEFAULT_OG_IMAGE = `${SITE_URL}/images/logo.png`;
+export const DEFAULT_FAVICON = `${SITE_URL}/images/logo.png`;
 
 export function resolveSiteImageUrl(pathOrUrl: string): string {
   if (!pathOrUrl) return DEFAULT_OG_IMAGE;
@@ -219,7 +220,7 @@ export function organizationJsonLd() {
     "@type": "JewelryStore",
     name: SITE_NAME,
     url: SITE_URL,
-    logo: `${SITE_URL}/images/gold-collection.png`,
+    logo: `${SITE_URL}/images/logo.png`,
     description:
       "Hatton Garden, London gold and jewellery buyer — gold, scrap gold, diamonds, gemstones, luxury watches and designer brands including Cartier and Tiffany.",
     address: {
