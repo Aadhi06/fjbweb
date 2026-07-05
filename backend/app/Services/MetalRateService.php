@@ -10,6 +10,8 @@ use Illuminate\Support\Facades\Log;
 
 class MetalRateService
 {
+    private static ?string $lastError = null;
+
     private const GOLD_PURITIES = [
         ['purity' => '9ct',  'label' => 'Gold 9ct',  'factor' => 0.375],
         ['purity' => '18ct', 'label' => 'Gold 18ct', 'factor' => 0.750],
@@ -17,13 +19,24 @@ class MetalRateService
         ['purity' => '24ct', 'label' => 'Gold 24ct', 'factor' => 0.999],
     ];
 
-    public function fetchAndUpdateRates(): bool
+    public function getLastError(): ?string
     {
-        $apiKey = Setting::get('metal_api_key', config('services.metalpriceapi.key'));
+        return self::$lastError;
+    }
+
+    public function fetchAndUpdateRates(?string $apiKeyOverride = null): bool
+    {
+        self::$lastError = null;
+
+        $apiKey = $apiKeyOverride
+            ?: Setting::get('metal_api_key')
+            ?: config('services.metalpriceapi.key');
+
         $apiProvider = Setting::get('metal_api_provider', 'metalpriceapi');
 
         if (!$apiKey) {
-            Log::warning('Metal price API key not configured');
+            self::$lastError = 'Metal price API key not configured';
+            Log::warning(self::$lastError);
             return false;
         }
 
@@ -34,30 +47,102 @@ class MetalRateService
 
             return $this->fetchFromMetalPriceApi($apiKey);
         } catch (\Exception $e) {
+            self::$lastError = $e->getMessage();
             Log::error('Failed to fetch metal rates: ' . $e->getMessage());
             return false;
         }
     }
 
-    private function fetchFromMetalPriceApi(string $apiKey): bool
+    public function testMetalPriceApi(string $apiKey): array
     {
-        $response = Http::timeout(30)->withHeaders([
-            'X-API-KEY' => $apiKey,
-        ])->get('https://api.metalpriceapi.com/v1/latest', [
+        $response = $this->requestMetalPriceApi($apiKey, 'USD', 'XAU,XAG,GBP');
+
+        if (!$response) {
+            return [
+                'ok' => false,
+                'error' => self::$lastError ?? 'Request failed',
+            ];
+        }
+
+        return [
+            'ok' => (bool) ($response['success'] ?? false),
+            'base' => $response['base'] ?? null,
+            'rates_keys' => array_keys($response['rates'] ?? []),
+            'error' => $response['error'] ?? $response['message'] ?? null,
+        ];
+    }
+
+    private function requestMetalPriceApi(string $apiKey, string $base, string $currencies): ?array
+    {
+        $url = 'https://api.metalpriceapi.com/v1/latest?' . http_build_query([
             'api_key' => $apiKey,
-            'base' => 'GBP',
-            'currencies' => 'XAU,XAG',
+            'base' => $base,
+            'currencies' => $currencies,
         ]);
 
-        if (!$response->successful()) {
-            Log::error('MetalPriceAPI HTTP error: ' . $response->status() . ' ' . $response->body());
+        try {
+            $response = Http::timeout(30)->withHeaders([
+                'X-API-KEY' => $apiKey,
+            ])->get($url);
+
+            if ($response->successful()) {
+                return $response->json();
+            }
+
+            self::$lastError = 'HTTP ' . $response->status() . ': ' . $response->body();
+        } catch (\Exception $e) {
+            self::$lastError = 'HTTP client error: ' . $e->getMessage();
+        }
+
+        $raw = $this->requestMetalPriceApiViaStream($url);
+
+        return $raw;
+    }
+
+    private function requestMetalPriceApiViaStream(string $url): ?array
+    {
+        $context = stream_context_create([
+            'http' => [
+                'method' => 'GET',
+                'timeout' => 30,
+                'ignore_errors' => true,
+                'header' => "Accept: application/json\r\n",
+            ],
+            'ssl' => [
+                'verify_peer' => true,
+                'verify_peer_name' => true,
+            ],
+        ]);
+
+        $body = @file_get_contents($url, false, $context);
+
+        if ($body === false) {
+            self::$lastError = (self::$lastError ? self::$lastError . ' | ' : '')
+                . 'Stream request failed — Hostinger may block outbound HTTPS';
+            return null;
+        }
+
+        $decoded = json_decode($body, true);
+
+        if (!is_array($decoded)) {
+            self::$lastError = 'Invalid JSON from MetalPriceAPI';
+            return null;
+        }
+
+        return $decoded;
+    }
+
+    private function fetchFromMetalPriceApi(string $apiKey): bool
+    {
+        $data = $this->requestMetalPriceApi($apiKey, 'GBP', 'XAU,XAG');
+
+        if (!$data) {
             return $this->fetchFromMetalPriceApiUsd($apiKey);
         }
 
-        $data = $response->json();
-
         if (!($data['success'] ?? false)) {
-            Log::error('MetalPriceAPI error: ' . json_encode($data));
+            self::$lastError = 'MetalPriceAPI GBP: ' . json_encode($data['error'] ?? $data);
+            Log::error(self::$lastError);
             return $this->fetchFromMetalPriceApiUsd($apiKey);
         }
 
@@ -73,23 +158,15 @@ class MetalRateService
 
     private function fetchFromMetalPriceApiUsd(string $apiKey): bool
     {
-        $response = Http::timeout(30)->withHeaders([
-            'X-API-KEY' => $apiKey,
-        ])->get('https://api.metalpriceapi.com/v1/latest', [
-            'api_key' => $apiKey,
-            'base' => 'USD',
-            'currencies' => 'XAU,XAG,GBP',
-        ]);
+        $data = $this->requestMetalPriceApi($apiKey, 'USD', 'XAU,XAG,GBP');
 
-        if (!$response->successful()) {
-            Log::error('MetalPriceAPI USD fallback HTTP error: ' . $response->status() . ' ' . $response->body());
+        if (!$data) {
             return false;
         }
 
-        $data = $response->json();
-
         if (!($data['success'] ?? false)) {
-            Log::error('MetalPriceAPI USD fallback error: ' . json_encode($data));
+            self::$lastError = 'MetalPriceAPI USD: ' . json_encode($data['error'] ?? $data);
+            Log::error(self::$lastError);
             return false;
         }
 
