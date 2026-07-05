@@ -123,10 +123,11 @@ export default function GoldCalculatorPage() {
 
   async function handleValuationSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    const formEl = e.currentTarget;
     setValuationSubmitting(true);
     setValuationError("");
 
-    const fd = new FormData(e.currentTarget);
+    const fd = new FormData(formEl);
     fd.append("_honeypot", "");
     fd.append("_loaded_at", String(formLoadedAt));
 
@@ -147,7 +148,7 @@ export default function GoldCalculatorPage() {
         "Thank You!",
         `We've received your valuation request with your gold estimate of ${formatCurrency(grandTotal)}. Our experts will contact you within 24 hours with an exact valuation.`
       );
-      e.currentTarget.reset();
+      formEl.reset();
       setShowValuationForm(false);
     } catch {
       setValuationError("Something went wrong. Please try again or call us directly.");
