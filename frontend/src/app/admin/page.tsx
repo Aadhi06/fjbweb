@@ -415,6 +415,8 @@ function SettingsContent() {
   const [tickerItems, setTickerItems] = useState<{ text: string; url: string; enabled: boolean }[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [testEmail, setTestEmail] = useState("");
+  const [testingEmail, setTestingEmail] = useState(false);
   const { toast, showToast, clearToast } = useToast();
 
   useEffect(() => {
@@ -468,6 +470,28 @@ function SettingsContent() {
       showToast("Failed to save settings", "error");
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function sendTestEmail() {
+    if (!testEmail.trim()) {
+      showToast("Enter an email address to test", "error");
+      return;
+    }
+    setTestingEmail(true);
+    try {
+      const res = await fetch(`${API_URL}/admin/settings/test-email`, {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ email: testEmail.trim() }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Test email failed");
+      showToast("Test email sent — check your inbox", "success");
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "Test email failed", "error");
+    } finally {
+      setTestingEmail(false);
     }
   }
 
@@ -829,6 +853,28 @@ function SettingsContent() {
               ]}
             />
           </div>
+          <div className="mt-4 flex flex-col sm:flex-row gap-3 items-end">
+            <div className="flex-1 w-full">
+              <FormInput
+                label="Send test email to"
+                value={testEmail}
+                onChange={setTestEmail}
+                type="email"
+                placeholder="you@example.com"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={sendTestEmail}
+              disabled={testingEmail}
+              className="px-5 py-2.5 bg-black text-white text-sm font-semibold rounded-lg hover:bg-gray-800 disabled:opacity-50 h-[42px] mb-0.5"
+            >
+              {testingEmail ? "Sending..." : "Send Test Email"}
+            </button>
+          </div>
+          <p className="text-xs text-gray-500 mt-2">
+            Save SMTP settings first, then send a test. Form and booking emails use these settings.
+          </p>
           <SaveButton keys={smtpKeys} />
         </CollapsibleSection>
 

@@ -19,6 +19,12 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        try {
+            if (\Illuminate\Support\Facades\Schema::hasTable('settings')) {
+                app(\App\Services\MailConfigService::class)->applyFromSettings();
+            }
+        } catch (\Throwable) {
+            // Database may not be ready during install/migrate.
+        }
     }
 }

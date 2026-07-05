@@ -5,9 +5,11 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\MetalRate;
 use App\Models\Setting;
+use App\Services\MailConfigService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Mail;
 
 class SettingController extends Controller
 {
@@ -157,5 +159,40 @@ class SettingController extends Controller
     {
         $settings = Setting::all()->pluck('value', 'key');
         return response()->json(['data' => $settings]);
+    }
+
+    /**
+     * Admin: send a test email to verify SMTP settings.
+     */
+    public function testEmail(Request $request): JsonResponse
+    {
+        $request->validate([
+            'email' => 'required|email',
+        ]);
+
+        $mailConfig = app(MailConfigService::class);
+
+        if (!$mailConfig->isConfigured()) {
+            return response()->json([
+                'ok' => false,
+                'error' => 'SMTP not configured. Set SMTP details in Settings → SMTP / Email, or add MAIL_HOST to .env on the server.',
+            ], 400);
+        }
+
+        $mailConfig->applyFromSettings();
+
+        try {
+            Mail::raw(
+                'This is a test email from Fine Jewellery Buyers. If you received this, SMTP is working correctly.',
+                function ($message) use ($request) {
+                    $message->to($request->email)
+                        ->subject('Test Email — Fine Jewellery Buyers');
+                }
+            );
+
+            return response()->json(['ok' => true, 'message' => 'Test email sent successfully']);
+        } catch (\Exception $e) {
+            return response()->json(['ok' => false, 'error' => $e->getMessage()], 500);
+        }
     }
 }

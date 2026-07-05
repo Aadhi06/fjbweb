@@ -72,6 +72,7 @@ Route::middleware('auth:sanctum')->prefix('admin')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index']);
     Route::get('/settings', [SettingController::class, 'all']);
     Route::put('/settings', [SettingController::class, 'update']);
+    Route::post('/settings/test-email', [SettingController::class, 'testEmail']);
 
     Route::post('/upload-logo', [SettingController::class, 'uploadLogo']);
 

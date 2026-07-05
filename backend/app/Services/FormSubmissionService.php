@@ -9,6 +9,7 @@ use App\Models\FormSubmission;
 use App\Models\FormSubmissionFile;
 use App\Models\Setting;
 use App\Services\MarketingContactService;
+use App\Services\MailConfigService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -82,6 +83,15 @@ class FormSubmissionService
 
     private function sendNotification(Form $form, FormSubmission $submission): void
     {
+        $mailConfig = app(MailConfigService::class);
+
+        if (!$mailConfig->isConfigured()) {
+            $mailConfig->logIfNotConfigured("form:{$form->slug}");
+            return;
+        }
+
+        $mailConfig->applyFromSettings();
+
         $fieldValues = [];
         foreach ($submission->data as $key => $value) {
             $field = $form->fields->firstWhere('name', $key);

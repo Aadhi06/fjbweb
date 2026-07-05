@@ -9,6 +9,7 @@ use App\Models\Booking;
 use App\Models\BookingSetting;
 use App\Models\Setting;
 use App\Services\MarketingContactService;
+use App\Services\MailConfigService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -113,17 +114,25 @@ class BookingController extends Controller
             Log::error("Failed to sync marketing contact from booking: {$e->getMessage()}");
         }
 
-        try {
-            $adminEmail = Setting::get('admin_email', 'info@finejewellerybuyers.co.uk');
-            Mail::to($adminEmail)->queue(new AdminBookingNotification($booking));
-        } catch (\Exception $e) {
-            Log::error("Failed to send admin booking notification: {$e->getMessage()}");
-        }
+        $mailConfig = app(MailConfigService::class);
 
-        try {
-            Mail::to($booking->email)->queue(new CustomerBookingConfirmation($booking));
-        } catch (\Exception $e) {
-            Log::error("Failed to send customer booking confirmation: {$e->getMessage()}");
+        if ($mailConfig->isConfigured()) {
+            $mailConfig->applyFromSettings();
+
+            try {
+                $adminEmail = Setting::get('admin_email', 'info@finejewellerybuyers.co.uk');
+                Mail::to($adminEmail)->send(new AdminBookingNotification($booking));
+            } catch (\Exception $e) {
+                Log::error("Failed to send admin booking notification: {$e->getMessage()}");
+            }
+
+            try {
+                Mail::to($booking->email)->send(new CustomerBookingConfirmation($booking));
+            } catch (\Exception $e) {
+                Log::error("Failed to send customer booking confirmation: {$e->getMessage()}");
+            }
+        } else {
+            $mailConfig->logIfNotConfigured('booking');
         }
 
         return response()->json([
