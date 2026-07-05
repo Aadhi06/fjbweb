@@ -1,0 +1,17 @@
+# Hostinger deployment checklist
+#
+# Option A (recommended): subdomain document root = api/public
+#   Upload full backend/ into public_html/api/
+#   Ensure these files exist:
+#     public_html/api/public/.htaccess
+#     public_html/api/public/setup.php
+#     public_html/api/public/index.php
+#
+# Option B: subdomain document root = api (parent folder)
+#   Upload full backend/ into public_html/api/
+#   Ensure these files exist:
+#     public_html/api/.htaccess          (redirects to public/)
+#     public_html/api/public/.htaccess
+#     public_html/api/public/setup.php
+#
+# Test: https://api.finejewellerybuyers.co.uk/setup.php?key=YOUR_SETUP_SECRET
