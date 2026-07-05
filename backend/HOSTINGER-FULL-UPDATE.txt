@@ -1,0 +1,41 @@
+FULL BACKEND UPDATE — Hostinger (cPanel File Manager)
+=====================================================
+
+Upload to: public_html/api/
+Extract zip here, then merge folders (app/, routes/).
+
+FILES INCLUDED:
+---------------
+app/Services/MailConfigService.php          NEW — SMTP from admin
+app/Services/FormSubmissionService.php      emails on form submit
+app/Providers/AppServiceProvider.php        loads SMTP settings
+app/Http/Controllers/Api/SettingController.php
+    — Maintenance mode (maintenance_mode, maintenance_message)
+    — SMTP test email endpoint
+    — Favicon / social share settings
+app/Http/Controllers/Api/BookingController.php  booking emails (send not queue)
+routes/api.php                              test-email route + cron
+
+AFTER UPLOAD:
+-------------
+1. Delete: bootstrap/cache/config.php
+2. Admin → Settings → SMTP — configure email
+3. Admin → Settings → Maintenance Mode — toggle (admin UI needs Vercel deploy)
+
+IMPORTANT — TWO PARTS:
+----------------------
+| Part              | Where                    |
+|-------------------|--------------------------|
+| Save maintenance  | Backend (this cPanel zip) |
+| Show maintenance  | Frontend (Vercel redeploy)  |
+
+Maintenance page + admin toggle are in the FRONTEND repo.
+Redeploy Vercel from GitHub after uploading this backend zip.
+
+Verify backend API has maintenance fields:
+  https://api.finejewellerybuyers.co.uk/api/settings
+  Look for: "maintenance_mode" and "maintenance_message" in JSON
+
+Hostinger SMTP:
+  Host: smtp.hostinger.com | Port: 465 | SSL
+  User: noreply@finejewellerybuyers.co.uk
