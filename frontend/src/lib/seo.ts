@@ -5,7 +5,13 @@ export const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ||
   "https://finejewellerybuyers.co.uk";
 
-export const DEFAULT_OG_IMAGE = `${SITE_URL}/images/gold-collection.png`;
+export const DEFAULT_OG_IMAGE = `${SITE_URL}/images/og-share.jpg`;
+
+export function resolveSiteImageUrl(pathOrUrl: string): string {
+  if (!pathOrUrl) return DEFAULT_OG_IMAGE;
+  if (pathOrUrl.startsWith("http://") || pathOrUrl.startsWith("https://")) return pathOrUrl;
+  return `${SITE_URL}${pathOrUrl.startsWith("/") ? pathOrUrl : `/${pathOrUrl}`}`;
+}
 
 export const SERVICE_SLUGS = [
   "sell-gold",

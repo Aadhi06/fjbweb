@@ -45,6 +45,7 @@ import {
   ToggleLeft,
   ToggleRight,
   Megaphone,
+  HardHat,
 } from "lucide-react";
 import { MarketingContent } from "./MarketingContent";
 
@@ -489,7 +490,8 @@ function SettingsContent() {
     );
   }
 
-  const businessKeys = ["business_name", "tagline", "phone", "email", "address", "opening_hours", "logo_url", "logo_size", "whatsapp", "admin_email"];
+  const businessKeys = ["business_name", "tagline", "phone", "email", "address", "opening_hours", "logo_url", "logo_size", "favicon_url", "social_share_image", "whatsapp", "admin_email"];
+  const maintenanceKeys = ["maintenance_mode", "maintenance_message"];
   const tickerKeys = ["top_bar_ticker", "top_bar_ticker_speed"];
   const newsletterKeys = [
     "newsletter_popup_enabled",
@@ -513,6 +515,42 @@ function SettingsContent() {
       <p className="text-gray-500 mb-8">Manage site settings, API keys, and configuration</p>
 
       <div className="space-y-4">
+        <CollapsibleSection title="Maintenance Mode" icon={HardHat} defaultOpen>
+          <div
+            className={`mt-4 rounded-xl border p-5 ${
+              settings.maintenance_mode !== "0" && settings.maintenance_mode !== "false"
+                ? "border-amber-300 bg-amber-50"
+                : "border-gray-200 bg-gray-50"
+            }`}
+          >
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={settings.maintenance_mode !== "0" && settings.maintenance_mode !== "false"}
+                onChange={(e) => update("maintenance_mode", e.target.checked ? "1" : "0")}
+                className="mt-1 rounded border-gray-300 text-[#D97706] focus:ring-[#D97706]"
+              />
+              <span>
+                <span className="block text-sm font-semibold text-gray-900">
+                  Enable maintenance mode
+                </span>
+                <span className="block text-sm text-gray-600 mt-1">
+                  Shows a gold-themed &ldquo;We Buy Gold&rdquo; page with WhatsApp and phone. Admin panel stays accessible.
+                </span>
+              </span>
+            </label>
+          </div>
+          <div className="mt-4">
+            <FormTextarea
+              label="Maintenance message"
+              value={settings.maintenance_message ?? ""}
+              onChange={(v) => update("maintenance_message", v)}
+              placeholder="We are making a few improvements. We still buy gold — connect with us on WhatsApp."
+            />
+          </div>
+          <SaveButton keys={maintenanceKeys} />
+        </CollapsibleSection>
+
         <CollapsibleSection title="Business Details" icon={Building2} defaultOpen>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
             <FormInput label="Business Name" value={settings.business_name ?? ""} onChange={(v) => update("business_name", v)} />
@@ -542,6 +580,22 @@ function SettingsContent() {
                 </div>
               </div>
             </div>
+            <FormInput
+              label="Favicon URL (optional)"
+              value={settings.favicon_url ?? ""}
+              onChange={(v) => update("favicon_url", v)}
+              placeholder="Square PNG — uses logo if empty"
+            />
+            <FormInput
+              label="Social share image URL (WhatsApp / Facebook)"
+              value={settings.social_share_image ?? ""}
+              onChange={(v) => update("social_share_image", v)}
+              placeholder="https://finejewellerybuyers.co.uk/images/og-share.jpg"
+            />
+            <p className="md:col-span-2 text-xs text-gray-500">
+              Social image: 1200×630 px JPG or PNG. Upload your logo above and paste the URL here, or deploy{" "}
+              <code className="bg-gray-100 px-1 rounded">frontend/public/images/og-share.jpg</code> to the site.
+            </p>
             <div className="md:col-span-2">
               <FormTextarea label="Address" value={settings.address ?? ""} onChange={(v) => update("address", v)} />
             </div>

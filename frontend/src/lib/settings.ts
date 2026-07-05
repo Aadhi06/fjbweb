@@ -8,6 +8,8 @@ export interface SiteSettings {
   opening_hours: string;
   logo_url: string;
   logo_size: number;
+  favicon_url: string;
+  social_share_image: string;
   google_place_id: string;
   google_review_url: string;
   trustpilot_url: string;
@@ -34,6 +36,8 @@ export interface SiteSettings {
   newsletter_popup_delay_seconds: number;
   newsletter_popup_cookie_days: number;
   newsletter_popup_show_name: boolean;
+  maintenance_mode: boolean;
+  maintenance_message: string;
 }
 
 export const defaultSettings: SiteSettings = {
@@ -46,6 +50,8 @@ export const defaultSettings: SiteSettings = {
   opening_hours: "Mon–Sat: 10am–6pm",
   logo_url: "",
   logo_size: 48,
+  favicon_url: "",
+  social_share_image: "",
   google_place_id: "",
   google_review_url: "",
   trustpilot_url: "",
@@ -78,6 +84,9 @@ export const defaultSettings: SiteSettings = {
   newsletter_popup_delay_seconds: 8,
   newsletter_popup_cookie_days: 14,
   newsletter_popup_show_name: false,
+  maintenance_mode: false,
+  maintenance_message:
+    "We are making a few improvements. We still buy gold — connect with us on WhatsApp for instant valuations and same-day payments.",
 };
 
 export const API_SETTINGS_URL = `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8002"}/api/settings`;

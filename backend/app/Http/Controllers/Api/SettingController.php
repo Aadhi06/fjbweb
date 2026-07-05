@@ -24,6 +24,8 @@ class SettingController extends Controller
                 'opening_hours' => Setting::get('opening_hours', 'Mon–Sat: 10am–6pm'),
                 'logo_url' => Setting::get('logo_url', ''),
                 'logo_size' => (int) Setting::get('logo_size', 48),
+                'favicon_url' => Setting::get('favicon_url', ''),
+                'social_share_image' => Setting::get('social_share_image', ''),
                 'google_place_id' => Setting::get('google_place_id', ''),
                 'google_review_url' => Setting::get('google_review_url', ''),
                 'trustpilot_url' => Setting::get('trustpilot_url', ''),
@@ -56,6 +58,8 @@ class SettingController extends Controller
                 'newsletter_popup_delay_seconds' => (int) Setting::get('newsletter_popup_delay_seconds', 8),
                 'newsletter_popup_cookie_days' => (int) Setting::get('newsletter_popup_cookie_days', 14),
                 'newsletter_popup_show_name' => filter_var(Setting::get('newsletter_popup_show_name', false), FILTER_VALIDATE_BOOLEAN),
+                'maintenance_mode' => filter_var(Setting::get('maintenance_mode', false), FILTER_VALIDATE_BOOLEAN),
+                'maintenance_message' => Setting::get('maintenance_message', 'We are making a few improvements. We still buy gold — connect with us on WhatsApp for instant valuations and same-day payments.'),
             ],
         ]);
     }
@@ -67,7 +71,7 @@ class SettingController extends Controller
     {
         $allowedKeys = [
             'business_name', 'tagline', 'phone', 'whatsapp', 'email',
-            'address', 'opening_hours', 'logo_url', 'google_place_id',
+            'address', 'opening_hours', 'logo_url', 'favicon_url', 'social_share_image', 'google_place_id',
             'google_review_url', 'trustpilot_url',
             'google_rating', 'total_reviews', 'years_in_business',
             'happy_customers', 'total_sales', 'gtm_id', 'ga_id', 'meta_pixel_id',
@@ -81,6 +85,7 @@ class SettingController extends Controller
             'newsletter_popup_enabled', 'newsletter_popup_title', 'newsletter_popup_message',
             'newsletter_popup_button_text', 'newsletter_popup_success_message',
             'newsletter_popup_delay_seconds', 'newsletter_popup_cookie_days', 'newsletter_popup_show_name',
+            'maintenance_mode', 'maintenance_message',
         ];
 
         $data = $request->has('settings') ? $request->input('settings') : $request->all();
@@ -93,7 +98,7 @@ class SettingController extends Controller
                         'buying_percentage', 'smtp_port', 'logo_size', 'top_bar_ticker_speed',
                         'newsletter_popup_delay_seconds', 'newsletter_popup_cookie_days']) => 'number',
                     in_array($key, ['about_values', 'top_bar_ticker']) => 'json',
-                    in_array($key, ['newsletter_popup_enabled', 'newsletter_popup_show_name']) => 'boolean',
+                    in_array($key, ['newsletter_popup_enabled', 'newsletter_popup_show_name', 'maintenance_mode']) => 'boolean',
                     default => 'text',
                 };
 
@@ -105,6 +110,7 @@ class SettingController extends Controller
                     str_starts_with($key, 'about_') => 'about',
                     str_starts_with($key, 'top_bar_') => 'header',
                     str_starts_with($key, 'newsletter_popup_') => 'marketing',
+                    str_starts_with($key, 'maintenance_') => 'general',
                     default => 'general',
                 };
 
