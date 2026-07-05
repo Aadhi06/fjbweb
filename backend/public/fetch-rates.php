@@ -54,6 +54,17 @@ if (!$ok) {
 }
 
 $rates = $service->getRates();
+$count = count($rates['data'] ?? []);
+
+if ($count === 0) {
+    http_response_code(500);
+    echo json_encode([
+        'error' => 'Rates fetch ran but no prices were saved',
+        'fix' => 'Check METAL_API_KEY is valid at metalpriceapi.com. Free plan must allow GBP or USD rates.',
+    ]);
+    exit;
+}
+
 echo json_encode([
     'ok' => true,
     'message' => 'Metal rates updated',

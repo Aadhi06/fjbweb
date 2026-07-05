@@ -41,7 +41,7 @@ class MetalRateService
 
     private function fetchFromMetalPriceApi(string $apiKey): bool
     {
-        $response = Http::withHeaders([
+        $response = Http::timeout(30)->withHeaders([
             'X-API-KEY' => $apiKey,
         ])->get('https://api.metalpriceapi.com/v1/latest', [
             'api_key' => $apiKey,
@@ -50,36 +50,113 @@ class MetalRateService
         ]);
 
         if (!$response->successful()) {
-            Log::error('MetalPriceAPI error: ' . $response->body());
+            Log::error('MetalPriceAPI HTTP error: ' . $response->status() . ' ' . $response->body());
+            return $this->fetchFromMetalPriceApiUsd($apiKey);
+        }
+
+        $data = $response->json();
+
+        if (!($data['success'] ?? false)) {
+            Log::error('MetalPriceAPI error: ' . json_encode($data));
+            return $this->fetchFromMetalPriceApiUsd($apiKey);
+        }
+
+        $updated = $this->storeRatesFromApiResponse($data['rates'] ?? [], strtoupper($data['base'] ?? 'GBP'));
+
+        if ($updated === 0) {
+            return $this->fetchFromMetalPriceApiUsd($apiKey);
+        }
+
+        Cache::forget('metal_rates');
+        return true;
+    }
+
+    private function fetchFromMetalPriceApiUsd(string $apiKey): bool
+    {
+        $response = Http::timeout(30)->withHeaders([
+            'X-API-KEY' => $apiKey,
+        ])->get('https://api.metalpriceapi.com/v1/latest', [
+            'api_key' => $apiKey,
+            'base' => 'USD',
+            'currencies' => 'XAU,XAG,GBP',
+        ]);
+
+        if (!$response->successful()) {
+            Log::error('MetalPriceAPI USD fallback HTTP error: ' . $response->status() . ' ' . $response->body());
             return false;
         }
 
         $data = $response->json();
+
+        if (!($data['success'] ?? false)) {
+            Log::error('MetalPriceAPI USD fallback error: ' . json_encode($data));
+            return false;
+        }
+
         $rates = $data['rates'] ?? [];
+        $gbpPerUsd = (float) ($rates['GBP'] ?? 0);
 
-        $metals = [
-            'XAU' => 'gold',
-            'XAG' => 'silver',
-        ];
+        if ($gbpPerUsd <= 0) {
+            Log::error('MetalPriceAPI USD fallback: GBP rate missing');
+            return false;
+        }
 
-        foreach ($metals as $symbol => $name) {
-            $directKey = "GBP{$symbol}";
-            $inverseKey = $symbol;
+        $updated = 0;
 
-            if (isset($rates[$directKey]) && $rates[$directKey] > 1) {
-                $pricePerOz = $rates[$directKey];
-            } elseif (isset($rates[$inverseKey]) && $rates[$inverseKey] > 0) {
-                $pricePerOz = 1 / $rates[$inverseKey];
-            } else {
+        foreach (['XAU' => 'gold', 'XAG' => 'silver'] as $symbol => $name) {
+            $pricePerOzUsd = $this->extractMetalPricePerOz($rates, 'USD', $symbol);
+
+            if ($pricePerOzUsd === null || $pricePerOzUsd <= 0) {
+                continue;
+            }
+
+            $pricePerOz = $pricePerOzUsd * $gbpPerUsd;
+            $pricePerGram = $pricePerOz / 31.1035;
+            $this->updateMetalRates($name, $pricePerOz, $pricePerGram, 0);
+            $updated++;
+        }
+
+        if ($updated === 0) {
+            Log::error('MetalPriceAPI: no metal prices parsed from response');
+            return false;
+        }
+
+        Cache::forget('metal_rates');
+        return true;
+    }
+
+    private function storeRatesFromApiResponse(array $rates, string $base): int
+    {
+        $updated = 0;
+
+        foreach (['XAU' => 'gold', 'XAG' => 'silver'] as $symbol => $name) {
+            $pricePerOz = $this->extractMetalPricePerOz($rates, $base, $symbol);
+
+            if ($pricePerOz === null || $pricePerOz <= 0) {
                 continue;
             }
 
             $pricePerGram = $pricePerOz / 31.1035;
             $this->updateMetalRates($name, $pricePerOz, $pricePerGram, 0);
+            $updated++;
         }
 
-        Cache::forget('metal_rates');
-        return true;
+        return $updated;
+    }
+
+    private function extractMetalPricePerOz(array $rates, string $base, string $symbol): ?float
+    {
+        $directKey = $base . $symbol;
+
+        if (isset($rates[$directKey]) && is_numeric($rates[$directKey]) && (float) $rates[$directKey] > 0) {
+            return (float) $rates[$directKey];
+        }
+
+        if (isset($rates[$symbol]) && is_numeric($rates[$symbol]) && (float) $rates[$symbol] > 0) {
+            return 1 / (float) $rates[$symbol];
+        }
+
+        return null;
     }
 
     private function fetchFromGoldApi(string $apiKey): bool
