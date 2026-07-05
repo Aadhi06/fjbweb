@@ -41,6 +41,7 @@ Route::get('/settings', [SettingController::class, 'index']);
 
 // cPanel cron (no SSH): curl -s "https://api.yourdomain.co.uk/api/cron?key=YOUR_CRON_SECRET"
 Route::get('/cron', [CronController::class, 'run']);
+Route::get('/cron/fetch-rates', [CronController::class, 'fetchRates']);
 
 Route::post('/newsletter/subscribe', [NewsletterController::class, 'subscribe'])
     ->middleware(\App\Http\Middleware\AntiSpam::class);
