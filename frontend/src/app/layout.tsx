@@ -5,7 +5,6 @@ import "./globals.css";
 import { ClientLayout } from "@/components/layout/ClientLayout";
 import {
   buildMetadata,
-  DEFAULT_FAVICON,
   DEFAULT_OG_IMAGE,
   organizationJsonLd,
   PAGE_SEO,
@@ -21,7 +20,6 @@ const playfair = Playfair_Display({ variable: "--font-playfair", subsets: ["lati
 
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getSettings();
-  const favicon = settings.favicon_url || settings.logo_url || DEFAULT_FAVICON;
   const ogImage = settings.social_share_image
     ? resolveSiteImageUrl(settings.social_share_image)
     : settings.logo_url || DEFAULT_OG_IMAGE;
@@ -38,8 +36,12 @@ export async function generateMetadata(): Promise<Metadata> {
     publisher: SITE_NAME,
     formatDetection: { telephone: true, email: true },
     icons: {
-      icon: [{ url: favicon }],
-      apple: [{ url: favicon }],
+      icon: [
+        { url: "/favicon.ico", sizes: "any" },
+        { url: "/images/logo.png", type: "image/png", sizes: "512x512" },
+      ],
+      shortcut: "/favicon.ico",
+      apple: [{ url: "/apple-icon.png", sizes: "180x180", type: "image/png" }],
     },
   };
 }
@@ -51,6 +53,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="en" className={`${inter.variable} ${playfair.variable}`} suppressHydrationWarning>
       <head>
+        <link rel="icon" href="/favicon.ico" sizes="any" />
+        <link rel="icon" href="/images/logo.png" type="image/png" />
+        <link rel="apple-touch-icon" href="/apple-icon.png" />
         {gtmId && (
           <Script id="gtm" strategy="afterInteractive">{`
             (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
