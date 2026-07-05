@@ -2,38 +2,46 @@
 
 /**
  * Fetch live metal rates via browser (no SSH).
- * Visit once after adding your API key:
  * https://api.yourdomain.co.uk/fetch-rates.php?key=YOUR_CRON_SECRET
- * Delete this file after rates are working.
  */
 
 declare(strict_types=1);
+
+require __DIR__ . '/hostinger-env.php';
+
+$providedKey = (string) ($_GET['key'] ?? '');
+$expectedKey = hostinger_env('CRON_SECRET');
+
+header('Content-Type: application/json');
+
+if ($expectedKey === '' || !hash_equals($expectedKey, $providedKey)) {
+    http_response_code(403);
+    echo json_encode([
+        'error' => 'Forbidden',
+        'fix' => 'Add CRON_SECRET=YourSecret123 to public_html/api/.env then open this URL with ?key=YourSecret123 (must match exactly).',
+    ]);
+    exit;
+}
 
 require __DIR__ . '/../vendor/autoload.php';
 
 $app = require_once __DIR__ . '/../bootstrap/app.php';
 $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
 
-$providedKey = (string) ($_GET['key'] ?? '');
-$expectedKey = (string) env('CRON_SECRET', '');
-
-header('Content-Type: application/json');
-
-if ($expectedKey === '' || !hash_equals($expectedKey, $providedKey)) {
-    http_response_code(403);
-    echo json_encode(['error' => 'Forbidden — add CRON_SECRET to .env and pass ?key=']);
-    exit;
-}
-
-$apiKey = \App\Models\Setting::get('metal_api_key', config('services.metalpriceapi.key'));
+$apiKey = \App\Models\Setting::get('metal_api_key', hostinger_env('METAL_API_KEY'));
 
 if (!$apiKey) {
     http_response_code(400);
     echo json_encode([
         'error' => 'Metal API key not configured',
-        'fix' => 'Add METAL_API_KEY=your_key to .env, delete bootstrap/cache/config.php, then reload this page. Or set the key in Admin → Settings → Metal Rates API.',
+        'fix' => 'Add METAL_API_KEY=your_key to .env, then reload this page.',
     ]);
     exit;
+}
+
+// Ensure fetch uses the key even when config cache is stale
+if (!\App\Models\Setting::get('metal_api_key')) {
+    \App\Models\Setting::set('metal_api_key', $apiKey, 'text', 'api', 'Metal API Key');
 }
 
 $service = app(\App\Services\MetalRateService::class);
@@ -41,7 +49,7 @@ $ok = $service->fetchAndUpdateRates();
 
 if (!$ok) {
     http_response_code(500);
-    echo json_encode(['error' => 'Fetch failed — check API key and storage/logs/laravel.log']);
+    echo json_encode(['error' => 'Fetch failed — check METAL_API_KEY is valid at metalpriceapi.com']);
     exit;
 }
 
