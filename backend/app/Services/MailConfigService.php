@@ -59,6 +59,41 @@ class MailConfigService
         }
     }
 
+    /**
+     * @param  array<string, mixed>|null  $override
+     * @return array<string, string>
+     */
+    public function diagnostics(?array $override = null): array
+    {
+        $host = (string) ($this->value('smtp_host', $override) ?: env('MAIL_HOST', ''));
+        $port = (int) ($this->value('smtp_port', $override) ?: env('MAIL_PORT', 587));
+        $encryption = strtolower((string) ($this->value('smtp_encryption', $override) ?: env('MAIL_ENCRYPTION', 'tls')));
+        $username = (string) ($this->value('smtp_username', $override) ?: env('MAIL_USERNAME', ''));
+        $password = (string) ($this->value('smtp_password', $override) ?: env('MAIL_PASSWORD', ''));
+        $fromAddress = (string) ($this->value('smtp_from_address', $override) ?: env('MAIL_FROM_ADDRESS', ''));
+        $fromName = (string) ($this->value('smtp_from_name', $override) ?: env('MAIL_FROM_NAME', ''));
+
+        $scheme = ($port === 465 || $encryption === 'ssl') ? 'smtps (SSL)' : 'STARTTLS (TLS)';
+        if ($port === 587) {
+            $scheme = 'STARTTLS (TLS)';
+        }
+
+        $maskedUser = $username !== ''
+            ? substr($username, 0, min(8, strlen($username))) . '***'
+            : '(missing)';
+
+        return [
+            'Host' => $host ?: '(missing)',
+            'Port' => (string) $port,
+            'Encryption setting' => $encryption,
+            'Connection mode' => $scheme,
+            'Username' => $maskedUser,
+            'Password' => $password !== '' ? '(set)' : '(missing — required)',
+            'From email' => $fromAddress ?: '(missing)',
+            'From name' => $fromName ?: '(missing)',
+        ];
+    }
+
     private function value(string $key, ?array $override): mixed
     {
         if ($override !== null && array_key_exists($key, $override) && $override[$key] !== '' && $override[$key] !== null) {

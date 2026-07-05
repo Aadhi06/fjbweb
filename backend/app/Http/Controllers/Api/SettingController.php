@@ -9,6 +9,7 @@ use App\Services\MailConfigService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
 class SettingController extends Controller
@@ -173,15 +174,37 @@ class SettingController extends Controller
 
         $smtpOverride = $request->input('smtp');
         $mailConfig = app(MailConfigService::class);
+        $diag = $mailConfig->diagnostics($smtpOverride);
+        $log = array_map(fn ($k, $v) => "{$k}: {$v}", array_keys($diag), array_values($diag));
 
         if (!$mailConfig->isConfigured($smtpOverride)) {
+            $log[] = 'ERROR: SMTP host is required.';
             return response()->json([
                 'ok' => false,
                 'error' => 'SMTP host is required. Enter SMTP Host and try again.',
+                'log' => $log,
             ], 400);
         }
 
+        $password = $smtpOverride['smtp_password'] ?? Setting::get('smtp_password', '');
+        if (empty($password)) {
+            $log[] = 'ERROR: SMTP password is empty.';
+            $log[] = 'HINT: Paste your Brevo SMTP key (SMTP & API → SMTP keys).';
+            return response()->json([
+                'ok' => false,
+                'error' => 'SMTP password is missing.',
+                'log' => $log,
+            ], 400);
+        }
+
+        $port = (int) ($smtpOverride['smtp_port'] ?? Setting::get('smtp_port', 587));
+        $encryption = strtolower((string) ($smtpOverride['smtp_encryption'] ?? Setting::get('smtp_encryption', 'tls')));
+        if ($port === 587 && $encryption === 'ssl') {
+            $log[] = 'WARNING: Port 587 with SSL is wrong — use Encryption: TLS for Brevo.';
+        }
+
         $mailConfig->applyFromSettings($smtpOverride);
+        $log[] = 'Sending test to: ' . $request->email;
 
         try {
             Mail::raw(
@@ -192,17 +215,37 @@ class SettingController extends Controller
                 }
             );
 
-            return response()->json(['ok' => true, 'message' => 'Test email sent successfully']);
-        } catch (\Exception $e) {
-            $hint = '';
-            $port = (int) ($smtpOverride['smtp_port'] ?? Setting::get('smtp_port', 587));
+            $log[] = 'SUCCESS: Email accepted by SMTP server.';
+            Log::info('SMTP test email sent', ['to' => $request->email, 'diag' => $diag]);
+
+            return response()->json([
+                'ok' => true,
+                'message' => 'Test email sent successfully',
+                'log' => $log,
+            ]);
+        } catch (\Throwable $e) {
+            $error = $e->getMessage();
+            $log[] = 'ERROR: ' . $error;
+
             if ($port === 587) {
-                $hint = ' For Brevo/587 use Encryption: TLS (not SSL).';
+                $log[] = 'HINT: Brevo on port 587 needs Encryption = TLS (not SSL).';
             }
+            if (str_contains(strtolower($error), 'authentication') || str_contains(strtolower($error), '535')) {
+                $log[] = 'HINT: Check SMTP username/password in Brevo → SMTP & API.';
+            }
+            if (str_contains(strtolower($error), 'sender') || str_contains(strtolower($error), 'from')) {
+                $log[] = 'HINT: Verify your From email as a sender in Brevo dashboard.';
+            }
+            if (str_contains(strtolower($error), 'connection') || str_contains(strtolower($error), 'timeout')) {
+                $log[] = 'HINT: Hostinger may block outbound SMTP — try Brevo API or Hostinger email SMTP.';
+            }
+
+            Log::error('SMTP test failed', ['error' => $error, 'diag' => $diag, 'trace' => $e->getTraceAsString()]);
 
             return response()->json([
                 'ok' => false,
-                'error' => $e->getMessage() . $hint,
+                'error' => $error,
+                'log' => $log,
             ], 500);
         }
     }

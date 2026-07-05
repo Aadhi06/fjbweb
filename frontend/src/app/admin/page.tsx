@@ -417,6 +417,7 @@ function SettingsContent() {
   const [saving, setSaving] = useState(false);
   const [testEmail, setTestEmail] = useState("");
   const [testingEmail, setTestingEmail] = useState(false);
+  const [smtpTestLog, setSmtpTestLog] = useState<{ ok: boolean; lines: string[] } | null>(null);
   const { toast, showToast, clearToast } = useToast();
 
   useEffect(() => {
@@ -479,6 +480,7 @@ function SettingsContent() {
       return;
     }
     setTestingEmail(true);
+    setSmtpTestLog(null);
     try {
       const res = await fetch(`${API_URL}/admin/settings/test-email`, {
         method: "POST",
@@ -496,11 +498,35 @@ function SettingsContent() {
           },
         }),
       });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || "Test email failed");
+
+      const raw = await res.text();
+      let data: { ok?: boolean; error?: string; message?: string; log?: string[] } = {};
+      try {
+        data = raw ? JSON.parse(raw) : {};
+      } catch {
+        const lines = [
+          `HTTP ${res.status} ${res.statusText}`,
+          "Could not read JSON from API — backend file may not be uploaded.",
+          raw.slice(0, 300) || "(empty response)",
+        ];
+        setSmtpTestLog({ ok: false, lines });
+        throw new Error(`Server returned ${res.status} — upload SettingController.php to Hostinger`);
+      }
+
+      const logLines = Array.isArray(data.log) && data.log.length > 0
+        ? data.log
+        : [data.error || data.message || `HTTP ${res.status}`];
+
+      if (!res.ok || data.ok === false) {
+        setSmtpTestLog({ ok: false, lines: logLines });
+        throw new Error(data.error || data.message || "Test email failed");
+      }
+
+      setSmtpTestLog({ ok: true, lines: logLines });
       showToast("Test email sent — check your inbox", "success");
     } catch (err) {
-      showToast(err instanceof Error ? err.message : "Test email failed", "error");
+      const msg = err instanceof Error ? err.message : "Test email failed";
+      showToast(msg.length > 120 ? msg.slice(0, 120) + "…" : msg, "error");
     } finally {
       setTestingEmail(false);
     }
@@ -886,8 +912,21 @@ function SettingsContent() {
           <p className="text-xs text-gray-500 mt-2">
             Brevo: host <code className="bg-gray-100 px-1 rounded">smtp-relay.brevo.com</code>, port{" "}
             <strong>587</strong>, encryption <strong>TLS</strong>. From email must be verified in Brevo.
-            Test uses the values above (save after a successful test).
           </p>
+          {smtpTestLog && (
+            <div
+              className={`mt-4 rounded-xl border p-4 ${
+                smtpTestLog.ok ? "bg-green-50 border-green-200" : "bg-red-50 border-red-300"
+              }`}
+            >
+              <p className={`text-sm font-bold mb-2 ${smtpTestLog.ok ? "text-green-800" : "text-red-800"}`}>
+                {smtpTestLog.ok ? "SMTP test log — success" : "SMTP test log — failed"}
+              </p>
+              <pre className="text-xs font-mono whitespace-pre-wrap break-words text-gray-800 leading-relaxed max-h-64 overflow-y-auto">
+                {smtpTestLog.lines.join("\n")}
+              </pre>
+            </div>
+          )}
           <SaveButton keys={smtpKeys} />
         </CollapsibleSection>
 
