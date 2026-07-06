@@ -2505,15 +2505,13 @@ export default function AdminDashboardPage() {
         <main className="p-4 sm:p-6">{renderContent()}</main>
       </div>
 
-      {activeTab !== "messages" && (
-        <AdminMessagesFab
-          count={unreadCount}
-          onClick={() => {
-            setActiveTab("messages");
-            refreshUnread();
-          }}
-        />
-      )}
+      <AdminMessagesFab
+        count={unreadCount}
+        onClick={() => {
+          setActiveTab("messages");
+          refreshUnread();
+        }}
+      />
     </div>
   );
 }

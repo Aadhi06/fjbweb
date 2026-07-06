@@ -24,7 +24,7 @@ export function useAdminUnreadCount(enabled: boolean) {
   useEffect(() => {
     if (!enabled) return;
     refresh();
-    const id = setInterval(refresh, 30000);
+    const id = setInterval(refresh, 10000);
     return () => clearInterval(id);
   }, [enabled, refresh]);
 

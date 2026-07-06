@@ -101,8 +101,12 @@ class SubmissionConversationService
 
     public function isUnread(FormSubmission $submission): bool
     {
-        $latest = $submission->messages()->latest()->first();
-        if (!$latest || $latest->sender !== 'customer') {
+        $latestCustomer = $submission->messages()
+            ->where('sender', 'customer')
+            ->latest()
+            ->first();
+
+        if (!$latestCustomer) {
             return false;
         }
 
@@ -110,13 +114,14 @@ class SubmissionConversationService
             return true;
         }
 
-        return $latest->created_at->gt($submission->admin_last_read_at);
+        return $latestCustomer->created_at->gt($submission->admin_last_read_at);
     }
 
     public function unreadCount(): int
     {
-        return FormSubmission::whereHas('messages', fn ($q) => $q->where('sender', 'customer'))
-            ->with('messages')
+        return FormSubmission::query()
+            ->whereHas('messages', fn ($q) => $q->where('sender', 'customer'))
+            ->with(['messages' => fn ($q) => $q->where('sender', 'customer')->latest()])
             ->get()
             ->filter(fn ($s) => $this->isUnread($s))
             ->count();

@@ -73,13 +73,17 @@ class FormController extends Controller
         return response()->json($submissions);
     }
 
-    public function adminShow(FormSubmission $submission): JsonResponse
+    public function adminShow(Request $request, FormSubmission $submission): JsonResponse
     {
         $submission->load(['form', 'files', 'messages.adminUser']);
-        $this->conversationService->markRead($submission);
+
+        if ($request->boolean('mark_read', true)) {
+            $this->conversationService->markRead($submission);
+            $submission->refresh();
+        }
 
         return response()->json([
-            'data' => $this->formatSubmissionDetail($submission->fresh()),
+            'data' => $this->formatSubmissionDetail($submission),
         ]);
     }
 

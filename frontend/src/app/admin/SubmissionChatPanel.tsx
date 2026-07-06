@@ -81,12 +81,14 @@ export function SubmissionChatPanel({
   submissionId,
   showToast,
   onRead,
+  onNewCustomerMessage,
   compact = false,
   onClose,
 }: {
   submissionId: number;
   showToast: (msg: string, type: "success" | "error") => void;
   onRead?: () => void;
+  onNewCustomerMessage?: () => void;
   compact?: boolean;
   onClose?: () => void;
 }) {
@@ -97,28 +99,66 @@ export function SubmissionChatPanel({
   const [showDetails, setShowDetails] = useState(!compact);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const onReadRef = useRef(onRead);
+  const onNewCustomerMessageRef = useRef(onNewCustomerMessage);
+  const messageIdsRef = useRef<string>("");
   onReadRef.current = onRead;
+  onNewCustomerMessageRef.current = onNewCustomerMessage;
 
-  const loadDetail = useCallback(async (notifyRead = false) => {
+  const loadDetail = useCallback(async (options?: { markRead?: boolean; silent?: boolean }) => {
+    const markRead = options?.markRead ?? false;
+    const silent = options?.silent ?? false;
+    if (!silent) setLoading(true);
+
     try {
-      const res = await fetch(`${API_URL}/admin/submissions/${submissionId}`, { headers: getAuthHeaders() });
+      const url = `${API_URL}/admin/submissions/${submissionId}?mark_read=${markRead ? "1" : "0"}`;
+      const res = await fetch(url, { headers: getAuthHeaders() });
       if (!res.ok) throw new Error();
       const json = await res.json();
-      setDetail(json.data);
-      if (notifyRead) onReadRef.current?.();
+      const data = json.data as SubmissionDetail;
+
+      if (silent) {
+        const prevIds = messageIdsRef.current;
+        const nextIds = data.messages.map((m) => m.id).join(",");
+        const hasNewCustomer = data.messages.some(
+          (m) => m.sender === "customer" && !prevIds.split(",").filter(Boolean).includes(String(m.id))
+        );
+        messageIdsRef.current = nextIds;
+        setDetail(data);
+        if (hasNewCustomer) {
+          showToast("New message from customer", "success");
+          onNewCustomerMessageRef.current?.();
+          await fetch(`${API_URL}/admin/submissions/${submissionId}/mark-read`, {
+            method: "POST",
+            headers: getAuthHeaders(),
+          });
+          onReadRef.current?.();
+        }
+      } else {
+        messageIdsRef.current = data.messages.map((m) => m.id).join(",");
+        setDetail(data);
+        if (markRead) onReadRef.current?.();
+      }
     } catch {
-      showToast("Failed to load enquiry", "error");
-      onClose?.();
+      if (!silent) {
+        showToast("Failed to load enquiry", "error");
+        onClose?.();
+      }
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, [submissionId, onClose, showToast]);
 
   useEffect(() => {
     setLoading(true);
     setDetail(null);
-    loadDetail(true);
-    // Only reload when switching conversations — not when parent re-renders.
+    messageIdsRef.current = "";
+    loadDetail({ markRead: true });
+
+    const interval = setInterval(() => {
+      loadDetail({ markRead: false, silent: true });
+    }, 10000);
+
+    return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [submissionId]);
 
@@ -138,7 +178,7 @@ export function SubmissionChatPanel({
       });
       if (!res.ok) throw new Error();
       setReply("");
-      await loadDetail(false);
+      await loadDetail({ markRead: false });
       showToast("Reply sent to customer email", "success");
     } catch {
       showToast("Failed to send reply", "error");

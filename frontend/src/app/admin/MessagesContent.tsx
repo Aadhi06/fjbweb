@@ -49,6 +49,8 @@ export function MessagesContent({
 
   useEffect(() => {
     fetchMessages();
+    const interval = setInterval(fetchMessages, 12000);
+    return () => clearInterval(interval);
   }, [fetchMessages]);
 
   useEffect(() => {
@@ -61,6 +63,11 @@ export function MessagesContent({
       prev.map((c) => (c.id === selectedId ? { ...c, unread: false } : c))
     );
   }, [onUnreadChange, selectedId]);
+
+  const handleNewCustomerMessage = useCallback(() => {
+    onUnreadChange?.();
+    fetchMessages();
+  }, [onUnreadChange, fetchMessages]);
 
   if (loading) {
     return (
@@ -148,6 +155,7 @@ export function MessagesContent({
                   submissionId={selectedId}
                   showToast={showToast}
                   onRead={handleRead}
+                  onNewCustomerMessage={handleNewCustomerMessage}
                   compact
                 />
               </>
