@@ -76,10 +76,40 @@ class FormController extends Controller
     public function adminShow(FormSubmission $submission): JsonResponse
     {
         $submission->load(['form', 'files', 'messages.adminUser']);
+        $this->conversationService->markRead($submission);
 
         return response()->json([
-            'data' => $this->formatSubmissionDetail($submission),
+            'data' => $this->formatSubmissionDetail($submission->fresh()),
         ]);
+    }
+
+    public function adminMessages(): JsonResponse
+    {
+        $submissions = FormSubmission::with(['form'])
+            ->whereHas('messages')
+            ->withCount('messages')
+            ->get()
+            ->sortByDesc(function ($submission) {
+                return $submission->messages()->latest()->value('created_at');
+            })
+            ->values()
+            ->map(fn ($s) => $this->conversationService->formatConversationSummary($s));
+
+        return response()->json(['data' => $submissions]);
+    }
+
+    public function adminMessagesUnreadCount(): JsonResponse
+    {
+        return response()->json([
+            'count' => $this->conversationService->unreadCount(),
+        ]);
+    }
+
+    public function markSubmissionRead(FormSubmission $submission): JsonResponse
+    {
+        $this->conversationService->markRead($submission);
+
+        return response()->json(['message' => 'Marked as read.']);
     }
 
     public function adminReply(Request $request, FormSubmission $submission): JsonResponse
@@ -270,12 +300,18 @@ class FormController extends Controller
             'field_ids.*' => 'integer',
         ]);
 
-        $fieldIds = array_values(array_unique($validated['field_ids']));
-        $existingIds = $form->fields()->pluck('id')->sort()->values()->all();
-        $sortedIncoming = collect($fieldIds)->sort()->values()->all();
+        $fieldIds = array_values(array_map('intval', $validated['field_ids']));
+        $existingIds = $form->fields()->pluck('id')->map(fn ($id) => (int) $id)->values()->all();
 
-        if ($sortedIncoming !== $existingIds) {
-            return response()->json(['message' => 'Field list does not match this form.'], 422);
+        if (count($fieldIds) !== count($existingIds)) {
+            return response()->json([
+                'message' => 'Field list is incomplete. Refresh and try again.',
+            ], 422);
+        }
+
+        $unknown = array_diff($fieldIds, $existingIds);
+        if (!empty($unknown)) {
+            return response()->json(['message' => 'Invalid field in list.'], 422);
         }
 
         foreach ($fieldIds as $index => $fieldId) {

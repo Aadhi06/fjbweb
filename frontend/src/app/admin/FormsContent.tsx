@@ -98,16 +98,40 @@ export function FormsContent({
     if (!selectedForm) return;
     setReordering(true);
     try {
+      const fieldIds = nextFields.map((f) => f.id);
       const res = await fetch(`${API_URL}/admin/forms/${selectedForm.id}/fields/reorder`, {
         method: "PUT",
         headers: getAuthHeaders(),
-        body: JSON.stringify({ field_ids: nextFields.map((f) => f.id) }),
+        body: JSON.stringify({ field_ids: fieldIds }),
       });
-      if (!res.ok) throw new Error();
-      showToast("Field order saved", "success");
-      fetchForms();
-    } catch {
-      showToast("Failed to save field order", "error");
+
+      if (res.ok) {
+        showToast("Field order saved", "success");
+        fetchForms();
+        return;
+      }
+
+      // Fallback: update each field order (works if bulk reorder route is missing)
+      const results = await Promise.all(
+        nextFields.map((field, index) =>
+          fetch(`${API_URL}/admin/forms/${selectedForm.id}/fields/${field.id}`, {
+            method: "PUT",
+            headers: getAuthHeaders(),
+            body: JSON.stringify({ order: index + 1 }),
+          })
+        )
+      );
+
+      if (results.every((r) => r.ok)) {
+        showToast("Field order saved", "success");
+        fetchForms();
+        return;
+      }
+
+      const errBody = await results.find((r) => !r.ok)?.json().catch(() => null);
+      throw new Error(errBody?.message || "Save failed");
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "Failed to save field order", "error");
       if (selectedForm) {
         setOrderedFields([...selectedForm.fields].sort((a, b) => a.order - b.order));
       }
@@ -129,6 +153,7 @@ export function FormsContent({
       const next = [...prev];
       const [moved] = next.splice(dragIndex, 1);
       next.splice(index, 0, moved);
+      orderedFieldsRef.current = next;
       return next;
     });
     setDragIndex(index);
