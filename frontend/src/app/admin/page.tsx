@@ -50,6 +50,7 @@ import {
 import { MarketingContent } from "./MarketingContent";
 import { FormsContent } from "./FormsContent";
 import { BookingsContent } from "./BookingsContent";
+import { UsersContent } from "./UsersContent";
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8002") + "/api";
 
@@ -2608,6 +2609,8 @@ export default function AdminDashboardPage() {
         return <BlogsContent />;
       case "about":
         return <AboutContent />;
+      case "users":
+        return <UsersContent showToast={showToast} />;
     }
   }
 
