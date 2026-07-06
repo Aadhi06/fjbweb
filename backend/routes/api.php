@@ -89,6 +89,7 @@ Route::middleware('auth:sanctum')->prefix('admin')->group(function () {
 
     Route::get('/forms', [FormController::class, 'adminForms']);
     Route::post('/forms/{form}/fields', [FormController::class, 'storeField']);
+    Route::put('/forms/{form}/fields/reorder', [FormController::class, 'reorderFields']);
     Route::put('/forms/{form}/fields/{field}', [FormController::class, 'updateField']);
     Route::delete('/forms/{form}/fields/{field}', [FormController::class, 'deleteField']);
 

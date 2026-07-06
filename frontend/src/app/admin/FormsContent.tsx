@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { Loader2, Plus, RefreshCw, Trash2, Pencil, X } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { GripVertical, Loader2, Plus, RefreshCw, Trash2, X } from "lucide-react";
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8002") + "/api";
 
@@ -58,6 +58,11 @@ export function FormsContent({
   const [showAddField, setShowAddField] = useState(false);
   const [fieldForm, setFieldForm] = useState({ ...emptyField });
   const [saving, setSaving] = useState(false);
+  const [orderedFields, setOrderedFields] = useState<FormField[]>([]);
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [reordering, setReordering] = useState(false);
+  const orderedFieldsRef = useRef<FormField[]>([]);
+  const startOrderRef = useRef<number[]>([]);
 
   const fetchForms = useCallback(async () => {
     try {
@@ -76,6 +81,66 @@ export function FormsContent({
   useEffect(() => { fetchForms(); }, [fetchForms]);
 
   const selectedForm = forms.find((f) => f.slug === selectedSlug);
+
+  useEffect(() => {
+    if (!selectedForm) {
+      setOrderedFields([]);
+      return;
+    }
+    setOrderedFields([...selectedForm.fields].sort((a, b) => a.order - b.order));
+  }, [selectedForm]);
+
+  useEffect(() => {
+    orderedFieldsRef.current = orderedFields;
+  }, [orderedFields]);
+
+  async function saveFieldOrder(nextFields: FormField[]) {
+    if (!selectedForm) return;
+    setReordering(true);
+    try {
+      const res = await fetch(`${API_URL}/admin/forms/${selectedForm.id}/fields/reorder`, {
+        method: "PUT",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ field_ids: nextFields.map((f) => f.id) }),
+      });
+      if (!res.ok) throw new Error();
+      showToast("Field order saved", "success");
+      fetchForms();
+    } catch {
+      showToast("Failed to save field order", "error");
+      if (selectedForm) {
+        setOrderedFields([...selectedForm.fields].sort((a, b) => a.order - b.order));
+      }
+    } finally {
+      setReordering(false);
+    }
+  }
+
+  function handleDragStart(index: number) {
+    setDragIndex(index);
+    startOrderRef.current = orderedFieldsRef.current.map((f) => f.id);
+  }
+
+  function handleDragOver(e: React.DragEvent, index: number) {
+    e.preventDefault();
+    if (dragIndex === null || dragIndex === index) return;
+
+    setOrderedFields((prev) => {
+      const next = [...prev];
+      const [moved] = next.splice(dragIndex, 1);
+      next.splice(index, 0, moved);
+      return next;
+    });
+    setDragIndex(index);
+  }
+
+  function handleDragEnd() {
+    const newOrder = orderedFieldsRef.current.map((f) => f.id);
+    setDragIndex(null);
+    if (startOrderRef.current.join(",") !== newOrder.join(",")) {
+      saveFieldOrder(orderedFieldsRef.current);
+    }
+  }
 
   async function addField(e: React.FormEvent) {
     e.preventDefault();
@@ -180,10 +245,15 @@ export function FormsContent({
                   <Plus className="w-4 h-4" /> Add Field
                 </button>
               </div>
+              <p className="px-4 py-2 text-xs text-gray-500 border-b border-gray-100 bg-gray-50/30">
+                Drag rows by the handle to change field order on the website form.
+                {reordering && <span className="ml-2 text-amber-600">Saving order…</span>}
+              </p>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-gray-100 bg-gray-50/50">
+                      <th className="w-10 px-2 py-3" aria-label="Reorder" />
                       <th className="text-left px-4 py-3 font-semibold text-gray-600">Label</th>
                       <th className="text-left px-4 py-3 font-semibold text-gray-600">Name</th>
                       <th className="text-left px-4 py-3 font-semibold text-gray-600">Type</th>
@@ -192,8 +262,20 @@ export function FormsContent({
                     </tr>
                   </thead>
                   <tbody>
-                    {selectedForm.fields.map((field) => (
-                      <tr key={field.id} className="border-b border-gray-50">
+                    {orderedFields.map((field, index) => (
+                      <tr
+                        key={field.id}
+                        draggable
+                        onDragStart={() => handleDragStart(index)}
+                        onDragOver={(e) => handleDragOver(e, index)}
+                        onDragEnd={handleDragEnd}
+                        className={`border-b border-gray-50 transition-colors ${
+                          dragIndex === index ? "bg-amber-50" : "hover:bg-gray-50/50"
+                        }`}
+                      >
+                        <td className="px-2 py-3 text-gray-400 cursor-grab active:cursor-grabbing">
+                          <GripVertical className="w-4 h-4 mx-auto" />
+                        </td>
                         <td className="px-4 py-3 font-medium">{field.label}</td>
                         <td className="px-4 py-3 text-gray-500 font-mono text-xs">{field.name}</td>
                         <td className="px-4 py-3 text-gray-600">{field.type}</td>

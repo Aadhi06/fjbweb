@@ -263,6 +263,35 @@ class FormController extends Controller
         ]);
     }
 
+    public function reorderFields(Request $request, Form $form): JsonResponse
+    {
+        $validated = $request->validate([
+            'field_ids' => 'required|array|min:1',
+            'field_ids.*' => 'integer',
+        ]);
+
+        $fieldIds = array_values(array_unique($validated['field_ids']));
+        $existingIds = $form->fields()->pluck('id')->sort()->values()->all();
+        $sortedIncoming = collect($fieldIds)->sort()->values()->all();
+
+        if ($sortedIncoming !== $existingIds) {
+            return response()->json(['message' => 'Field list does not match this form.'], 422);
+        }
+
+        foreach ($fieldIds as $index => $fieldId) {
+            FormField::where('id', $fieldId)
+                ->where('form_id', $form->id)
+                ->update(['order' => $index + 1]);
+        }
+
+        $fields = $form->fields()->orderBy('order')->get()->map(fn ($f) => $this->formatField($f));
+
+        return response()->json([
+            'message' => 'Field order updated.',
+            'fields' => $fields,
+        ]);
+    }
+
     public function deleteField(Form $form, FormField $field): JsonResponse
     {
         if ($field->form_id !== $form->id) {
