@@ -3,23 +3,21 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Mail\AdminBookingNotification;
-use App\Mail\CustomerBookingConfirmation;
 use App\Models\Booking;
 use App\Models\BookingSetting;
-use App\Models\Setting;
+use App\Services\BookingMailService;
 use App\Services\MarketingContactService;
-use App\Services\MailConfigService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\Rule;
 
 class BookingController extends Controller
 {
+    public function __construct(private BookingMailService $mailService) {}
+
     public function availableSlots(Request $request): JsonResponse
     {
         $request->validate([
@@ -114,29 +112,11 @@ class BookingController extends Controller
             Log::error("Failed to sync marketing contact from booking: {$e->getMessage()}");
         }
 
-        $mailConfig = app(MailConfigService::class);
-
-        if ($mailConfig->isConfigured()) {
-            $mailConfig->applyFromSettings();
-
-            try {
-                $adminEmail = Setting::get('admin_email', 'info@finejewellerybuyers.co.uk');
-                Mail::to($adminEmail)->send(new AdminBookingNotification($booking));
-            } catch (\Exception $e) {
-                Log::error("Failed to send admin booking notification: {$e->getMessage()}");
-            }
-
-            try {
-                Mail::to($booking->email)->send(new CustomerBookingConfirmation($booking));
-            } catch (\Exception $e) {
-                Log::error("Failed to send customer booking confirmation: {$e->getMessage()}");
-            }
-        } else {
-            $mailConfig->logIfNotConfigured('booking');
-        }
+        $this->mailService->sendAdminNotification($booking);
+        $this->mailService->sendReceived($booking);
 
         return response()->json([
-            'message' => 'Booking confirmed successfully!',
+            'message' => 'Booking received! Our team will confirm your appointment by email.',
             'booking' => [
                 'id' => $booking->id,
                 'name' => $booking->name,
@@ -168,13 +148,80 @@ class BookingController extends Controller
     {
         $validated = $request->validate([
             'status' => ['required', Rule::in(['pending', 'confirmed', 'cancelled', 'completed'])],
+            'reason' => 'nullable|string|max:500',
         ]);
 
+        $previousStatus = $booking->status;
         $booking->update(['status' => $validated['status']]);
+        $booking->refresh();
+
+        if ($validated['status'] === 'confirmed' && $previousStatus !== 'confirmed') {
+            $this->mailService->sendConfirmed($booking);
+        }
+
+        if ($validated['status'] === 'cancelled' && $previousStatus !== 'cancelled') {
+            $this->mailService->sendCancelled($booking, $validated['reason'] ?? null);
+        }
 
         return response()->json([
             'message' => 'Booking status updated.',
-            'booking' => $booking->fresh(),
+            'booking' => $booking,
+        ]);
+    }
+
+    public function reschedule(Request $request, Booking $booking): JsonResponse
+    {
+        $validated = $request->validate([
+            'booking_date' => 'required|date|after_or_equal:today',
+            'booking_time' => 'required|string',
+            'status' => ['nullable', Rule::in(['pending', 'confirmed'])],
+        ]);
+
+        $date = Carbon::parse($validated['booking_date']);
+        $dayOfWeek = $date->dayOfWeek;
+        $setting = BookingSetting::where('day_of_week', $dayOfWeek)->first();
+
+        if (!$setting || !$setting->is_open) {
+            return response()->json(['message' => 'Bookings are not available on this day.'], 422);
+        }
+
+        $existingCount = Booking::where('booking_date', $validated['booking_date'])
+            ->where('booking_time', $validated['booking_time'])
+            ->where('id', '!=', $booking->id)
+            ->active()
+            ->count();
+
+        if ($existingCount >= $setting->max_bookings_per_slot) {
+            return response()->json(['message' => 'This time slot is no longer available.'], 422);
+        }
+
+        $previousDate = $booking->booking_date->format('l, j F Y');
+        $previousTime = $booking->booking_time;
+        $previousStatus = $booking->status;
+
+        $booking->update([
+            'booking_date' => $validated['booking_date'],
+            'booking_time' => $validated['booking_time'],
+            'status' => $validated['status'] ?? ($booking->status === 'cancelled' ? 'confirmed' : $booking->status),
+        ]);
+
+        $booking->refresh();
+        $this->mailService->sendRescheduled($booking, $previousDate, $previousTime);
+
+        if ($booking->status === 'confirmed' && $previousStatus !== 'confirmed') {
+            $this->mailService->sendConfirmed($booking);
+        }
+
+        return response()->json([
+            'message' => 'Booking rescheduled and customer notified.',
+            'booking' => $booking,
+        ]);
+    }
+
+    public function emailTemplates(): JsonResponse
+    {
+        return response()->json([
+            'data' => $this->mailService->getTemplatePreviews(),
         ]);
     }
 

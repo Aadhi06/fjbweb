@@ -48,18 +48,21 @@ import {
   HardHat,
 } from "lucide-react";
 import { MarketingContent } from "./MarketingContent";
+import { FormsContent } from "./FormsContent";
+import { BookingsContent } from "./BookingsContent";
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8002") + "/api";
 
 type AdminUser = { name: string; email: string };
-type ActiveTab = "dashboard" | "settings" | "reviews" | "bookings" | "submissions" | "marketing" | "blogs" | "users" | "about";
+type ActiveTab = "dashboard" | "settings" | "reviews" | "bookings" | "forms" | "submissions" | "marketing" | "blogs" | "users" | "about";
 
 const navItems: { id: ActiveTab; label: string; icon: typeof LayoutDashboard }[] = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
   { id: "settings", label: "Settings", icon: Settings },
   { id: "reviews", label: "Reviews", icon: Star },
   { id: "bookings", label: "Bookings", icon: CalendarDays },
-  { id: "submissions", label: "Form Submissions", icon: FileText },
+  { id: "forms", label: "Form Fields", icon: FileText },
+  { id: "submissions", label: "Form Submissions", icon: Package },
   { id: "marketing", label: "Email Marketing", icon: Megaphone },
   { id: "blogs", label: "Blogs", icon: Newspaper },
   { id: "about", label: "About Us", icon: Info },
@@ -949,159 +952,6 @@ function SettingsContent() {
   );
 }
 
-// ─── BOOKINGS CONTENT ─────────────────────────────────────────────────────────
-
-type BookingRecord = {
-  id: number;
-  name: string;
-  email: string;
-  phone: string;
-  service_type: string;
-  booking_date: string;
-  booking_time: string;
-  status: string;
-  notes?: string;
-  created_at: string;
-};
-
-function BookingsContent() {
-  const [bookings, setBookings] = useState<BookingRecord[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [updatingId, setUpdatingId] = useState<number | null>(null);
-  const { toast, showToast, clearToast } = useToast();
-
-  const fetchBookings = useCallback(async () => {
-    try {
-      const res = await fetch(`${API_URL}/admin/bookings`, { headers: getAuthHeaders() });
-      const data = await res.json();
-      setBookings(data.data || []);
-    } catch {
-      showToast("Failed to load bookings", "error");
-    } finally {
-      setLoading(false);
-    }
-  }, [showToast]);
-
-  useEffect(() => { fetchBookings(); }, [fetchBookings]);
-
-  async function updateStatus(id: number, status: string) {
-    setUpdatingId(id);
-    try {
-      const res = await fetch(`${API_URL}/admin/bookings/${id}/status`, {
-        method: "PUT",
-        headers: getAuthHeaders(),
-        body: JSON.stringify({ status }),
-      });
-      if (!res.ok) throw new Error();
-      showToast(`Booking ${status}`, "success");
-      fetchBookings();
-    } catch {
-      showToast("Failed to update booking status", "error");
-    } finally {
-      setUpdatingId(null);
-    }
-  }
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
-      </div>
-    );
-  }
-
-  return (
-    <div>
-      {toast && <Toast message={toast.message} type={toast.type} onClose={clearToast} />}
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h2 className="text-2xl font-bold text-black mb-1">Bookings</h2>
-          <p className="text-gray-500">View and manage customer bookings</p>
-        </div>
-        <button onClick={() => { setLoading(true); fetchBookings(); }} className="flex items-center gap-2 text-sm text-gray-600 hover:text-black transition-colors">
-          <RefreshCw className="w-4 h-4" /> Refresh
-        </button>
-      </div>
-
-      {bookings.length === 0 ? (
-        <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
-          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <CalendarDays className="w-8 h-8 text-gray-400" />
-          </div>
-          <h3 className="text-lg font-semibold text-gray-700 mb-2">No bookings yet</h3>
-          <p className="text-gray-500 text-sm">Bookings will appear here once customers start scheduling.</p>
-        </div>
-      ) : (
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-gray-200 bg-gray-50/50">
-                  <th className="text-left px-4 py-3 font-semibold text-gray-600">Name</th>
-                  <th className="text-left px-4 py-3 font-semibold text-gray-600">Email</th>
-                  <th className="text-left px-4 py-3 font-semibold text-gray-600">Phone</th>
-                  <th className="text-left px-4 py-3 font-semibold text-gray-600">Service</th>
-                  <th className="text-left px-4 py-3 font-semibold text-gray-600">Date</th>
-                  <th className="text-left px-4 py-3 font-semibold text-gray-600">Time</th>
-                  <th className="text-left px-4 py-3 font-semibold text-gray-600">Status</th>
-                  <th className="text-left px-4 py-3 font-semibold text-gray-600">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {bookings.map((b) => (
-                  <tr key={b.id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50/50">
-                    <td className="px-4 py-3 font-medium text-black">{b.name}</td>
-                    <td className="px-4 py-3 text-gray-600">{b.email}</td>
-                    <td className="px-4 py-3 text-gray-600">{b.phone}</td>
-                    <td className="px-4 py-3 text-gray-600">{b.service_type}</td>
-                    <td className="px-4 py-3 text-gray-600">{b.booking_date ? new Date(b.booking_date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : ""}</td>
-                    <td className="px-4 py-3 text-gray-600">{b.booking_time}</td>
-                    <td className="px-4 py-3"><StatusBadge status={b.status} /></td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-1.5">
-                        {b.status !== "confirmed" && b.status !== "completed" && b.status !== "cancelled" && (
-                          <button
-                            onClick={() => updateStatus(b.id, "confirmed")}
-                            disabled={updatingId === b.id}
-                            className="px-2.5 py-1 text-xs font-medium rounded-md bg-green-50 text-green-700 hover:bg-green-100 border border-green-200 transition-colors disabled:opacity-50"
-                          >
-                            Confirm
-                          </button>
-                        )}
-                        {b.status !== "completed" && b.status !== "cancelled" && (
-                          <button
-                            onClick={() => updateStatus(b.id, "completed")}
-                            disabled={updatingId === b.id}
-                            className="px-2.5 py-1 text-xs font-medium rounded-md bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 transition-colors disabled:opacity-50"
-                          >
-                            Complete
-                          </button>
-                        )}
-                        {b.status !== "cancelled" && b.status !== "completed" && (
-                          <button
-                            onClick={() => updateStatus(b.id, "cancelled")}
-                            disabled={updatingId === b.id}
-                            className="px-2.5 py-1 text-xs font-medium rounded-md bg-red-50 text-red-700 hover:bg-red-100 border border-red-200 transition-colors disabled:opacity-50"
-                          >
-                            Cancel
-                          </button>
-                        )}
-                        {(b.status === "completed" || b.status === "cancelled") && (
-                          <span className="text-xs text-gray-400 italic">No actions</span>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
 // ─── SUBMISSIONS CONTENT ──────────────────────────────────────────────────────
 
 type SubmissionRecord = {
@@ -1109,17 +959,48 @@ type SubmissionRecord = {
   form_name: string;
   form_slug?: string;
   data: Record<string, string>;
+  files?: {
+    id: number;
+    field_name: string;
+    original_name: string;
+    url: string;
+    mime_type?: string;
+    is_image: boolean;
+  }[];
   status: string;
   ip_address?: string;
   created_at: string;
   created_at_human: string;
 };
 
+const SUMMARY_FIELD_ORDER = ["gold_items", "estimated_total", "items_count", "name", "email", "phone"];
+
+function formatSubmissionFields(data: Record<string, string>) {
+  const entries: [string, string][] = [];
+  const handled = new Set<string>();
+
+  for (const key of SUMMARY_FIELD_ORDER) {
+    if (data[key]) {
+      entries.push([key, data[key]]);
+      handled.add(key);
+    }
+  }
+
+  for (const [key, value] of Object.entries(data)) {
+    if (handled.has(key) || key.startsWith("_") || key === "photos") continue;
+    entries.push([key, value]);
+  }
+
+  return entries;
+}
+
 function SubmissionModal({ submission, onClose }: { submission: SubmissionRecord; onClose: () => void }) {
+  const fields = formatSubmissionFields(submission.data || {});
+
   return (
     <div className="fixed inset-0 z-[90] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative bg-white rounded-2xl shadow-xl max-w-lg w-full max-h-[80vh] overflow-y-auto">
+      <div className="relative bg-white rounded-2xl shadow-xl max-w-2xl w-full max-h-[80vh] overflow-y-auto">
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <div>
             <h3 className="text-lg font-semibold text-black">{submission.form_name}</h3>
@@ -1130,16 +1011,54 @@ function SubmissionModal({ submission, onClose }: { submission: SubmissionRecord
           </button>
         </div>
         <div className="p-6 space-y-4">
-          {submission.data && Object.entries(submission.data).map(([key, value]) => (
+          {fields.map(([key, value]) => (
             <div key={key}>
               <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">
                 {key.replace(/_/g, " ")}
               </p>
-              <p className="text-sm text-black bg-gray-50 rounded-lg px-4 py-2.5 border border-gray-100">
-                {String(value || "—")}
-              </p>
+              {key === "estimated_total" ? (
+                <p className="text-lg font-bold text-amber-600 bg-amber-50 rounded-lg px-4 py-2.5 border border-amber-100">
+                  {value}
+                </p>
+              ) : key === "gold_items" ? (
+                <pre className="text-sm text-black bg-gray-50 rounded-lg px-4 py-2.5 border border-gray-100 whitespace-pre-wrap font-sans">
+                  {value}
+                </pre>
+              ) : (
+                <p className="text-sm text-black bg-gray-50 rounded-lg px-4 py-2.5 border border-gray-100">
+                  {String(value || "—")}
+                </p>
+              )}
             </div>
           ))}
+
+          {submission.files && submission.files.length > 0 && (
+            <div>
+              <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Uploaded Photos</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {submission.files.map((file) => (
+                  <a
+                    key={file.id}
+                    href={file.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block rounded-lg border border-gray-200 overflow-hidden hover:border-amber-400 transition-colors"
+                  >
+                    {file.is_image ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={file.url} alt={file.original_name} className="w-full h-40 object-cover bg-gray-100" />
+                    ) : (
+                      <div className="h-40 flex items-center justify-center bg-gray-50 text-sm text-gray-600 px-4 text-center">
+                        {file.original_name}
+                      </div>
+                    )}
+                    <p className="text-xs text-gray-500 px-3 py-2 truncate">{file.original_name}</p>
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
+
           {submission.ip_address && (
             <div>
               <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">IP Address</p>
@@ -2619,6 +2538,7 @@ export default function AdminDashboardPage() {
   const [activeTab, setActiveTab] = useState<ActiveTab>("dashboard");
   const [checking, setChecking] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { toast, showToast, clearToast } = useToast();
 
   useEffect(() => {
     const token = localStorage.getItem("admin_token");
@@ -2677,7 +2597,9 @@ export default function AdminDashboardPage() {
       case "reviews":
         return <ReviewsContent />;
       case "bookings":
-        return <BookingsContent />;
+        return <BookingsContent showToast={showToast} />;
+      case "forms":
+        return <FormsContent showToast={showToast} />;
       case "submissions":
         return <SubmissionsContent />;
       case "marketing":
@@ -2691,6 +2613,7 @@ export default function AdminDashboardPage() {
 
   return (
     <div className="min-h-screen bg-[#f5f5f5] flex">
+      {toast && <Toast message={toast.message} type={toast.type} onClose={clearToast} />}
       {sidebarOpen && (
         <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />
       )}

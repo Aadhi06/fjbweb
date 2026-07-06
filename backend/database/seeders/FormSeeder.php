@@ -142,6 +142,8 @@ class FormSeeder extends Seeder
                     ['name' => 'name', 'label' => 'Full Name', 'type' => 'text', 'placeholder' => 'John Smith', 'required' => true, 'order' => 1],
                     ['name' => 'email', 'label' => 'Email Address', 'type' => 'email', 'placeholder' => 'john@example.com', 'required' => true, 'order' => 2],
                     ['name' => 'phone', 'label' => 'Phone Number', 'type' => 'phone', 'placeholder' => '07XXX XXXXXX', 'required' => true, 'order' => 3],
+                    ['name' => 'expected_price', 'label' => 'Expected Price', 'type' => 'text', 'placeholder' => 'e.g. £500 or best offer', 'required' => false, 'order' => 4],
+                    ['name' => 'photos', 'label' => 'Upload Photos', 'type' => 'file', 'required' => true, 'order' => 5],
                 ],
             ],
         ];

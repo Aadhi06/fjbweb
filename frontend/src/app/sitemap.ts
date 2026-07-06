@@ -3,6 +3,9 @@ import { SITE_URL, SERVICE_SLUGS } from "@/lib/seo";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8002";
 
+/** Regenerate sitemap when new blog posts are published */
+export const revalidate = 3600;
+
 const STATIC_PAGES: { path: string; priority: number; changeFrequency: MetadataRoute.Sitemap[0]["changeFrequency"] }[] = [
   { path: "/", priority: 1, changeFrequency: "daily" },
   { path: "/free-valuation", priority: 0.95, changeFrequency: "weekly" },
@@ -20,7 +23,10 @@ const STATIC_PAGES: { path: string; priority: number; changeFrequency: MetadataR
 
 async function getBlogSlugs(): Promise<{ slug: string; updated_at?: string }[]> {
   try {
-    const res = await fetch(`${API_URL}/api/blog`, { next: { revalidate: 3600 } });
+    const res = await fetch(`${API_URL}/api/blog`, {
+      cache: "no-store",
+      headers: { Accept: "application/json" },
+    });
     if (!res.ok) return [];
     const data = await res.json();
     return (data.data || []).map((post: { slug: string; updated_at?: string; published_at?: string }) => ({

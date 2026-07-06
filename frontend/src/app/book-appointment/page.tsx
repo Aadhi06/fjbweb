@@ -225,10 +225,10 @@ function BookAppointmentContent() {
                 <CheckCircle className="w-10 h-10 text-success" />
               </div>
               <h2 className="text-2xl md:text-3xl font-serif font-bold text-black mb-4">
-                Appointment Confirmed!
+                Booking Received!
               </h2>
               <p className="text-muted-foreground mb-8">
-                Your booking has been received. We&apos;ll send a confirmation to your email.
+                We have received your request. Our team will review it and send you a confirmation email shortly.
               </p>
               <div className="bg-surface rounded-2xl p-6 text-left space-y-3 max-w-md mx-auto">
                 <div className="flex items-center gap-3">

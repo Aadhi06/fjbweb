@@ -160,7 +160,7 @@ export default function GoldCalculatorPage() {
       }
       await showFormSuccess(
         "Thank You!",
-        `We've received your valuation request with your gold estimate of ${formatCurrency(grandTotal)}. Our experts will contact you within 24 hours with an exact valuation.`
+        `We've received your valuation request.\n\nEstimated total: ${formatCurrency(grandTotal)}\nItems: ${cartItems.map((i) => `${i.caratLabel} (${i.weight}g)`).join(", ")}\n\nA confirmation email with your details and uploaded photo has been sent. Our experts will contact you within 24 hours.`
       );
       formEl.reset();
       setShowValuationForm(false);
@@ -220,6 +220,10 @@ export default function GoldCalculatorPage() {
                   <div>
                     <label className="block text-sm font-semibold text-secondary mb-2">Phone Number <span className="text-destructive">*</span></label>
                     <input type="tel" name="phone" required placeholder="07XXX XXXXXX" className="w-full px-4 py-3 rounded-xl border border-border bg-white text-secondary placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-secondary mb-2">Expected Price</label>
+                    <input type="text" name="expected_price" placeholder="e.g. £500 or best offer" className="w-full px-4 py-3 rounded-xl border border-border bg-white text-secondary placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors" />
                   </div>
                   <div>
                     <label className="block text-sm font-semibold text-secondary mb-2">Upload Photos <span className="text-destructive">*</span></label>

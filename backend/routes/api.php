@@ -28,6 +28,7 @@ Route::post('/rates/calculate', [RateController::class, 'calculate']);
 
 Route::get('/forms/{slug}', [FormController::class, 'show']);
 Route::post('/forms/{slug}/submit', [FormController::class, 'submit'])->middleware(\App\Http\Middleware\AntiSpam::class);
+Route::get('/submission-files/{formSubmissionFile}', [FormController::class, 'serveFile']);
 
 Route::get('/google-reviews', [ReviewController::class, 'index']);
 
@@ -78,8 +79,15 @@ Route::middleware('auth:sanctum')->prefix('admin')->group(function () {
 
     Route::get('/bookings', [BookingController::class, 'index']);
     Route::put('/bookings/{booking}/status', [BookingController::class, 'updateStatus']);
+    Route::put('/bookings/{booking}/reschedule', [BookingController::class, 'reschedule']);
+    Route::get('/booking-email-templates', [BookingController::class, 'emailTemplates']);
     Route::get('/booking-settings', [BookingController::class, 'settings']);
     Route::put('/booking-settings', [BookingController::class, 'updateSettings']);
+
+    Route::get('/forms', [FormController::class, 'adminForms']);
+    Route::post('/forms/{form}/fields', [FormController::class, 'storeField']);
+    Route::put('/forms/{form}/fields/{field}', [FormController::class, 'updateField']);
+    Route::delete('/forms/{form}/fields/{field}', [FormController::class, 'deleteField']);
 
     Route::get('/submissions', [FormController::class, 'adminIndex']);
 

@@ -43,11 +43,14 @@ export function showBookingSuccess(booking: {
 }) {
   return Swal.fire({
     icon: "success",
-    title: "Appointment Confirmed!",
+    title: "Booking Received!",
     html: `
       <p style="margin:0 0 14px;color:#666;font-size:15px;line-height:1.5">
-        Your booking has been received. We&rsquo;ll send a confirmation to your email.
+        We have received your booking request. <strong>Our team will review it and send you a confirmation email shortly.</strong>
       </p>
+      <div style="text-align:left;background:#fffbeb;border:1px solid #fcd34d;padding:12px 14px;border-radius:10px;font-size:13px;line-height:1.5;color:#92400e;margin:0 0 14px">
+        This is not a confirmed appointment yet — please wait for our confirmation email.
+      </div>
       <div style="text-align:left;background:#fafafa;padding:16px;border-radius:12px;font-size:14px;line-height:1.7;color:#111">
         <div><strong>${booking.name}</strong></div>
         <div>${booking.service_type}</div>
@@ -55,7 +58,7 @@ export function showBookingSuccess(booking: {
         <div style="color:#888;margin-top:8px;font-size:13px">Ref #${booking.id}</div>
       </div>
     `,
-    confirmButtonText: "Great!",
+    confirmButtonText: "OK",
     confirmButtonColor,
   });
 }

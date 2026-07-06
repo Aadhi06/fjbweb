@@ -15,4 +15,14 @@ class FormSubmissionFile extends Model
     {
         return $this->belongsTo(FormSubmission::class, 'form_submission_id');
     }
+
+    public function isImage(): bool
+    {
+        return str_starts_with($this->mime_type ?? '', 'image/');
+    }
+
+    public function publicUrl(): string
+    {
+        return rtrim(config('app.url'), '/') . '/api/submission-files/' . $this->id;
+    }
 }

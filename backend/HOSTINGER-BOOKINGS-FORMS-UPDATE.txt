@@ -1,0 +1,53 @@
+BACKEND UPDATE — Bookings emails, form fields admin, expected price
+====================================================================
+
+Upload to: public_html/api/  (merge folders)
+
+FILES IN ZIP:
+-------------
+routes/api.php
+app/Http/Controllers/Api/BookingController.php
+app/Http/Controllers/Api/FormController.php
+app/Services/BookingMailService.php
+app/Mail/CustomerBookingReceived.php
+app/Mail/CustomerBookingConfirmed.php
+app/Mail/CustomerBookingCancelled.php
+app/Mail/CustomerBookingRescheduled.php
+app/Mail/AdminBookingNotification.php
+app/Mail/AdminFormNotification.php
+database/migrations/2026_07_06_170000_add_expected_price_to_gold_valuation_form.php
+public/run-migrate.php
+public/clear-cache.php
+public/hostinger-env.php
+
+WHAT CHANGED:
+-------------
+BOOKINGS:
+  • Customer gets "We received your booking" email on submit (NOT confirmed yet)
+  • Admin gets new booking alert email
+  • Admin Confirm → sends "Your appointment is confirmed" email to customer
+  • Admin Cancel → sends cancellation email (optional reason)
+  • Admin Reschedule → sends rescheduled email with old/new date-time
+  • Email templates preview API: GET /api/admin/booking-email-templates
+
+FORMS:
+  • Admin can add/delete form fields via API
+  • Gold valuation: expected_price field added
+
+AFTER UPLOAD:
+-------------
+1. https://api.finejewellerybuyers.co.uk/run-migrate.php?key=YOUR_CRON_SECRET
+2. https://api.finejewellerybuyers.co.uk/clear-cache.php?key=YOUR_CRON_SECRET
+3. Delete run-migrate.php and clear-cache.php after use
+
+FRONTEND (Vercel):
+------------------
+Redeploy from GitHub for:
+  • Admin → Form Fields tab
+  • Admin → Bookings (confirm/cancel/reschedule + email templates)
+  • Gold calculator Expected Price field
+  • Booking received messaging (not "confirmed" on submit)
+
+SMTP:
+-----
+Ensure Admin → Settings → SMTP is configured or no emails will send.

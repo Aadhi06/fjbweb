@@ -13,11 +13,15 @@ use App\Services\MailConfigService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\ValidationException;
 
 class FormSubmissionService
 {
     public function submit(Form $form, Request $request): FormSubmission
     {
+        $this->validateSubmission($form, $request);
+
         $fields = $form->activeFields;
         $data = [];
         $files = [];
@@ -70,6 +74,8 @@ class FormSubmissionService
             ]);
         }
 
+        $submission->load('files');
+        $form->load('fields');
         $this->sendNotification($form, $submission);
 
         try {
@@ -79,6 +85,36 @@ class FormSubmissionService
         }
 
         return $submission;
+    }
+
+    private function validateSubmission(Form $form, Request $request): void
+    {
+        $rules = [];
+        $messages = [];
+
+        foreach ($form->activeFields as $field) {
+            if (!$field->required) {
+                continue;
+            }
+
+            if ($field->type === 'file') {
+                $rules[$field->name] = 'required|file|image|max:10240';
+                $messages["{$field->name}.required"] = 'Please upload at least one photo.';
+                $messages["{$field->name}.image"] = 'Please upload a valid image file.';
+            } else {
+                $rules[$field->name] = 'required';
+            }
+        }
+
+        if ($rules === []) {
+            return;
+        }
+
+        $validator = Validator::make($request->all(), $rules, $messages);
+
+        if ($validator->fails()) {
+            throw ValidationException::withMessages($validator->errors()->toArray());
+        }
     }
 
     private function sendNotification(Form $form, FormSubmission $submission): void
