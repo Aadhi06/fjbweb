@@ -41,4 +41,27 @@ class RateController extends Controller
 
         return response()->json(['data' => $result]);
     }
+
+    public function adminMetalRates(): JsonResponse
+    {
+        return response()->json([
+            'data' => $this->rateService->getAdminRates(),
+        ]);
+    }
+
+    public function updateBuyingPercentages(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'rates' => 'required|array|min:1',
+            'rates.*.id' => 'required|integer|exists:metal_rates,id',
+            'rates.*.buying_percentage' => 'required|numeric|min:0|max:100',
+        ]);
+
+        $this->rateService->updateBuyingPercentages($validated['rates']);
+
+        return response()->json([
+            'message' => 'Buying percentages updated.',
+            'data' => $this->rateService->getAdminRates(),
+        ]);
+    }
 }

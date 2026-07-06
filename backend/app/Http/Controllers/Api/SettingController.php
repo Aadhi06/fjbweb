@@ -122,8 +122,8 @@ class SettingController extends Controller
             }
         }
 
+        // Default buying % only applies to newly added metals — use Admin → Metal Buying % for each metal.
         if (isset($updated['buying_percentage'])) {
-            MetalRate::query()->update(['buying_percentage' => (float) $updated['buying_percentage']]);
             Cache::forget('metal_rates');
         }
 

@@ -13,10 +13,19 @@ class MetalRateService
     private static ?string $lastError = null;
 
     private const GOLD_PURITIES = [
-        ['purity' => '9ct',  'label' => 'Gold 9ct',  'factor' => 0.375],
-        ['purity' => '18ct', 'label' => 'Gold 18ct', 'factor' => 0.750],
-        ['purity' => '22ct', 'label' => 'Gold 22ct', 'factor' => 0.9167],
+        ['purity' => '9ct',  'label' => 'Gold 9ct',  'factor' => 9 / 24],
+        ['purity' => '10ct', 'label' => 'Gold 10ct', 'factor' => 10 / 24],
+        ['purity' => '14ct', 'label' => 'Gold 14ct', 'factor' => 14 / 24],
+        ['purity' => '18ct', 'label' => 'Gold 18ct', 'factor' => 18 / 24],
+        ['purity' => '21ct', 'label' => 'Gold 21ct', 'factor' => 21 / 24],
+        ['purity' => '22ct', 'label' => 'Gold 22ct', 'factor' => 22 / 24],
         ['purity' => '24ct', 'label' => 'Gold 24ct', 'factor' => 0.999],
+    ];
+
+    private const SPOT_METALS = [
+        'XAU' => 'gold',
+        'XAG' => 'silver',
+        'XPD' => 'palladium',
     ];
 
     public function getLastError(): ?string
@@ -134,7 +143,7 @@ class MetalRateService
 
     private function fetchFromMetalPriceApi(string $apiKey): bool
     {
-        $data = $this->requestMetalPriceApi($apiKey, 'GBP', 'XAU,XAG');
+        $data = $this->requestMetalPriceApi($apiKey, 'GBP', 'XAU,XAG,XPD');
 
         if (!$data) {
             return $this->fetchFromMetalPriceApiUsd($apiKey);
@@ -158,7 +167,7 @@ class MetalRateService
 
     private function fetchFromMetalPriceApiUsd(string $apiKey): bool
     {
-        $data = $this->requestMetalPriceApi($apiKey, 'USD', 'XAU,XAG,GBP');
+        $data = $this->requestMetalPriceApi($apiKey, 'USD', 'XAU,XAG,XPD,GBP');
 
         if (!$data) {
             return false;
@@ -180,7 +189,7 @@ class MetalRateService
 
         $updated = 0;
 
-        foreach (['XAU' => 'gold', 'XAG' => 'silver'] as $symbol => $name) {
+        foreach (self::SPOT_METALS as $symbol => $name) {
             $pricePerOzUsd = $this->extractMetalPricePerOz($rates, 'USD', $symbol);
 
             if ($pricePerOzUsd === null || $pricePerOzUsd <= 0) {
@@ -206,7 +215,7 @@ class MetalRateService
     {
         $updated = 0;
 
-        foreach (['XAU' => 'gold', 'XAG' => 'silver'] as $symbol => $name) {
+        foreach (self::SPOT_METALS as $symbol => $name) {
             $pricePerOz = $this->extractMetalPricePerOz($rates, $base, $symbol);
 
             if ($pricePerOz === null || $pricePerOz <= 0) {
@@ -239,7 +248,7 @@ class MetalRateService
     private function fetchFromGoldApi(string $apiKey): bool
     {
         $apiUrl = Setting::get('goldapi_url', 'https://www.goldapi.io/api');
-        $metals = ['XAU' => 'gold', 'XAG' => 'silver'];
+        $metals = self::SPOT_METALS;
 
         foreach ($metals as $symbol => $name) {
             $response = Http::withHeaders([
@@ -265,8 +274,6 @@ class MetalRateService
 
     private function updateMetalRates(string $metal, float $pricePerOz, float $pricePerGram, float $changePercent): void
     {
-        $buyingPercentage = (float) Setting::get('buying_percentage', 95);
-
         if ($metal === 'gold') {
             foreach (self::GOLD_PURITIES as $i => $p) {
                 MetalRate::updateOrCreate(
@@ -275,27 +282,44 @@ class MetalRateService
                         'label' => $p['label'],
                         'market_price_per_gram' => round($pricePerGram * $p['factor'], 4),
                         'market_price_per_oz' => round($pricePerOz * $p['factor'], 4),
-                        'buying_percentage' => $buyingPercentage,
+                        'buying_percentage' => $this->resolveBuyingPercentage($metal, $p['purity']),
                         'change_24h' => round($changePercent, 4),
                         'sort_order' => $i,
                         'rate_updated_at' => now(),
                     ]
                 );
             }
-        } else {
-            MetalRate::updateOrCreate(
-                ['metal' => $metal, 'purity' => '999'],
-                [
-                    'label' => 'Silver',
-                    'market_price_per_gram' => round($pricePerGram, 4),
-                    'market_price_per_oz' => round($pricePerOz, 4),
-                    'buying_percentage' => $buyingPercentage,
-                    'change_24h' => round($changePercent, 4),
-                    'sort_order' => 10,
-                    'rate_updated_at' => now(),
-                ]
-            );
+
+            return;
         }
+
+        $purity = '999';
+        $label = $metal === 'palladium' ? 'Palladium' : 'Silver';
+        $sortOrder = $metal === 'palladium' ? 11 : 10;
+
+        MetalRate::updateOrCreate(
+            ['metal' => $metal, 'purity' => $purity],
+            [
+                'label' => $label,
+                'market_price_per_gram' => round($pricePerGram, 4),
+                'market_price_per_oz' => round($pricePerOz, 4),
+                'buying_percentage' => $this->resolveBuyingPercentage($metal, $purity),
+                'change_24h' => round($changePercent, 4),
+                'sort_order' => $sortOrder,
+                'rate_updated_at' => now(),
+            ]
+        );
+    }
+
+    private function resolveBuyingPercentage(string $metal, string $purity): float
+    {
+        $existing = MetalRate::where('metal', $metal)->where('purity', $purity)->value('buying_percentage');
+
+        if ($existing !== null) {
+            return (float) $existing;
+        }
+
+        return (float) Setting::get('buying_percentage', 85);
     }
 
     public function getRates(): array
@@ -304,15 +328,18 @@ class MetalRateService
 
         return Cache::remember('metal_rates', 25, function () {
             $rates = MetalRate::active()
-                ->whereIn('metal', ['gold', 'silver'])
+                ->whereIn('metal', ['gold', 'silver', 'palladium'])
                 ->ordered()
                 ->get();
 
             $data = $rates->map(function ($rate) {
                 return [
                     'metal' => $rate->label,
+                    'metal_type' => $rate->metal,
+                    'purity' => $rate->purity,
                     'price_per_gram' => (float) $rate->market_price_per_gram,
                     'buying_price_per_gram' => $rate->buying_price_per_gram,
+                    'buying_percentage' => (float) $rate->buying_percentage,
                     'price_per_oz' => (float) $rate->market_price_per_oz,
                     'change_24h' => (float) $rate->change_24h,
                     'currency' => $rate->currency,
@@ -360,13 +387,45 @@ class MetalRateService
 
     private function caratToPurity(string $carat): float
     {
+        if (preg_match('/^(\d+)ct$/', $carat, $m)) {
+            return min(((int) $m[1]) / 24, 0.999);
+        }
+
         return match ($carat) {
-            '9ct' => 0.375,
-            '18ct' => 0.750,
-            '22ct' => 0.9167,
+            '9ct' => 9 / 24,
+            '10ct' => 10 / 24,
+            '14ct' => 14 / 24,
+            '18ct' => 18 / 24,
+            '21ct' => 21 / 24,
+            '22ct' => 22 / 24,
             '24ct' => 0.999,
             default => 1.0,
         };
+    }
+
+    public function getAdminRates(): array
+    {
+        return MetalRate::ordered()->get()->map(fn (MetalRate $rate) => [
+            'id' => $rate->id,
+            'metal' => $rate->metal,
+            'purity' => $rate->purity,
+            'label' => $rate->label,
+            'market_price_per_gram' => (float) $rate->market_price_per_gram,
+            'buying_percentage' => (float) $rate->buying_percentage,
+            'buying_price_per_gram' => $rate->buying_price_per_gram,
+            'is_active' => $rate->is_active,
+        ])->all();
+    }
+
+    public function updateBuyingPercentages(array $rates): void
+    {
+        foreach ($rates as $row) {
+            MetalRate::where('id', $row['id'])->update([
+                'buying_percentage' => $row['buying_percentage'],
+            ]);
+        }
+
+        Cache::forget('metal_rates');
     }
 
     public function calculate(float $weight, string $carat): array

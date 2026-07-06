@@ -55,6 +55,7 @@ import { UsersContent } from "./UsersContent";
 import { SubmissionsContent } from "./SubmissionsContent";
 import { MessagesContent } from "./MessagesContent";
 import { AdminMessagesFab, useAdminUnreadCount } from "./AdminMessagesFab";
+import { MetalBuyingRates } from "./MetalBuyingRates";
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8002") + "/api";
 
@@ -579,7 +580,7 @@ function SettingsContent() {
     "newsletter_popup_cookie_days",
     "newsletter_popup_show_name",
   ];
-  const metalKeys = ["metal_api_provider", "metal_api_key", "buying_percentage"];
+  const metalKeys = ["metal_api_provider", "metal_api_key"];
   const googleKeys = ["google_place_id", "google_api_key", "google_review_url", "trustpilot_url"];
   const smtpKeys = ["smtp_host", "smtp_port", "smtp_username", "smtp_password", "smtp_from_address", "smtp_from_name", "smtp_encryption"];
   const trackingKeys = ["gtm_id", "ga_id", "meta_pixel_id"];
@@ -851,12 +852,12 @@ function SettingsContent() {
                 { value: "goldapi", label: "GoldAPI" },
               ]}
             />
-            <FormInput label="Buying Percentage" value={settings.buying_percentage ?? "95"} onChange={(v) => update("buying_percentage", v)} type="number" placeholder="95" />
             <div className="md:col-span-2">
               <PasswordInput label="API Key" value={settings.metal_api_key ?? ""} onChange={(v) => update("metal_api_key", v)} placeholder="Enter your API key" />
             </div>
           </div>
           <SaveButton keys={metalKeys} />
+          <MetalBuyingRates showToast={showToast} />
         </CollapsibleSection>
 
         <CollapsibleSection title="Google Reviews" icon={Star}>

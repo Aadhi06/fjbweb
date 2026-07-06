@@ -80,6 +80,9 @@ Route::middleware('auth:sanctum')->prefix('admin')->group(function () {
 
     Route::post('/upload-logo', [SettingController::class, 'uploadLogo']);
 
+    Route::get('/metal-rates', [RateController::class, 'adminMetalRates']);
+    Route::put('/metal-rates/buying-percentages', [RateController::class, 'updateBuyingPercentages']);
+
     Route::get('/bookings', [BookingController::class, 'index']);
     Route::put('/bookings/{booking}/status', [BookingController::class, 'updateStatus']);
     Route::put('/bookings/{booking}/reschedule', [BookingController::class, 'reschedule']);

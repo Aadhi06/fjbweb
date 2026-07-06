@@ -19,18 +19,22 @@ import { formatCurrency } from "@/lib/utils";
 import { showFormError, showFormSuccess, showFormWarning } from "@/lib/alerts";
 import { useSettings } from "@/lib/useSettings";
 
-const goldCarats = [
+const defaultGoldCarats = [
   { label: "9ct", purity: 0.375, fallbackRate: 37.68 },
+  { label: "10ct", purity: 10 / 24, fallbackRate: 41.8 },
+  { label: "14ct", purity: 14 / 24, fallbackRate: 58.5 },
   { label: "18ct", purity: 0.75, fallbackRate: 75.37 },
+  { label: "21ct", purity: 21 / 24, fallbackRate: 87.8 },
   { label: "22ct", purity: 0.9167, fallbackRate: 92.05 },
   { label: "24ct", purity: 0.999, fallbackRate: 100.39 },
 ];
 
 const SILVER_FALLBACK_RATE = 1.35;
+const PALLADIUM_FALLBACK_RATE = 30.0;
 
 interface CartItem {
   id: number;
-  metalType: "gold" | "silver";
+  metalType: "gold" | "silver" | "palladium";
   caratLabel: string;
   weight: number;
   ratePerGram: number;
@@ -40,14 +44,16 @@ interface CartItem {
 
 export default function GoldCalculatorPage() {
   const settings = useSettings();
-  const [metalType, setMetalType] = useState<"gold" | "silver">("gold");
-  const [selectedCarat, setSelectedCarat] = useState(goldCarats[1]);
+  const [metalType, setMetalType] = useState<"gold" | "silver" | "palladium">("gold");
+  const [goldCarats, setGoldCarats] = useState(defaultGoldCarats);
+  const [selectedCarat, setSelectedCarat] = useState(defaultGoldCarats[3]);
   const [weight, setWeight] = useState<string>("10");
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [nextId, setNextId] = useState(1);
 
   const [goldRates, setGoldRates] = useState<Record<string, { market: number; buying: number }>>({});
   const [silverRate, setSilverRate] = useState<{ market: number; buying: number } | null>(null);
+  const [palladiumRate, setPalladiumRate] = useState<{ market: number; buying: number } | null>(null);
 
   const [showValuationForm, setShowValuationForm] = useState(false);
   const [valuationSubmitting, setValuationSubmitting] = useState(false);
@@ -61,13 +67,18 @@ export default function GoldCalculatorPage() {
         const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ""}/api/rates`);
         if (!res.ok) return;
         const data = await res.json();
-        if (data.gold_carats) {
+        if (data.gold_carats?.length) {
+          const fromApi = data.gold_carats.map((c: { carat: string; purity: number; price_per_gram: number; buying_price_per_gram: number }) => ({
+            label: c.carat,
+            purity: c.purity,
+            fallbackRate: c.price_per_gram,
+          }));
+          setGoldCarats(fromApi);
+          setSelectedCarat((prev) => fromApi.find((c: { label: string }) => c.label === prev.label) || fromApi[0]);
+
           const rates: Record<string, { market: number; buying: number }> = {};
           for (const c of data.gold_carats) {
-            const match = goldCarats.find((gc) => Math.abs(gc.purity - c.purity) < 0.01);
-            if (match) {
-              rates[match.label] = { market: c.price_per_gram, buying: c.buying_price_per_gram };
-            }
+            rates[c.carat] = { market: c.price_per_gram, buying: c.buying_price_per_gram };
           }
           setGoldRates(rates);
         }
@@ -75,6 +86,10 @@ export default function GoldCalculatorPage() {
           const silver = data.data.find((m: { metal: string }) => m.metal.toLowerCase() === "silver");
           if (silver) {
             setSilverRate({ market: silver.price_per_gram, buying: silver.buying_price_per_gram });
+          }
+          const palladium = data.data.find((m: { metal: string }) => m.metal.toLowerCase() === "palladium");
+          if (palladium) {
+            setPalladiumRate({ market: palladium.price_per_gram, buying: palladium.buying_price_per_gram });
           }
         }
       } catch {}
@@ -86,7 +101,9 @@ export default function GoldCalculatorPage() {
 
   const currentBuyingRate = metalType === "silver"
     ? (silverRate?.buying || SILVER_FALLBACK_RATE * 0.95)
-    : (goldRates[selectedCarat.label]?.buying || selectedCarat.fallbackRate * 0.95);
+    : metalType === "palladium"
+      ? (palladiumRate?.buying || PALLADIUM_FALLBACK_RATE * 0.85)
+      : (goldRates[selectedCarat.label]?.buying || selectedCarat.fallbackRate * 0.95);
 
   const weightNum = parseFloat(weight) || 0;
   const wePayValue = currentBuyingRate * weightNum;
@@ -96,7 +113,7 @@ export default function GoldCalculatorPage() {
     const item: CartItem = {
       id: nextId,
       metalType,
-      caratLabel: metalType === "gold" ? `Gold ${selectedCarat.label}` : "Silver",
+      caratLabel: metalType === "gold" ? `Gold ${selectedCarat.label}` : metalType === "palladium" ? "Palladium" : "Silver",
       weight: weightNum,
       ratePerGram: currentBuyingRate,
       wePayPerGram: currentBuyingRate,
@@ -266,7 +283,7 @@ export default function GoldCalculatorPage() {
 
                 <ol className="space-y-4 mb-8">
                   {[
-                    { icon: Layers, step: "1", title: "Choose your metal", text: "Select Gold or Silver, then pick the carat (9ct–24ct for gold)." },
+                    { icon: Layers, step: "1", title: "Choose your metal", text: "Select Gold, Silver, or Palladium — then pick carat for gold (9ct–24ct)." },
                     { icon: Scale, step: "2", title: "Enter the weight", text: "Weigh your item in grams — a kitchen scale works for a rough estimate." },
                     { icon: Plus, step: "3", title: "Add each item", text: "Click Add Item for every piece. Mix different carats in one list." },
                     { icon: Banknote, step: "4", title: "See what we pay", text: "Your total updates instantly with our live \"We Pay\" rate per gram." },
@@ -333,7 +350,7 @@ export default function GoldCalculatorPage() {
 
                 <div className="mb-4">
                   <label className="block text-xs font-semibold text-black mb-2">Metal Type</label>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-3 gap-2">
                     <button
                       type="button"
                       onClick={() => setMetalType("gold")}
@@ -348,13 +365,20 @@ export default function GoldCalculatorPage() {
                     >
                       Silver
                     </button>
+                    <button
+                      type="button"
+                      onClick={() => setMetalType("palladium")}
+                      className={`py-2.5 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer ${metalType === "palladium" ? "bg-black text-white" : "bg-muted text-black hover:bg-border"}`}
+                    >
+                      Palladium
+                    </button>
                   </div>
                 </div>
 
                 {metalType === "gold" && (
                   <div className="mb-4">
                     <label className="block text-xs font-semibold text-black mb-2">Carat</label>
-                    <div className="grid grid-cols-4 gap-1.5">
+                    <div className="grid grid-cols-4 sm:grid-cols-7 gap-1.5">
                       {goldCarats.map((opt) => (
                         <button
                           key={opt.label}
@@ -384,7 +408,7 @@ export default function GoldCalculatorPage() {
                 <div className="bg-surface rounded-xl p-4 space-y-2 border border-border mb-4">
                   <div className="flex justify-between items-center text-xs">
                     <span className="text-muted-foreground">
-                      We Pay / gram ({metalType === "gold" ? selectedCarat.label : "Silver"})
+                      We Pay / gram ({metalType === "gold" ? selectedCarat.label : metalType === "palladium" ? "Palladium" : "Silver"})
                     </span>
                     <span className="font-semibold text-gold-dark">{formatCurrency(currentBuyingRate)}</span>
                   </div>
