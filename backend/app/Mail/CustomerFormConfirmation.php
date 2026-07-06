@@ -54,6 +54,7 @@ class CustomerFormConfirmation extends Mailable
         $address = htmlspecialchars(Setting::get('address', '88–90 Hatton Garden, 4th Floor, Office No. 39, London EC1N 8AA'));
         $formTitle = htmlspecialchars($this->form->title);
         $summaryRows = $this->buildSummaryRows();
+        $conversationUrl = htmlspecialchars(app(\App\Services\SubmissionConversationService::class)->conversationUrl($this->submission));
 
         return <<<HTML
         <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:600px;margin:0 auto;padding:20px;">
@@ -79,7 +80,10 @@ class CustomerFormConfirmation extends Mailable
                     <p style="margin:0 0 6px;font-size:14px;color:#374151;"><strong>Email:</strong> {$email}</p>
                     <p style="margin:0;font-size:14px;color:#374151;"><strong>Address:</strong> {$address}</p>
                 </div>
-                <p style="margin:0;font-size:13px;color:#9ca3af;">Your uploaded photos are attached to this email for your records.</p>
+                <p style="margin:0 0 12px;font-size:14px;color:#374151;text-align:center;">
+                    <a href="{$conversationUrl}" style="display:inline-block;background:#000;color:#fff;padding:10px 20px;border-radius:999px;text-decoration:none;font-weight:600;font-size:13px;">View &amp; Reply to Your Enquiry</a>
+                </p>
+                <p style="margin:0;font-size:13px;color:#9ca3af;">Your uploaded photos are attached to this email. Use the button above to message us anytime.</p>
             </div>
         </div>
         HTML;

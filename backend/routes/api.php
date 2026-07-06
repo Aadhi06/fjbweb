@@ -29,6 +29,9 @@ Route::post('/rates/calculate', [RateController::class, 'calculate']);
 Route::get('/forms/{slug}', [FormController::class, 'show']);
 Route::post('/forms/{slug}/submit', [FormController::class, 'submit'])->middleware(\App\Http\Middleware\AntiSpam::class);
 Route::get('/submission-files/{formSubmissionFile}', [FormController::class, 'serveFile']);
+Route::get('/enquiry/{token}', [FormController::class, 'conversationShow']);
+Route::post('/enquiry/{token}/messages', [FormController::class, 'conversationReply'])
+    ->middleware(\App\Http\Middleware\AntiSpam::class);
 
 Route::get('/google-reviews', [ReviewController::class, 'index']);
 
@@ -90,6 +93,8 @@ Route::middleware('auth:sanctum')->prefix('admin')->group(function () {
     Route::delete('/forms/{form}/fields/{field}', [FormController::class, 'deleteField']);
 
     Route::get('/submissions', [FormController::class, 'adminIndex']);
+    Route::get('/submissions/{submission}', [FormController::class, 'adminShow']);
+    Route::post('/submissions/{submission}/messages', [FormController::class, 'adminReply']);
 
     Route::get('/contacts/stats', [MarketingContactController::class, 'stats']);
     Route::post('/contacts/sync', [MarketingContactController::class, 'sync']);

@@ -8,13 +8,17 @@ use App\Models\FormField;
 use App\Models\FormSubmission;
 use App\Models\FormSubmissionFile;
 use App\Services\FormSubmissionService;
+use App\Services\SubmissionConversationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class FormController extends Controller
 {
-    public function __construct(private FormSubmissionService $submissionService) {}
+    public function __construct(
+        private FormSubmissionService $submissionService,
+        private SubmissionConversationService $conversationService,
+    ) {}
 
     public function show(string $slug): JsonResponse
     {
@@ -67,6 +71,101 @@ class FormController extends Controller
         ]);
 
         return response()->json($submissions);
+    }
+
+    public function adminShow(FormSubmission $submission): JsonResponse
+    {
+        $submission->load(['form', 'files', 'messages.adminUser']);
+
+        return response()->json([
+            'data' => $this->formatSubmissionDetail($submission),
+        ]);
+    }
+
+    public function adminReply(Request $request, FormSubmission $submission): JsonResponse
+    {
+        $validated = $request->validate([
+            'message' => 'required|string|min:1|max:5000',
+        ]);
+
+        $message = $this->conversationService->sendAdminReply(
+            $submission,
+            $validated['message'],
+            $request->user(),
+        );
+
+        $submission->refresh()->load(['form', 'files', 'messages.adminUser']);
+
+        return response()->json([
+            'message' => 'Reply sent to customer.',
+            'data' => $this->formatSubmissionDetail($submission),
+            'new_message' => [
+                'id' => $message->id,
+                'sender' => $message->sender,
+                'body' => $message->body,
+                'created_at' => $message->created_at->toIso8601String(),
+                'created_at_human' => $message->created_at->diffForHumans(),
+            ],
+        ]);
+    }
+
+    public function conversationShow(string $token): JsonResponse
+    {
+        $submission = FormSubmission::where('reply_token', $token)
+            ->with('form')
+            ->firstOrFail();
+
+        return response()->json([
+            'data' => [
+                'form_name' => $submission->form?->title ?? 'Your enquiry',
+                'customer_name' => $this->conversationService->customerName($submission),
+                'messages' => $this->conversationService->formatMessages($submission),
+                'created_at_human' => $submission->created_at->diffForHumans(),
+            ],
+        ]);
+    }
+
+    public function conversationReply(Request $request, string $token): JsonResponse
+    {
+        $submission = FormSubmission::where('reply_token', $token)->firstOrFail();
+
+        $validated = $request->validate([
+            'message' => 'required|string|min:1|max:5000',
+        ]);
+
+        $this->conversationService->sendCustomerReply($submission, $validated['message']);
+
+        return response()->json([
+            'message' => 'Your message has been sent. We will reply shortly.',
+            'data' => [
+                'messages' => $this->conversationService->formatMessages($submission->fresh()),
+            ],
+        ]);
+    }
+
+    private function formatSubmissionDetail(FormSubmission $submission): array
+    {
+        return [
+            'id' => $submission->id,
+            'form_name' => $submission->form?->title ?? 'Unknown Form',
+            'form_slug' => $submission->form?->slug,
+            'data' => $submission->data,
+            'files' => $submission->files->map(fn ($f) => [
+                'id' => $f->id,
+                'field_name' => $f->field_name,
+                'original_name' => $f->original_name,
+                'url' => $f->publicUrl(),
+                'mime_type' => $f->mime_type,
+                'is_image' => $f->isImage(),
+            ]),
+            'messages' => $this->conversationService->formatMessages($submission),
+            'conversation_url' => $this->conversationService->conversationUrl($submission),
+            'customer_email' => $this->conversationService->customerEmail($submission),
+            'status' => $submission->status,
+            'ip_address' => $submission->ip_address,
+            'created_at' => $submission->created_at->toIso8601String(),
+            'created_at_human' => $submission->created_at->diffForHumans(),
+        ];
     }
 
     public function serveFile(FormSubmissionFile $formSubmissionFile): BinaryFileResponse
