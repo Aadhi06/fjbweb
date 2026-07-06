@@ -94,6 +94,59 @@ class SubmissionConversationService
         }
     }
 
+    public function markRead(FormSubmission $submission): void
+    {
+        $submission->update(['admin_last_read_at' => now()]);
+    }
+
+    public function isUnread(FormSubmission $submission): bool
+    {
+        $latest = $submission->messages()->latest()->first();
+        if (!$latest || $latest->sender !== 'customer') {
+            return false;
+        }
+
+        if (!$submission->admin_last_read_at) {
+            return true;
+        }
+
+        return $latest->created_at->gt($submission->admin_last_read_at);
+    }
+
+    public function unreadCount(): int
+    {
+        return FormSubmission::whereHas('messages', fn ($q) => $q->where('sender', 'customer'))
+            ->with('messages')
+            ->get()
+            ->filter(fn ($s) => $this->isUnread($s))
+            ->count();
+    }
+
+    public function formatConversationSummary(FormSubmission $submission): array
+    {
+        $submission->loadMissing(['form', 'messages' => fn ($q) => $q->latest()->limit(1)]);
+
+        $latest = $submission->messages->first();
+        $name = $this->customerName($submission);
+        $email = $this->customerEmail($submission);
+
+        return [
+            'id' => $submission->id,
+            'form_name' => $submission->form?->title ?? 'Enquiry',
+            'customer_name' => $name,
+            'customer_email' => $email,
+            'status' => $submission->status,
+            'unread' => $this->isUnread($submission),
+            'last_message' => $latest ? [
+                'sender' => $latest->sender,
+                'body' => $latest->body,
+                'created_at_human' => $latest->created_at->diffForHumans(),
+            ] : null,
+            'message_count' => $submission->messages_count ?? $submission->messages()->count(),
+            'created_at_human' => $submission->created_at->diffForHumans(),
+        ];
+    }
+
     private function emailAdmin(FormSubmission $submission, string $message): void
     {
         $mailConfig = app(MailConfigService::class);

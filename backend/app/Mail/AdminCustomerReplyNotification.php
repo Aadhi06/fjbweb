@@ -42,7 +42,7 @@ class AdminCustomerReplyNotification extends Mailable
         $email = htmlspecialchars($service->customerEmail($this->submission) ?? 'N/A');
         $formTitle = htmlspecialchars($this->submission->form?->title ?? 'Form submission');
         $message = nl2br(htmlspecialchars($this->message));
-        $adminUrl = htmlspecialchars(rtrim(Setting::get('frontend_url', 'https://finejewellerybuyers.co.uk'), '/') . '/admin');
+        $adminUrl = htmlspecialchars(rtrim(Setting::get('frontend_url', 'https://finejewellerybuyers.co.uk'), '/') . '/admin?tab=messages');
 
         return <<<HTML
         <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:600px;margin:0 auto;padding:20px;">
@@ -54,7 +54,10 @@ class AdminCustomerReplyNotification extends Mailable
                 <div style="background:#eff6ff;border-left:4px solid #2563eb;padding:16px;margin:0 0 20px;border-radius:0 8px 8px 0;">
                     <p style="margin:0;font-size:14px;color:#111827;line-height:1.6;">{$message}</p>
                 </div>
-                <p style="margin:0;font-size:14px;color:#374151;">Open <a href="{$adminUrl}" style="color:#D97706;">Admin Panel → Form Submissions</a> to reply.</p>
+                <p style="margin:0 0 16px;font-size:14px;color:#374151;">
+                    <a href="{$adminUrl}" style="display:inline-block;background:#D97706;color:#fff;padding:12px 24px;border-radius:999px;text-decoration:none;font-weight:600;">Open Messages in Admin</a>
+                </p>
+                <p style="margin:0;font-size:13px;color:#9ca3af;">You will also see a notification badge in the admin panel.</p>
             </div>
         </div>
         HTML;

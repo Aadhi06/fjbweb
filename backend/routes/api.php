@@ -96,6 +96,10 @@ Route::middleware('auth:sanctum')->prefix('admin')->group(function () {
     Route::get('/submissions', [FormController::class, 'adminIndex']);
     Route::get('/submissions/{submission}', [FormController::class, 'adminShow']);
     Route::post('/submissions/{submission}/messages', [FormController::class, 'adminReply']);
+    Route::post('/submissions/{submission}/mark-read', [FormController::class, 'markSubmissionRead']);
+
+    Route::get('/messages/unread-count', [FormController::class, 'adminMessagesUnreadCount']);
+    Route::get('/messages', [FormController::class, 'adminMessages']);
 
     Route::get('/contacts/stats', [MarketingContactController::class, 'stats']);
     Route::post('/contacts/sync', [MarketingContactController::class, 'sync']);

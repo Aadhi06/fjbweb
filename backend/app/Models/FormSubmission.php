@@ -10,12 +10,15 @@ use Illuminate\Support\Str;
 class FormSubmission extends Model
 {
     protected $fillable = [
-        'form_id', 'data', 'ip_address', 'user_agent', 'status', 'admin_notes', 'reply_token',
+        'form_id', 'data', 'ip_address', 'user_agent', 'status', 'admin_notes', 'reply_token', 'admin_last_read_at',
     ];
 
     protected function casts(): array
     {
-        return ['data' => 'array'];
+        return [
+            'data' => 'array',
+            'admin_last_read_at' => 'datetime',
+        ];
     }
 
     protected static function booted(): void

@@ -46,17 +46,20 @@ import {
   ToggleRight,
   Megaphone,
   HardHat,
+  MessageSquare,
 } from "lucide-react";
 import { MarketingContent } from "./MarketingContent";
 import { FormsContent } from "./FormsContent";
 import { BookingsContent } from "./BookingsContent";
 import { UsersContent } from "./UsersContent";
 import { SubmissionsContent } from "./SubmissionsContent";
+import { MessagesContent } from "./MessagesContent";
+import { AdminMessagesFab, useAdminUnreadCount } from "./AdminMessagesFab";
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8002") + "/api";
 
 type AdminUser = { name: string; email: string };
-type ActiveTab = "dashboard" | "settings" | "reviews" | "bookings" | "forms" | "submissions" | "marketing" | "blogs" | "users" | "about";
+type ActiveTab = "dashboard" | "settings" | "reviews" | "bookings" | "forms" | "submissions" | "messages" | "marketing" | "blogs" | "users" | "about";
 
 const navItems: { id: ActiveTab; label: string; icon: typeof LayoutDashboard }[] = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -65,6 +68,7 @@ const navItems: { id: ActiveTab; label: string; icon: typeof LayoutDashboard }[]
   { id: "bookings", label: "Bookings", icon: CalendarDays },
   { id: "forms", label: "Form Fields", icon: FileText },
   { id: "submissions", label: "Form Submissions", icon: Package },
+  { id: "messages", label: "Messages", icon: MessageSquare },
   { id: "marketing", label: "Email Marketing", icon: Megaphone },
   { id: "blogs", label: "Blogs", icon: Newspaper },
   { id: "about", label: "About Us", icon: Info },
@@ -2316,7 +2320,21 @@ export default function AdminDashboardPage() {
   const [activeTab, setActiveTab] = useState<ActiveTab>("dashboard");
   const [checking, setChecking] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [messagesSelectedId, setMessagesSelectedId] = useState<number | null>(null);
   const { toast, showToast, clearToast } = useToast();
+  const { count: unreadCount, refresh: refreshUnread } = useAdminUnreadCount(!checking);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const tab = params.get("tab");
+    const submissionId = params.get("submission");
+    if (tab === "messages" || tab === "submissions" || tab === "dashboard" || tab === "settings" || tab === "reviews" || tab === "bookings" || tab === "forms" || tab === "marketing" || tab === "blogs" || tab === "about" || tab === "users") {
+      setActiveTab(tab as ActiveTab);
+    }
+    if (submissionId) {
+      setMessagesSelectedId(parseInt(submissionId, 10));
+    }
+  }, []);
 
   useEffect(() => {
     const token = localStorage.getItem("admin_token");
@@ -2379,7 +2397,15 @@ export default function AdminDashboardPage() {
       case "forms":
         return <FormsContent showToast={showToast} />;
       case "submissions":
-        return <SubmissionsContent showToast={showToast} />;
+        return <SubmissionsContent showToast={showToast} onUnreadChange={refreshUnread} />;
+      case "messages":
+        return (
+          <MessagesContent
+            showToast={showToast}
+            onUnreadChange={refreshUnread}
+            initialSelectedId={messagesSelectedId}
+          />
+        );
       case "marketing":
         return <MarketingContent />;
       case "blogs":
@@ -2419,12 +2445,14 @@ export default function AdminDashboardPage() {
         <nav className="flex-1 px-3 py-4 space-y-1">
           {navItems.map((item) => {
             const isActive = activeTab === item.id;
+            const badge = item.id === "messages" && unreadCount > 0 ? unreadCount : 0;
             return (
               <button
                 key={item.id}
                 onClick={() => {
                   setActiveTab(item.id);
                   setSidebarOpen(false);
+                  if (item.id === "messages") refreshUnread();
                 }}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                   isActive
@@ -2433,7 +2461,14 @@ export default function AdminDashboardPage() {
                 }`}
               >
                 <item.icon className="w-5 h-5 flex-shrink-0" />
-                {item.label}
+                <span className="flex-1 text-left">{item.label}</span>
+                {badge > 0 && (
+                  <span className={`min-w-[20px] h-5 px-1.5 rounded-full text-xs font-bold flex items-center justify-center ${
+                    isActive ? "bg-white text-[#D97706]" : "bg-red-500 text-white"
+                  }`}>
+                    {badge > 99 ? "99+" : badge}
+                  </span>
+                )}
               </button>
             );
           })}
@@ -2467,8 +2502,18 @@ export default function AdminDashboardPage() {
           </div>
         </header>
 
-        <main className="p-6">{renderContent()}</main>
+        <main className="p-4 sm:p-6">{renderContent()}</main>
       </div>
+
+      {activeTab !== "messages" && (
+        <AdminMessagesFab
+          count={unreadCount}
+          onClick={() => {
+            setActiveTab("messages");
+            refreshUnread();
+          }}
+        />
+      )}
     </div>
   );
 }

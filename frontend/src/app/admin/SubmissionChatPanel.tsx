@@ -1,0 +1,278 @@
+"use client";
+
+import { useCallback, useEffect, useRef, useState } from "react";
+import { ChevronDown, ChevronUp, Loader2, MessageSquare, Send, X } from "lucide-react";
+
+const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8002") + "/api";
+
+export function getAuthHeaders(): Record<string, string> {
+  const token = typeof window !== "undefined" ? localStorage.getItem("admin_token") : null;
+  return {
+    Accept: "application/json",
+    "Content-Type": "application/json",
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+}
+
+export type ChatMessage = {
+  id: number;
+  sender: "admin" | "customer";
+  body: string;
+  admin_name?: string | null;
+  created_at_human: string;
+};
+
+export type SubmissionFile = {
+  id: number;
+  original_name: string;
+  url: string;
+  is_image: boolean;
+};
+
+export type SubmissionDetail = {
+  id: number;
+  form_name: string;
+  form_slug?: string;
+  data: Record<string, string>;
+  files?: SubmissionFile[];
+  messages: ChatMessage[];
+  customer_email?: string | null;
+  created_at_human: string;
+};
+
+const SUMMARY_FIELD_ORDER = ["gold_items", "estimated_total", "items_count", "expected_price", "name", "email", "phone"];
+
+function formatFields(data: Record<string, string>) {
+  const entries: [string, string][] = [];
+  const handled = new Set<string>();
+  for (const key of SUMMARY_FIELD_ORDER) {
+    if (data[key]) {
+      entries.push([key, data[key]]);
+      handled.add(key);
+    }
+  }
+  for (const [key, value] of Object.entries(data)) {
+    if (handled.has(key) || key.startsWith("_") || key === "photos" || key === "consent") continue;
+    entries.push([key, value]);
+  }
+  return entries;
+}
+
+function ChatBubble({ msg }: { msg: ChatMessage }) {
+  const isAdmin = msg.sender === "admin";
+  return (
+    <div className={`flex ${isAdmin ? "justify-end" : "justify-start"}`}>
+      <div
+        className={`max-w-[88%] sm:max-w-[75%] rounded-2xl px-3.5 py-2.5 sm:px-4 ${
+          isAdmin ? "bg-black text-white rounded-br-md" : "bg-gray-100 text-black rounded-bl-md"
+        }`}
+      >
+        <p className="text-[10px] font-semibold opacity-70 mb-1">
+          {isAdmin ? (msg.admin_name || "You") : "Customer"}
+        </p>
+        <p className="text-sm whitespace-pre-wrap break-words">{msg.body}</p>
+        <p className="text-[10px] opacity-60 mt-1">{msg.created_at_human}</p>
+      </div>
+    </div>
+  );
+}
+
+export function SubmissionChatPanel({
+  submissionId,
+  showToast,
+  onRead,
+  compact = false,
+  onClose,
+}: {
+  submissionId: number;
+  showToast: (msg: string, type: "success" | "error") => void;
+  onRead?: () => void;
+  compact?: boolean;
+  onClose?: () => void;
+}) {
+  const [detail, setDetail] = useState<SubmissionDetail | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [reply, setReply] = useState("");
+  const [sending, setSending] = useState(false);
+  const [showDetails, setShowDetails] = useState(!compact);
+  const chatEndRef = useRef<HTMLDivElement>(null);
+
+  const loadDetail = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_URL}/admin/submissions/${submissionId}`, { headers: getAuthHeaders() });
+      if (!res.ok) throw new Error();
+      const json = await res.json();
+      setDetail(json.data);
+      onRead?.();
+    } catch {
+      showToast("Failed to load enquiry", "error");
+      onClose?.();
+    } finally {
+      setLoading(false);
+    }
+  }, [submissionId, onClose, onRead, showToast]);
+
+  useEffect(() => {
+    setLoading(true);
+    loadDetail();
+  }, [loadDetail]);
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [detail?.messages]);
+
+  async function sendReply(e: React.FormEvent) {
+    e.preventDefault();
+    if (!reply.trim() || sending) return;
+    setSending(true);
+    try {
+      const res = await fetch(`${API_URL}/admin/submissions/${submissionId}/messages`, {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ message: reply.trim() }),
+      });
+      if (!res.ok) throw new Error();
+      setReply("");
+      await loadDetail();
+      showToast("Reply sent to customer email", "success");
+    } catch {
+      showToast("Failed to send reply", "error");
+    } finally {
+      setSending(false);
+    }
+  }
+
+  const fields = detail ? formatFields(detail.data || {}) : [];
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+      </div>
+    );
+  }
+
+  if (!detail) return null;
+
+  return (
+    <div className="flex flex-col h-full min-h-0">
+      <div className="flex items-center justify-between p-4 border-b border-gray-200 shrink-0 bg-white">
+        <div className="min-w-0 flex-1">
+          <h3 className="text-base sm:text-lg font-semibold text-black truncate">{detail.form_name}</h3>
+          <p className="text-xs sm:text-sm text-gray-500 truncate">
+            {detail.customer_email || "No email"} · {detail.created_at_human}
+          </p>
+        </div>
+        {onClose && (
+          <button onClick={onClose} className="ml-2 p-2 text-gray-400 hover:text-black shrink-0">
+            <X className="w-5 h-5" />
+          </button>
+        )}
+      </div>
+
+      <div className="flex-1 overflow-y-auto min-h-0">
+        {compact && (
+          <button
+            type="button"
+            onClick={() => setShowDetails((v) => !v)}
+            className="w-full flex items-center justify-between px-4 py-2.5 text-xs font-medium text-gray-600 bg-gray-50 border-b border-gray-100"
+          >
+            Enquiry details
+            {showDetails ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          </button>
+        )}
+
+        {showDetails && (
+          <div className="p-4 space-y-4 border-b border-gray-100 bg-white">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {fields.map(([key, value]) => (
+                <div key={key} className="bg-gray-50 rounded-lg px-3 py-2 border border-gray-100">
+                  <p className="text-[10px] font-semibold text-gray-400 uppercase">{key.replace(/_/g, " ")}</p>
+                  <p className="text-sm text-black mt-0.5 break-words">{String(value)}</p>
+                </div>
+              ))}
+            </div>
+            {detail.files && detail.files.length > 0 && (
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Photos</p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {detail.files.map((file) => (
+                    <a key={file.id} href={file.url} target="_blank" rel="noopener noreferrer" className="block rounded-lg border overflow-hidden hover:border-amber-400">
+                      {file.is_image ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={file.url} alt={file.original_name} className="w-full h-24 sm:h-28 object-cover bg-gray-100" />
+                      ) : (
+                        <div className="h-24 flex items-center justify-center text-xs text-gray-500 p-2 text-center">{file.original_name}</div>
+                      )}
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        <div className="p-4 space-y-3">
+          {!compact && (
+            <p className="text-xs font-semibold text-gray-500 uppercase flex items-center gap-1.5">
+              <MessageSquare className="w-4 h-4" /> Conversation
+            </p>
+          )}
+          {detail.messages.length === 0 && (
+            <p className="text-sm text-gray-400 text-center py-8">No messages yet. Type below to email the customer.</p>
+          )}
+          {detail.messages.map((msg) => (
+            <ChatBubble key={msg.id} msg={msg} />
+          ))}
+          <div ref={chatEndRef} />
+        </div>
+      </div>
+
+      <form onSubmit={sendReply} className="border-t border-gray-200 p-3 sm:p-4 bg-gray-50 shrink-0 safe-bottom">
+        <p className="text-[11px] text-gray-500 mb-2 hidden sm:block">Reply goes to customer email + their message page</p>
+        <div className="flex gap-2 items-end">
+          <textarea
+            value={reply}
+            onChange={(e) => setReply(e.target.value)}
+            placeholder="Type your reply..."
+            rows={2}
+            className="flex-1 border border-gray-200 rounded-xl px-3 py-2.5 sm:px-4 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-amber-500/30 min-h-[44px]"
+          />
+          <button
+            type="submit"
+            disabled={sending || !reply.trim()}
+            className="h-11 w-11 sm:px-4 sm:w-auto flex items-center justify-center bg-black text-white rounded-xl hover:bg-black/80 disabled:opacity-50 shrink-0"
+          >
+            {sending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+export function SubmissionChatModal({
+  submissionId,
+  onClose,
+  showToast,
+  onRead,
+}: {
+  submissionId: number;
+  onClose: () => void;
+  showToast: (msg: string, type: "success" | "error") => void;
+  onRead?: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-[90] flex items-center justify-center p-0 sm:p-4">
+      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+      <div className="relative bg-white sm:rounded-2xl shadow-xl w-full sm:max-w-3xl h-full sm:h-auto sm:max-h-[90vh] flex flex-col overflow-hidden">
+        <SubmissionChatPanel
+          submissionId={submissionId}
+          showToast={showToast}
+          onClose={onClose}
+          onRead={onRead}
+        />
+      </div>
+    </div>
+  );
+}
