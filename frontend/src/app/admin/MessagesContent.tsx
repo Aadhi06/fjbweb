@@ -55,10 +55,12 @@ export function MessagesContent({
     if (initialSelectedId) setSelectedId(initialSelectedId);
   }, [initialSelectedId]);
 
-  function handleRead() {
+  const handleRead = useCallback(() => {
     onUnreadChange?.();
-    fetchMessages();
-  }
+    setConversations((prev) =>
+      prev.map((c) => (c.id === selectedId ? { ...c, unread: false } : c))
+    );
+  }, [onUnreadChange, selectedId]);
 
   if (loading) {
     return (

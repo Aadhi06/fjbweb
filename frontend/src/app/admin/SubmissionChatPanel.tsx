@@ -96,26 +96,31 @@ export function SubmissionChatPanel({
   const [sending, setSending] = useState(false);
   const [showDetails, setShowDetails] = useState(!compact);
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const onReadRef = useRef(onRead);
+  onReadRef.current = onRead;
 
-  const loadDetail = useCallback(async () => {
+  const loadDetail = useCallback(async (notifyRead = false) => {
     try {
       const res = await fetch(`${API_URL}/admin/submissions/${submissionId}`, { headers: getAuthHeaders() });
       if (!res.ok) throw new Error();
       const json = await res.json();
       setDetail(json.data);
-      onRead?.();
+      if (notifyRead) onReadRef.current?.();
     } catch {
       showToast("Failed to load enquiry", "error");
       onClose?.();
     } finally {
       setLoading(false);
     }
-  }, [submissionId, onClose, onRead, showToast]);
+  }, [submissionId, onClose, showToast]);
 
   useEffect(() => {
     setLoading(true);
-    loadDetail();
-  }, [loadDetail]);
+    setDetail(null);
+    loadDetail(true);
+    // Only reload when switching conversations — not when parent re-renders.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [submissionId]);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -133,7 +138,7 @@ export function SubmissionChatPanel({
       });
       if (!res.ok) throw new Error();
       setReply("");
-      await loadDetail();
+      await loadDetail(false);
       showToast("Reply sent to customer email", "success");
     } catch {
       showToast("Failed to send reply", "error");
