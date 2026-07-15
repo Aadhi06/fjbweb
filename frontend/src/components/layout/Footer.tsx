@@ -78,12 +78,12 @@ export function Footer() {
             <p>
               Web Designed &amp; Developed By{" "}
               <a
-                href="https://vsoftt.com"
+                href="https://avenque.io"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-white/60 hover:text-gold transition-colors"
               >
-                Vsoft Technologies Ltd
+                Avenque Ltd
               </a>
             </p>
           </div>
