@@ -67,7 +67,7 @@ export function MaintenancePage({ settings }: { settings: SiteSettings }) {
 
             <p className="mt-8 text-sm text-white/40 flex items-center justify-center lg:justify-start gap-2">
               <MessageCircle className="w-4 h-4 text-gold-dark" />
-              Hatton Garden, London · Same-day bank transfer
+              {settings.address} · Same-day bank transfer
             </p>
           </div>
 

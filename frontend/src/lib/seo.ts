@@ -214,7 +214,15 @@ export const SERVICE_SEO: Record<
   },
 };
 
-export function organizationJsonLd() {
+export function organizationJsonLd(address?: string) {
+  const full = (address || "88–90 Hatton Garden, London EC1N 8AA").trim();
+  const parts = full.split(",").map((p) => p.trim()).filter(Boolean);
+  const last = parts[parts.length - 1] || "";
+  const postcodeMatch = last.match(/\b([A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2})\b/i);
+  const postalCode = postcodeMatch?.[1]?.toUpperCase() || "";
+  const locality = last.replace(postcodeMatch?.[0] || "", "").trim() || "London";
+  const streetAddress = parts.length > 1 ? parts.slice(0, -1).join(", ") : full;
+
   return {
     "@context": "https://schema.org",
     "@type": "JewelryStore",
@@ -225,9 +233,9 @@ export function organizationJsonLd() {
       "Hatton Garden, London gold and jewellery buyer — gold, scrap gold, diamonds, gemstones, luxury watches and designer brands including Cartier and Tiffany.",
     address: {
       "@type": "PostalAddress",
-      streetAddress: "88-90 Hatton Garden, 4th Floor, Office 39",
-      addressLocality: "London",
-      postalCode: "EC1N 8AA",
+      streetAddress,
+      addressLocality: locality || "London",
+      ...(postalCode ? { postalCode } : {}),
       addressRegion: "England",
       addressCountry: "GB",
     },

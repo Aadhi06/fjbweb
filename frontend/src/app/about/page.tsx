@@ -7,6 +7,7 @@ import { HattonGardenLocation } from "@/components/sections/HattonGardenLocation
 import Link from "next/link";
 import { ArrowRight, Shield, Award, Users, Gem, Target, Eye, Loader2 } from "lucide-react";
 import { useSettings } from "@/lib/useSettings";
+import { parseAddress } from "@/lib/location";
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8002") + "/api";
 
@@ -51,11 +52,23 @@ export default function AboutPage() {
   } catch {}
 
   const title = settings.about_title || "About Fine Jewellery Buyers";
-  const description = settings.about_description || "";
   const mission = settings.about_mission || "";
   const vision = settings.about_vision || "";
+  const building = parseAddress(settings.address).building || "88–90 Hatton Garden";
 
-  const fallbackDescription = `Based at 88–90 Hatton Garden, 4th Floor, Office No. 39, in the heart of London\u2019s famous jewellery quarter, Fine Jewellery Buyers has been at the forefront of the precious metals and gemstones industry for over 15 years. We specialise in purchasing gold, diamonds, luxury watches, and fine jewellery, offering the most competitive prices in the UK.\n\nOur team of GIA-certified experts combines deep industry knowledge with a passion for precious items. We use live market-linked pricing to ensure you receive the fairest possible price, backed by a transparent and secure valuation process.\n\nWhether you visit us in person or use our fully insured postal service, we guarantee a professional, respectful, and rewarding experience every time.`;
+  // Prefer admin About text, but drop office/floor details from any stored copy.
+  const cleanAboutText = (text: string) =>
+    text
+      .replace(/,?\s*4th\s+Floor,?\s*Office\s*No\.?\s*39/gi, "")
+      .replace(/,?\s*Office\s*No\.?\s*39/gi, "")
+      .replace(/,?\s*4th\s+Floor/gi, "")
+      .replace(/\s{2,}/g, " ")
+      .replace(/,\s*,/g, ",")
+      .trim();
+
+  const fallbackDescription = `Based at ${building}, in the heart of London\u2019s famous jewellery quarter, Fine Jewellery Buyers has been at the forefront of the precious metals and gemstones industry for over 15 years. We specialise in purchasing gold, diamonds, luxury watches, and fine jewellery, offering the most competitive prices in the UK.\n\nOur team of GIA-certified experts combines deep industry knowledge with a passion for precious items. We use live market-linked pricing to ensure you receive the fairest possible price, backed by a transparent and secure valuation process.\n\nWhether you visit us in person or use our fully insured postal service, we guarantee a professional, respectful, and rewarding experience every time.`;
+
+  const description = cleanAboutText(settings.about_description || "") || fallbackDescription;
 
   return (
     <>
@@ -71,7 +84,7 @@ export default function AboutPage() {
       <section className="py-20 bg-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="space-y-6 text-secondary-light leading-relaxed text-lg">
-            {(description || fallbackDescription).split("\n").filter(Boolean).map((p, i) => (
+            {description.split("\n").filter(Boolean).map((p, i) => (
               <p key={i}>{p}</p>
             ))}
           </div>

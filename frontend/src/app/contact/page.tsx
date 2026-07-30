@@ -8,7 +8,7 @@ import { DynamicFormRenderer } from "@/components/forms/DynamicFormRenderer";
 import { Phone, Mail, MapPin, Clock, Navigation, CalendarDays } from "lucide-react";
 import type { DynamicForm } from "@/lib/types";
 import { useSettings } from "@/lib/useSettings";
-import { HATTON_GARDEN } from "@/lib/location";
+import { HATTON_GARDEN_MEDIA, parseAddress } from "@/lib/location";
 
 const fallbackForm: DynamicForm = {
   id: 2, title: "Contact Us", slug: "contact",
@@ -43,6 +43,7 @@ export default function ContactPage() {
   const phone = settings.phone;
   const email = settings.email;
   const phoneHref = `tel:${phone.replace(/\s/g, "")}`;
+  const address = parseAddress(settings.address);
 
   const contactItems = [
     { icon: Phone, title: "Phone", text: phone, href: phoneHref },
@@ -57,7 +58,7 @@ export default function ContactPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h1 className="text-3xl md:text-5xl font-serif font-bold text-white mb-4">Contact Our Gold Buying Experts</h1>
           <p className="text-white/70 max-w-2xl mx-auto text-lg">
-            Visit us at {HATTON_GARDEN.building}, Hatton Garden — or send us a message below.
+            Visit us at {address.short} — or send us a message below.
           </p>
         </div>
       </section>
@@ -74,23 +75,28 @@ export default function ContactPage() {
               <div className="bg-white rounded-2xl border border-border overflow-hidden shadow-sm">
                 <div className="relative aspect-[16/10]">
                   <Image
-                    src={HATTON_GARDEN.buildingImage}
-                    alt={HATTON_GARDEN.buildingImageAlt}
+                    src={HATTON_GARDEN_MEDIA.buildingImage}
+                    alt={HATTON_GARDEN_MEDIA.buildingImageAlt}
                     fill
                     className="object-cover"
                     sizes="400px"
                   />
                 </div>
                 <div className="p-6">
-                  <p className="text-xs text-gold-dark font-semibold uppercase tracking-wider mb-2">Our Hatton Garden Office</p>
+                  <p className="text-xs text-gold-dark font-semibold uppercase tracking-wider mb-2">Our Office</p>
                   <address className="not-italic text-sm text-muted-foreground leading-relaxed mb-4">
-                    <span className="block font-semibold text-black">{HATTON_GARDEN.building}</span>
-                    <span className="block">{HATTON_GARDEN.floor}</span>
-                    <span className="block">{HATTON_GARDEN.city}</span>
+                    {address.publicLines.map((line, i) => (
+                      <span
+                        key={`${line}-${i}`}
+                        className={`block ${i === 0 ? "font-semibold text-black" : ""}`}
+                      >
+                        {line}
+                      </span>
+                    ))}
                   </address>
                   <div className="flex flex-col gap-2">
                     <a
-                      href={HATTON_GARDEN.mapsUrl}
+                      href={address.mapsUrl}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-black text-white text-sm font-semibold rounded-full hover:bg-black/90 transition-colors"
