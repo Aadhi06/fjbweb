@@ -50,29 +50,27 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const settings = await getSettings();
-  const gtmId = settings.gtm_id || process.env.NEXT_PUBLIC_GTM_ID || "GTM-TW2L228T";
-  const gaId = settings.ga_id || process.env.NEXT_PUBLIC_GA_ID;
+  const gtmId = (settings.gtm_id || process.env.NEXT_PUBLIC_GTM_ID || "GTM-TW2L228T").trim();
+  const gaId = (settings.ga_id || process.env.NEXT_PUBLIC_GA_ID || "").trim();
 
   return (
     <html lang="en" className={`${inter.variable} ${playfair.variable}`} suppressHydrationWarning>
       <head>
-        {/* Google Tag Manager — as high in <head> as possible */}
+        {/* Google Tag Manager */}
         {gtmId ? (
-          <script
-            dangerouslySetInnerHTML={{
-              __html: `(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-})(window,document,'script','dataLayer','${gtmId}');`,
-            }}
-          />
+          <Script id="gtm-head" strategy="beforeInteractive">{`
+            (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+            new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+            j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+            'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+            })(window,document,'script','dataLayer','${gtmId}');
+          `}</Script>
         ) : null}
         <link rel="icon" href="/favicon.ico?v=fjb2" sizes="any" />
         <link rel="icon" href="/favicon-32.png?v=fjb2" type="image/png" sizes="32x32" />
         <link rel="icon" href="/favicon-16.png?v=fjb2" type="image/png" sizes="16x16" />
         <link rel="apple-touch-icon" href="/apple-icon.png?v=fjb2" />
-        {gaId && (
+        {gaId ? (
           <>
             <Script src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`} strategy="afterInteractive" />
             <Script id="ga" strategy="afterInteractive">{`
@@ -82,7 +80,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
               gtag('config', '${gaId}');
             `}</Script>
           </>
-        )}
+        ) : null}
       </head>
       <body className="min-h-screen flex flex-col antialiased bg-background" suppressHydrationWarning>
         {/* Google Tag Manager (noscript) */}
@@ -93,6 +91,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
               height="0"
               width="0"
               style={{ display: "none", visibility: "hidden" }}
+              title="Google Tag Manager"
             />
           </noscript>
         ) : null}
