@@ -37,11 +37,13 @@ export async function generateMetadata(): Promise<Metadata> {
     formatDetection: { telephone: true, email: true },
     icons: {
       icon: [
-        { url: "/favicon.ico", sizes: "any" },
+        { url: "/favicon.ico?v=fjb2", sizes: "any" },
+        { url: "/favicon-32.png?v=fjb2", type: "image/png", sizes: "32x32" },
+        { url: "/favicon-16.png?v=fjb2", type: "image/png", sizes: "16x16" },
         { url: "/images/logo.png", type: "image/png", sizes: "512x512" },
       ],
-      shortcut: "/favicon.ico",
-      apple: [{ url: "/apple-icon.png", sizes: "180x180", type: "image/png" }],
+      shortcut: "/favicon.ico?v=fjb2",
+      apple: [{ url: "/apple-icon.png?v=fjb2", sizes: "180x180", type: "image/png" }],
     },
   };
 }
@@ -66,9 +68,10 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
             }}
           />
         ) : null}
-        <link rel="icon" href="/favicon.ico" sizes="any" />
-        <link rel="icon" href="/images/logo.png" type="image/png" />
-        <link rel="apple-touch-icon" href="/apple-icon.png" />
+        <link rel="icon" href="/favicon.ico?v=fjb2" sizes="any" />
+        <link rel="icon" href="/favicon-32.png?v=fjb2" type="image/png" sizes="32x32" />
+        <link rel="icon" href="/favicon-16.png?v=fjb2" type="image/png" sizes="16x16" />
+        <link rel="apple-touch-icon" href="/apple-icon.png?v=fjb2" />
         {gaId && (
           <>
             <Script src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`} strategy="afterInteractive" />
