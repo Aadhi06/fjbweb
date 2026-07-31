@@ -8,18 +8,34 @@ import { MaintenancePage } from "@/components/layout/MaintenancePage";
 import { WhatsAppButton } from "@/components/ui/WhatsAppButton";
 import { IdleHelpAssistant } from "@/components/ui/IdleHelpAssistant";
 import { NewsletterPopup } from "@/components/ui/NewsletterPopup";
-import { API_SETTINGS_URL, defaultSettings, type SiteSettings } from "@/lib/settings";
+import {
+  API_SETTINGS_URL,
+  defaultSettings,
+  type SiteSettings,
+} from "@/lib/settings";
+import { hydrateSettingsCache } from "@/lib/useSettings";
 
 function isMaintenanceEnabled(settings: SiteSettings): boolean {
   const value = settings.maintenance_mode as boolean | string | undefined;
   return value === true || value === "1" || value === "true";
 }
 
-export function ClientLayout({ children }: { children: React.ReactNode }) {
+export function ClientLayout({
+  children,
+  initialSettings,
+}: {
+  children: React.ReactNode;
+  initialSettings?: SiteSettings;
+}) {
   const pathname = usePathname();
   const isAdmin = pathname.startsWith("/admin");
-  const [settings, setSettings] = useState<SiteSettings>(defaultSettings);
-  const [settingsReady, setSettingsReady] = useState(false);
+  const [settings, setSettings] = useState<SiteSettings>(() => {
+    const seed = initialSettings ?? defaultSettings;
+    if (typeof window !== "undefined") {
+      hydrateSettingsCache(seed);
+    }
+    return seed;
+  });
 
   useEffect(() => {
     let cancelled = false;
@@ -27,13 +43,12 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
       .then((res) => (res.ok ? res.json() : null))
       .then((json) => {
         if (!cancelled && json?.data) {
-          setSettings({ ...defaultSettings, ...json.data });
+          const next = { ...defaultSettings, ...json.data };
+          hydrateSettingsCache(next);
+          setSettings(next);
         }
       })
-      .catch(() => {})
-      .finally(() => {
-        if (!cancelled) setSettingsReady(true);
-      });
+      .catch(() => {});
     return () => {
       cancelled = true;
     };
@@ -43,10 +58,6 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     return <>{children}</>;
   }
 
-  if (!settingsReady) {
-    return <div className="min-h-screen hero-gradient" aria-hidden="true" />;
-  }
-
   if (isMaintenanceEnabled(settings)) {
     return <MaintenancePage settings={settings} />;
   }
@@ -54,7 +65,9 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
   return (
     <>
       <Header />
-      <main className="flex-1" suppressHydrationWarning>{children}</main>
+      <main className="flex-1" suppressHydrationWarning>
+        {children}
+      </main>
       <Footer />
       <WhatsAppButton />
       <NewsletterPopup />

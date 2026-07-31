@@ -6,10 +6,16 @@ import { defaultSettings, API_SETTINGS_URL, type SiteSettings } from "./settings
 let clientCache: SiteSettings | null = null;
 let clientPromise: Promise<SiteSettings> | null = null;
 
-function fetchSettingsClient(): Promise<SiteSettings> {
-  if (clientCache) return Promise.resolve(clientCache);
-  if (clientPromise) return clientPromise;
-  clientPromise = fetch(API_SETTINGS_URL)
+/** Seed from SSR so first paint matches server without waiting on /api/settings. */
+export function hydrateSettingsCache(settings: SiteSettings) {
+  clientCache = settings;
+}
+
+function fetchSettingsClient(forceRefresh = false): Promise<SiteSettings> {
+  if (!forceRefresh && clientCache) return Promise.resolve(clientCache);
+  if (!forceRefresh && clientPromise) return clientPromise;
+
+  const request = fetch(API_SETTINGS_URL)
     .then((res) => {
       if (!res.ok) throw new Error("Failed to fetch settings");
       return res.json();
@@ -19,10 +25,14 @@ function fetchSettingsClient(): Promise<SiteSettings> {
       return clientCache!;
     })
     .catch(() => {
+      return clientCache || defaultSettings;
+    })
+    .finally(() => {
       clientPromise = null;
-      return defaultSettings;
     });
-  return clientPromise;
+
+  clientPromise = request;
+  return request;
 }
 
 export function useSettings(): SiteSettings {
@@ -30,10 +40,12 @@ export function useSettings(): SiteSettings {
 
   useEffect(() => {
     let cancelled = false;
-    fetchSettingsClient().then((s) => {
+    fetchSettingsClient(true).then((s) => {
       if (!cancelled) setSettings(s);
     });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return settings;

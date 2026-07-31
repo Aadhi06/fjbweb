@@ -41,7 +41,8 @@ export function Hero() {
 
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-28">
         <div className="grid lg:grid-cols-2 gap-12 items-center">
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: "easeOut" }}>
+          {/* No opacity:0 on first paint — that delayed LCP on mobile (Lighthouse ~8s). */}
+          <motion.div initial={false} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, ease: "easeOut" }}>
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-gold/10 rounded-full text-sm text-gold mb-6 border border-gold/20">
               <Star className="w-4 h-4 fill-gold text-gold" />
               <span className="font-medium">Hatton Garden · London&apos;s Jewellery Quarter</span>
@@ -124,10 +125,20 @@ export function Hero() {
             </div>
           </motion.div>
 
-          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5, delay: 0.2, ease: "easeOut" }} className="hidden lg:block">
+          <motion.div initial={false} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.4, ease: "easeOut" }} className="hidden lg:block">
             <div className="relative">
               <div className="rounded-3xl overflow-hidden border border-gold/20 shadow-2xl shadow-gold/10">
-                <Image src="/images/scrap-gold-hero.png" alt="Scrap gold, coins, chains and jewellery we buy" width={600} height={400} className="w-full h-auto object-cover" priority />
+                <Image
+                  src="/images/scrap-gold-hero.webp"
+                  alt="Scrap gold, coins, chains and jewellery we buy"
+                  width={1200}
+                  height={800}
+                  sizes="(max-width: 1024px) 0px, 600px"
+                  quality={75}
+                  className="w-full h-auto object-cover"
+                  priority
+                  fetchPriority="high"
+                />
               </div>
               <div className="absolute -bottom-4 -left-4 bg-black border border-gold/30 rounded-2xl p-4 shadow-xl">
                 <p className="text-xs text-white/60 mb-1">We Pay — Gold 18ct</p>

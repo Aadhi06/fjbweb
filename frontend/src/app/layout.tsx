@@ -16,7 +16,12 @@ import {
 import { getSettings } from "@/lib/settings";
 
 const inter = Inter({ variable: "--font-inter", subsets: ["latin"], display: "swap" });
-const playfair = Playfair_Display({ variable: "--font-playfair", subsets: ["latin"], display: "swap" });
+const playfair = Playfair_Display({
+  variable: "--font-playfair",
+  subsets: ["latin"],
+  display: "swap",
+  preload: true,
+});
 
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getSettings();
@@ -103,7 +108,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd()) }}
         />
-        <ClientLayout>{children}</ClientLayout>
+        <ClientLayout initialSettings={settings}>{children}</ClientLayout>
       </body>
     </html>
   );
