@@ -60,7 +60,7 @@ export const defaultSettings: SiteSettings = {
   years_in_business: 15,
   happy_customers: "10,000+",
   total_sales: "£5M+",
-  gtm_id: "",
+  gtm_id: "GTM-TW2L228T",
   ga_id: "",
   meta_pixel_id: "",
   about_title: "About Fine Jewellery Buyers",
