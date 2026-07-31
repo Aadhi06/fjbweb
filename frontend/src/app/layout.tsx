@@ -11,6 +11,7 @@ import {
   resolveSiteImageUrl,
   SITE_NAME,
   SITE_URL,
+  siteNavigationJsonLd,
   websiteJsonLd,
 } from "@/lib/seo";
 import { getSettings } from "@/lib/settings";
@@ -107,6 +108,10 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd()) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(siteNavigationJsonLd()) }}
         />
         <ClientLayout initialSettings={settings}>{children}</ClientLayout>
       </body>

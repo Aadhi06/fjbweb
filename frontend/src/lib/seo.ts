@@ -1,12 +1,27 @@
 import type { Metadata } from "next";
 
 export const SITE_NAME = "Fine Jewellery Buyers";
+/** Canonical host must match the live redirect target (www). */
 export const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ||
-  "https://finejewellerybuyers.co.uk";
+  "https://www.finejewellerybuyers.co.uk";
 
 export const DEFAULT_OG_IMAGE = `${SITE_URL}/images/logo.png`;
 export const DEFAULT_FAVICON = `${SITE_URL}/images/logo.png`;
+
+/** Primary pages Google may surface as brand sitelinks. */
+export const PRIMARY_NAV_LINKS: { name: string; path: string }[] = [
+  { name: "Free Valuation", path: "/free-valuation" },
+  { name: "Live Rates", path: "/live-rates" },
+  { name: "Sell Gold", path: "/services/sell-gold" },
+  { name: "Sell Diamonds", path: "/services/sell-diamonds" },
+  { name: "Gold Calculator", path: "/gold-calculator" },
+  { name: "How It Works", path: "/how-it-works" },
+  { name: "Book Appointment", path: "/book-appointment" },
+  { name: "About Us", path: "/about" },
+  { name: "Contact", path: "/contact" },
+  { name: "FAQ", path: "/faq" },
+];
 
 export function resolveSiteImageUrl(pathOrUrl: string): string {
   if (!pathOrUrl) return DEFAULT_OG_IMAGE;
@@ -253,12 +268,37 @@ export function websiteJsonLd() {
     "@context": "https://schema.org",
     "@type": "WebSite",
     name: SITE_NAME,
+    alternateName: ["FJB", "Fine Jewellery Buyers UK"],
     url: SITE_URL,
+    publisher: {
+      "@type": "Organization",
+      name: SITE_NAME,
+      url: SITE_URL,
+      logo: `${SITE_URL}/images/logo.png`,
+    },
     potentialAction: {
       "@type": "SearchAction",
-      target: `${SITE_URL}/blog?q={search_term_string}`,
+      target: {
+        "@type": "EntryPoint",
+        urlTemplate: `${SITE_URL}/blog?q={search_term_string}`,
+      },
       "query-input": "required name=search_term_string",
     },
+  };
+}
+
+/** Helps Google understand primary navigation for brand sitelinks. */
+export function siteNavigationJsonLd() {
+  return {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    name: `${SITE_NAME} main navigation`,
+    itemListElement: PRIMARY_NAV_LINKS.map((link, i) => ({
+      "@type": "SiteNavigationElement",
+      position: i + 1,
+      name: link.name,
+      url: `${SITE_URL}${link.path}`,
+    })),
   };
 }
 
