@@ -21,6 +21,7 @@ export interface SiteSettings {
   gtm_id: string;
   ga_id: string;
   meta_pixel_id: string;
+  clarity_id: string;
   about_title: string;
   about_description: string;
   about_mission: string;
@@ -63,6 +64,7 @@ export const defaultSettings: SiteSettings = {
   gtm_id: "GTM-TW2L228T",
   ga_id: "",
   meta_pixel_id: "",
+  clarity_id: "",
   about_title: "About Fine Jewellery Buyers",
   about_description: "",
   about_mission: "",

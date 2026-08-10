@@ -583,7 +583,7 @@ function SettingsContent() {
   const metalKeys = ["metal_api_provider", "metal_api_key"];
   const googleKeys = ["google_place_id", "google_api_key", "google_review_url", "trustpilot_url"];
   const smtpKeys = ["smtp_host", "smtp_port", "smtp_username", "smtp_password", "smtp_from_address", "smtp_from_name", "smtp_encryption"];
-  const trackingKeys = ["gtm_id", "ga_id", "meta_pixel_id"];
+  const trackingKeys = ["gtm_id", "ga_id", "meta_pixel_id", "clarity_id"];
 
   return (
     <div>
@@ -951,6 +951,19 @@ function SettingsContent() {
             <FormInput label="Google Tag Manager ID" value={settings.gtm_id ?? ""} onChange={(v) => update("gtm_id", v)} placeholder="GTM-XXXXXXX" />
             <FormInput label="Google Analytics ID" value={settings.ga_id ?? ""} onChange={(v) => update("ga_id", v)} placeholder="G-XXXXXXXXXX" />
             <FormInput label="Meta Pixel ID" value={settings.meta_pixel_id ?? ""} onChange={(v) => update("meta_pixel_id", v)} placeholder="123456789" />
+            <FormInput
+              label="Microsoft Clarity Project ID"
+              value={settings.clarity_id ?? ""}
+              onChange={(v) => update("clarity_id", v)}
+              placeholder="abcdefghij"
+            />
+            <p className="md:col-span-2 text-xs text-gray-500">
+              Clarity records session replays and heatmaps. Get the ID from{" "}
+              <a href="https://clarity.microsoft.com/" target="_blank" rel="noopener noreferrer" className="text-gold underline">
+                clarity.microsoft.com
+              </a>{" "}
+              → Settings → Overview.
+            </p>
           </div>
           <SaveButton keys={trackingKeys} />
         </CollapsibleSection>
