@@ -2063,34 +2063,70 @@ function ManualReviewFormModal({ review, onClose, onSaved }: { review: ManualRev
 }
 
 function ReviewsContent() {
+  type GoogleAdminReview = {
+    review_key: string;
+    author_name: string;
+    rating: number;
+    text: string;
+    relative_time_description: string;
+    time: number;
+    source: string;
+    is_hidden: boolean;
+    reply_text?: string | null;
+  };
+
   const [reviews, setReviews] = useState<ManualReviewRecord[]>([]);
+  const [googleReviews, setGoogleReviews] = useState<GoogleAdminReview[]>([]);
   const [loading, setLoading] = useState(true);
   const [editReview, setEditReview] = useState<ManualReviewRecord | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [togglingId, setTogglingId] = useState<number | null>(null);
+  const [moderatingKey, setModeratingKey] = useState<string | null>(null);
+  const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({});
+  const [replyOpenKey, setReplyOpenKey] = useState<string | null>(null);
   const { toast, showToast, clearToast } = useToast();
 
-  const fetchReviews = useCallback(async () => {
+  const fetchManual = useCallback(async () => {
+    const res = await fetch(`${API_URL}/admin/reviews/manual`, { headers: getAuthHeaders() });
+    const data = await res.json();
+    setReviews(data.data || []);
+  }, []);
+
+  const fetchGoogle = useCallback(async () => {
+    const res = await fetch(`${API_URL}/admin/reviews/google`, { headers: getAuthHeaders() });
+    const data = await res.json();
+    const list: GoogleAdminReview[] = data.data || [];
+    setGoogleReviews(list);
+    setReplyDrafts((prev) => {
+      const next = { ...prev };
+      list.forEach((r) => {
+        if (next[r.review_key] === undefined) next[r.review_key] = r.reply_text || "";
+      });
+      return next;
+    });
+  }, []);
+
+  const fetchAll = useCallback(async () => {
     try {
-      const res = await fetch(`${API_URL}/admin/reviews/manual`, { headers: getAuthHeaders() });
-      const data = await res.json();
-      setReviews(data.data || []);
+      await Promise.all([fetchManual(), fetchGoogle()]);
     } catch {
       showToast("Failed to load reviews", "error");
     } finally {
       setLoading(false);
     }
-  }, [showToast]);
+  }, [fetchManual, fetchGoogle, showToast]);
 
-  useEffect(() => { fetchReviews(); }, [fetchReviews]);
+  useEffect(() => {
+    fetchAll();
+  }, [fetchAll]);
 
   function handleSaved() {
     setShowForm(false);
     setEditReview(null);
     showToast(editReview ? "Review updated" : "Review added", "success");
     setLoading(true);
-    fetchReviews();
+    fetchAll();
   }
 
   async function handleDelete(id: number) {
@@ -2125,6 +2161,51 @@ function ReviewsContent() {
     }
   }
 
+  async function moderateReview(
+    review: GoogleAdminReview,
+    payload: { is_hidden?: boolean; reply_text?: string; clear_reply?: boolean }
+  ) {
+    setModeratingKey(review.review_key);
+    try {
+      const res = await fetch(`${API_URL}/admin/reviews/moderate`, {
+        method: "PUT",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          review_key: review.review_key,
+          author_name: review.author_name,
+          rating: review.rating,
+          ...payload,
+        }),
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => null);
+        throw new Error(d?.message || "Failed");
+      }
+      const data = await res.json();
+      setGoogleReviews((list) =>
+        list.map((r) =>
+          r.review_key === review.review_key
+            ? {
+                ...r,
+                is_hidden: data.data?.is_hidden ?? r.is_hidden,
+                reply_text: data.data?.reply_text ?? (payload.clear_reply ? null : r.reply_text),
+              }
+            : r
+        )
+      );
+      if (payload.reply_text !== undefined || payload.clear_reply) {
+        showToast(payload.clear_reply ? "Reply removed" : "Reply saved — shown on website", "success");
+        setReplyOpenKey(null);
+      } else if (payload.is_hidden !== undefined) {
+        showToast(payload.is_hidden ? "Review hidden from website" : "Review visible on website", "success");
+      }
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "Failed to update review", "error");
+    } finally {
+      setModeratingKey(null);
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -2142,36 +2223,140 @@ function ReviewsContent() {
 
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h2 className="text-2xl font-bold text-black mb-1">Manual Reviews</h2>
-          <p className="text-gray-500">Add custom testimonials to supplement Google reviews</p>
+          <h2 className="text-2xl font-bold text-black mb-1">Reviews</h2>
+          <p className="text-gray-500">Website shows 5-star reviews only. Hide or reply from here.</p>
         </div>
         <div className="flex items-center gap-3">
-          <button onClick={() => { setLoading(true); fetchReviews(); }} className="flex items-center gap-2 text-sm text-gray-600 hover:text-black transition-colors">
+          <button onClick={() => { setLoading(true); fetchAll(); }} className="flex items-center gap-2 text-sm text-gray-600 hover:text-black transition-colors">
             <RefreshCw className="w-4 h-4" /> Refresh
           </button>
           <button
             onClick={() => { setEditReview(null); setShowForm(true); }}
             className="bg-[#D97706] text-white font-semibold rounded-lg px-5 py-2.5 hover:bg-[#B45309] flex items-center gap-2 transition-colors text-sm"
           >
-            <Plus className="w-4 h-4" /> Add Review
+            <Plus className="w-4 h-4" /> Add Manual Review
           </button>
         </div>
       </div>
 
-      <div className="bg-blue-50 border border-blue-200 rounded-xl px-5 py-4 mb-6">
-        <p className="text-sm text-blue-800">
-          <strong>Tip:</strong> Manual reviews are shown alongside Google reviews on your website. Configure your Google Place ID and API Key in{" "}
-          <strong>Settings &rarr; Google Reviews</strong> to automatically fetch real Google reviews.
+      <div className="bg-amber-50 border border-amber-200 rounded-xl px-5 py-4 mb-6">
+        <p className="text-sm text-amber-900">
+          <strong>Website display:</strong> only <strong>5-star</strong> reviews that are not hidden. Low ratings stay in admin so you can hide them or leave a public reply.
+          Replies appear on the website under the review (not posted to Google Business Profile).
         </p>
       </div>
 
+      <h3 className="text-lg font-semibold text-black mb-3">Google Reviews</h3>
+      {googleReviews.length === 0 ? (
+        <div className="bg-white rounded-xl border border-gray-200 p-8 text-center mb-8">
+          <p className="text-gray-500 text-sm">No Google reviews cached yet. Fetch them from Settings → Google Reviews.</p>
+        </div>
+      ) : (
+        <div className="space-y-3 mb-10">
+          {googleReviews.map((review) => (
+            <div key={review.review_key} className={`bg-white rounded-xl border p-5 ${review.is_hidden ? "border-red-200 bg-red-50/20" : "border-gray-200"}`}>
+              <div className="flex items-start gap-4">
+                <div className="w-10 h-10 rounded-full bg-black flex items-center justify-center text-amber-500 font-bold text-sm flex-shrink-0">
+                  {review.author_name.charAt(0).toUpperCase()}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex flex-wrap items-center gap-2 mb-1">
+                    <p className="font-semibold text-black text-sm">{review.author_name}</p>
+                    <div className="flex items-center gap-0.5">
+                      {Array.from({ length: 5 }).map((_, i) => (
+                        <Star key={i} className={`w-3.5 h-3.5 ${i < review.rating ? "text-amber-500 fill-amber-500" : "text-gray-200 fill-gray-200"}`} />
+                      ))}
+                    </div>
+                    {review.rating < 5 && (
+                      <span className="text-[10px] uppercase font-semibold px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 border border-gray-200">
+                        Hidden on site (not 5★)
+                      </span>
+                    )}
+                    {review.is_hidden && (
+                      <span className="text-[10px] uppercase font-semibold px-2 py-0.5 rounded-full bg-red-50 text-red-700 border border-red-200">
+                        Removed from site
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-sm text-gray-600 whitespace-pre-wrap">{review.text}</p>
+                  <p className="text-xs text-gray-400 mt-1">{review.relative_time_description}</p>
+                  {review.reply_text ? (
+                    <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50/50 px-3 py-2">
+                      <p className="text-[11px] font-semibold text-amber-800 mb-0.5">Your reply (on website)</p>
+                      <p className="text-sm text-gray-700 whitespace-pre-wrap">{review.reply_text}</p>
+                    </div>
+                  ) : null}
+                  {replyOpenKey === review.review_key && (
+                    <div className="mt-3 space-y-2">
+                      <textarea
+                        value={replyDrafts[review.review_key] ?? ""}
+                        onChange={(e) => setReplyDrafts((d) => ({ ...d, [review.review_key]: e.target.value }))}
+                        rows={3}
+                        placeholder="Write a public reply shown on your website…"
+                        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
+                      />
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          disabled={moderatingKey === review.review_key}
+                          onClick={() => moderateReview(review, { reply_text: replyDrafts[review.review_key] || "" })}
+                          className="px-3 py-1.5 text-xs font-medium rounded-md bg-[#D97706] text-white hover:bg-[#B45309] disabled:opacity-50"
+                        >
+                          {moderatingKey === review.review_key ? "Saving…" : "Save Reply"}
+                        </button>
+                        {review.reply_text ? (
+                          <button
+                            type="button"
+                            disabled={moderatingKey === review.review_key}
+                            onClick={() => moderateReview(review, { clear_reply: true })}
+                            className="px-3 py-1.5 text-xs font-medium rounded-md bg-gray-100 text-gray-700 border border-gray-200"
+                          >
+                            Clear Reply
+                          </button>
+                        ) : null}
+                        <button type="button" onClick={() => setReplyOpenKey(null)} className="px-3 py-1.5 text-xs font-medium text-gray-500">
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <div className="flex flex-col gap-2 flex-shrink-0">
+                  <button
+                    type="button"
+                    disabled={moderatingKey === review.review_key}
+                    onClick={() => moderateReview(review, { is_hidden: !review.is_hidden })}
+                    className={`px-2.5 py-1 text-xs font-medium rounded-md border transition-colors flex items-center gap-1 disabled:opacity-50 ${
+                      review.is_hidden
+                        ? "bg-green-50 text-green-700 border-green-200"
+                        : "bg-red-50 text-red-700 border-red-200"
+                    }`}
+                  >
+                    {review.is_hidden ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+                    {review.is_hidden ? "Show" : "Remove"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setReplyOpenKey(replyOpenKey === review.review_key ? null : review.review_key)}
+                    className="px-2.5 py-1 text-xs font-medium rounded-md bg-blue-50 text-blue-700 border border-blue-200 flex items-center gap-1"
+                  >
+                    <MessageSquare className="w-3.5 h-3.5" /> Reply
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <h3 className="text-lg font-semibold text-black mb-3">Manual Reviews</h3>
       {reviews.length === 0 ? (
         <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
           <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <Star className="w-8 h-8 text-gray-400" />
           </div>
           <h3 className="text-lg font-semibold text-gray-700 mb-2">No manual reviews yet</h3>
-          <p className="text-gray-500 text-sm mb-6">Add your first review to display customer testimonials.</p>
+          <p className="text-gray-500 text-sm mb-6">Add 5-star testimonials to show more reviews on the homepage.</p>
           <button
             onClick={() => { setEditReview(null); setShowForm(true); }}
             className="bg-[#D97706] text-white font-semibold rounded-lg px-6 py-2.5 hover:bg-[#B45309] inline-flex items-center gap-2 transition-colors text-sm"

@@ -43,6 +43,11 @@ export interface GoogleReview {
   relative_time_description: string;
   profile_photo_url?: string;
   time: number;
+  review_key?: string;
+  source?: "google" | "manual";
+  reply_text?: string | null;
+  replied_at?: string | null;
+  is_hidden?: boolean;
 }
 
 export interface GoogleReviewsData {

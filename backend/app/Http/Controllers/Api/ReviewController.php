@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\ManualReview;
+use App\Models\ReviewModeration;
 use App\Services\GoogleReviewService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -43,6 +44,59 @@ class ReviewController extends Controller
             'cached_google_reviews' => $this->reviewService->getCachedReviewCount(),
             'last_fetched_at' => $this->reviewService->getLastFetchedAt(),
         ], $success ? 200 : 422);
+    }
+
+    public function adminGoogleIndex(): JsonResponse
+    {
+        return response()->json([
+            'data' => $this->reviewService->getAdminGoogleReviews(),
+        ]);
+    }
+
+    public function moderate(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'review_key' => 'required|string|max:128',
+            'author_name' => 'nullable|string|max:255',
+            'rating' => 'nullable|integer|min:1|max:5',
+            'is_hidden' => 'sometimes|boolean',
+            'reply_text' => 'nullable|string|max:2000',
+            'clear_reply' => 'sometimes|boolean',
+        ]);
+
+        $mod = ReviewModeration::firstOrNew(['review_key' => $validated['review_key']]);
+
+        if (array_key_exists('author_name', $validated) && $validated['author_name'] !== null) {
+            $mod->author_name = $validated['author_name'];
+        }
+        if (array_key_exists('rating', $validated) && $validated['rating'] !== null) {
+            $mod->rating = $validated['rating'];
+        }
+        if (array_key_exists('is_hidden', $validated)) {
+            $mod->is_hidden = (bool) $validated['is_hidden'];
+        }
+
+        if (!empty($validated['clear_reply'])) {
+            $mod->reply_text = null;
+            $mod->replied_at = null;
+        } elseif (array_key_exists('reply_text', $validated)) {
+            $text = trim((string) ($validated['reply_text'] ?? ''));
+            if ($text === '') {
+                $mod->reply_text = null;
+                $mod->replied_at = null;
+            } else {
+                $mod->reply_text = $text;
+                $mod->replied_at = now();
+            }
+        }
+
+        $mod->save();
+        Cache::forget('google_reviews');
+
+        return response()->json([
+            'message' => 'Review updated',
+            'data' => $mod->fresh(),
+        ]);
     }
 
     public function manualIndex(): JsonResponse
@@ -95,6 +149,7 @@ class ReviewController extends Controller
 
     public function manualDestroy(ManualReview $manualReview): JsonResponse
     {
+        ReviewModeration::where('review_key', 'manual:' . $manualReview->id)->delete();
         $manualReview->delete();
         Cache::forget('google_reviews');
 

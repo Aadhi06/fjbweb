@@ -138,6 +138,8 @@ Route::middleware('auth:sanctum')->prefix('admin')->group(function () {
 
     Route::get('/reviews/status', [ReviewController::class, 'adminStatus']);
     Route::post('/reviews/fetch', [ReviewController::class, 'fetchNow']);
+    Route::get('/reviews/google', [ReviewController::class, 'adminGoogleIndex']);
+    Route::put('/reviews/moderate', [ReviewController::class, 'moderate']);
     Route::get('/reviews/manual', [ReviewController::class, 'manualIndex']);
     Route::post('/reviews/manual', [ReviewController::class, 'manualStore']);
     Route::put('/reviews/manual/{manualReview}', [ReviewController::class, 'manualUpdate']);

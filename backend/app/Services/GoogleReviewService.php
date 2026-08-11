@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\GoogleReviewCache;
 use App\Models\ManualReview;
+use App\Models\ReviewModeration;
 use App\Models\Setting;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
@@ -66,7 +67,6 @@ class GoogleReviewService
                 ]
             );
 
-            // Also update the setting so frontend can display it
             if (isset($result['rating'])) {
                 Setting::set('google_rating', $result['rating'], 'number', 'google', 'Google Rating');
             }
@@ -85,22 +85,62 @@ class GoogleReviewService
     public function getReviews(): array
     {
         return Cache::remember('google_reviews', 86400, function () {
-            $placeId = Setting::get('google_place_id', config('services.google.place_id'));
-            $cached = GoogleReviewCache::where('place_id', $placeId)->latest('fetched_at')->first();
+            $payload = $this->buildReviewPayload(publicOnly: true);
+            return $payload;
+        });
+    }
 
-            $googleReviews = $cached && count($cached->reviews ?? []) > 0
-                ? ($cached->reviews ?? [])
-                : [];
+    /** Full list for admin (includes non-5-star and hidden). */
+    public function getAdminGoogleReviews(): array
+    {
+        return $this->buildReviewPayload(publicOnly: false)['reviews'];
+    }
 
-            $hasGoogleReviews = count($googleReviews) > 0;
+    private function buildReviewPayload(bool $publicOnly): array
+    {
+        $placeId = Setting::get('google_place_id', config('services.google.place_id'));
+        $cached = GoogleReviewCache::where('place_id', $placeId)->latest('fetched_at')->first();
 
-            $manualReviews = ManualReview::active()
-                ->orderBy('sort_order')
-                ->orderByDesc('review_date')
-                ->get()
-                ->map(fn ($r) => [
+        $moderations = ReviewModeration::all()->keyBy('review_key');
+
+        $googleReviews = collect($cached?->reviews ?? [])->map(function ($r) use ($moderations) {
+            $key = ReviewModeration::makeKey(
+                $r['author_name'] ?? '',
+                $r['time'] ?? 0,
+                $r['text'] ?? ''
+            );
+            $mod = $moderations->get($key);
+
+            return [
+                'review_key' => $key,
+                'author_name' => $r['author_name'] ?? 'Anonymous',
+                'rating' => (int) ($r['rating'] ?? 5),
+                'text' => $r['text'] ?? '',
+                'relative_time_description' => $r['relative_time_description'] ?? '',
+                'profile_photo_url' => $r['profile_photo_url'] ?? null,
+                'time' => $r['time'] ?? 0,
+                'source' => 'google',
+                'is_hidden' => (bool) ($mod?->is_hidden ?? false),
+                'reply_text' => $mod?->reply_text,
+                'replied_at' => $mod?->replied_at?->toIso8601String(),
+            ];
+        })->values()->all();
+
+        $hasGoogleReviews = count($googleReviews) > 0;
+
+        $manualReviews = ManualReview::query()
+            ->when($publicOnly, fn ($q) => $q->active())
+            ->orderBy('sort_order')
+            ->orderByDesc('review_date')
+            ->get()
+            ->map(function ($r) use ($moderations) {
+                $key = 'manual:' . $r->id;
+                $mod = $moderations->get($key);
+
+                return [
+                    'review_key' => $key,
                     'author_name' => $r->name,
-                    'rating' => $r->rating,
+                    'rating' => (int) $r->rating,
                     'text' => $r->text,
                     'relative_time_description' => $r->review_date
                         ? $r->review_date->diffForHumans()
@@ -108,26 +148,46 @@ class GoogleReviewService
                     'profile_photo_url' => $r->photo_url,
                     'time' => $r->review_date ? $r->review_date->timestamp : $r->created_at->timestamp,
                     'source' => 'manual',
-                ])
-                ->toArray();
+                    'manual_id' => $r->id,
+                    'is_active' => (bool) $r->is_active,
+                    'is_hidden' => (bool) ($mod?->is_hidden ?? false),
+                    'reply_text' => $mod?->reply_text,
+                    'replied_at' => $mod?->replied_at?->toIso8601String(),
+                ];
+            })
+            ->all();
 
-            $allReviews = array_merge($googleReviews, $manualReviews);
+        $allReviews = array_merge($googleReviews, $manualReviews);
 
-            usort($allReviews, fn ($a, $b) => ($b['time'] ?? 0) <=> ($a['time'] ?? 0));
+        if ($publicOnly) {
+            $allReviews = array_values(array_filter($allReviews, function ($r) {
+                if (($r['rating'] ?? 0) < 5) {
+                    return false;
+                }
+                if (!empty($r['is_hidden'])) {
+                    return false;
+                }
+                if (($r['source'] ?? '') === 'manual' && empty($r['is_active'])) {
+                    return false;
+                }
+                return true;
+            }));
+        }
 
-            return [
-                'place_name' => $cached->place_name ?? Setting::get('business_name', 'Fine Jewellery Buyers'),
-                'rating' => $hasGoogleReviews
-                    ? (float) $cached->rating
-                    : (float) Setting::get('google_rating', 4.9),
-                'total_reviews' => $hasGoogleReviews
-                    ? (int) $cached->total_reviews
-                    : (int) Setting::get('total_reviews', 0),
-                'reviews' => $allReviews,
-                'google_review_count' => count($googleReviews),
-                'manual_review_count' => count($manualReviews),
-            ];
-        });
+        usort($allReviews, fn ($a, $b) => ($b['time'] ?? 0) <=> ($a['time'] ?? 0));
+
+        return [
+            'place_name' => $cached->place_name ?? Setting::get('business_name', 'Fine Jewellery Buyers'),
+            'rating' => $hasGoogleReviews
+                ? (float) $cached->rating
+                : (float) Setting::get('google_rating', 4.9),
+            'total_reviews' => $hasGoogleReviews
+                ? (int) $cached->total_reviews
+                : (int) Setting::get('total_reviews', 0),
+            'reviews' => $allReviews,
+            'google_review_count' => count(array_filter($googleReviews, fn ($r) => empty($r['is_hidden']))),
+            'manual_review_count' => count(array_filter($manualReviews, fn ($r) => !empty($r['is_active']))),
+        ];
     }
 
     public function getCachedReviewCount(): int
