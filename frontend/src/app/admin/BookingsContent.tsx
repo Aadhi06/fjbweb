@@ -61,8 +61,30 @@ export function BookingsContent({
   const [showTemplates, setShowTemplates] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<EmailTemplate | null>(null);
   const [rescheduleBooking, setRescheduleBooking] = useState<BookingRecord | null>(null);
+  const [detailBooking, setDetailBooking] = useState<BookingRecord | null>(null);
   const [rescheduleForm, setRescheduleForm] = useState({ booking_date: "", booking_time: "", confirm: true });
   const [cancelReason, setCancelReason] = useState("");
+
+  function formatBookingDate(date: string) {
+    if (!date) return "—";
+    return new Date(date).toLocaleDateString("en-GB", {
+      weekday: "short",
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
+  }
+
+  function formatCreatedAt(date: string) {
+    if (!date) return "—";
+    return new Date(date).toLocaleString("en-GB", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  }
 
   const fetchBookings = useCallback(async () => {
     try {
@@ -210,7 +232,11 @@ export function BookingsContent({
               </thead>
               <tbody>
                 {bookings.map((b) => (
-                  <tr key={b.id} className="border-b border-gray-100 hover:bg-gray-50/50">
+                  <tr
+                    key={b.id}
+                    onClick={() => setDetailBooking(b)}
+                    className="border-b border-gray-100 hover:bg-amber-50/40 cursor-pointer transition-colors"
+                  >
                     <td className="px-4 py-3 font-medium text-black">{b.name}</td>
                     <td className="px-4 py-3 text-gray-600">
                       <div>{b.email}</div>
@@ -218,12 +244,12 @@ export function BookingsContent({
                     </td>
                     <td className="px-4 py-3 text-gray-600">{b.service_type}</td>
                     <td className="px-4 py-3 text-gray-600 whitespace-nowrap">
-                      {b.booking_date ? new Date(b.booking_date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : ""}
+                      {formatBookingDate(b.booking_date)}
                       <br /><span className="text-xs">{b.booking_time}</span>
                     </td>
                     <td className="px-4 py-3 text-gray-500 text-xs max-w-[120px] truncate">{b.notes || "—"}</td>
                     <td className="px-4 py-3"><StatusBadge status={b.status} /></td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                       <div className="flex flex-wrap gap-1">
                         {b.status === "pending" && (
                           <button onClick={() => updateStatus(b.id, "confirmed")} disabled={updatingId === b.id} className="px-2 py-1 text-xs font-medium rounded bg-green-50 text-green-700 border border-green-200 disabled:opacity-50">Confirm</button>
@@ -265,6 +291,131 @@ export function BookingsContent({
                 ))}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {detailBooking && (
+        <div className="fixed inset-0 z-[90] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setDetailBooking(null)} />
+          <div className="relative bg-white rounded-2xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="flex items-start justify-between gap-3 p-5 border-b">
+              <div>
+                <p className="text-xs text-gray-400 mb-1">Booking #{detailBooking.id}</p>
+                <h3 className="text-lg font-semibold text-black">{detailBooking.name}</h3>
+                <div className="mt-2"><StatusBadge status={detailBooking.status} /></div>
+              </div>
+              <button type="button" onClick={() => setDetailBooking(null)} className="p-1 rounded-lg hover:bg-gray-100" aria-label="Close">
+                <X className="w-5 h-5 text-gray-400" />
+              </button>
+            </div>
+
+            <div className="overflow-y-auto p-5 space-y-4 flex-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-wide text-gray-400 mb-1">Email</p>
+                  <a href={`mailto:${detailBooking.email}`} className="text-sm text-black hover:underline break-all">
+                    {detailBooking.email}
+                  </a>
+                </div>
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-wide text-gray-400 mb-1">Phone</p>
+                  <a href={`tel:${detailBooking.phone}`} className="text-sm text-black hover:underline">
+                    {detailBooking.phone || "—"}
+                  </a>
+                </div>
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-wide text-gray-400 mb-1">Service</p>
+                  <p className="text-sm text-black">{detailBooking.service_type}</p>
+                </div>
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-wide text-gray-400 mb-1">Date &amp; Time</p>
+                  <p className="text-sm text-black">
+                    {formatBookingDate(detailBooking.booking_date)}
+                    {detailBooking.booking_time ? ` · ${detailBooking.booking_time}` : ""}
+                  </p>
+                </div>
+                <div className="sm:col-span-2">
+                  <p className="text-xs font-medium uppercase tracking-wide text-gray-400 mb-1">Submitted</p>
+                  <p className="text-sm text-black">{formatCreatedAt(detailBooking.created_at)}</p>
+                </div>
+              </div>
+
+              <div>
+                <p className="text-xs font-medium uppercase tracking-wide text-gray-400 mb-1">Notes</p>
+                <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-800 whitespace-pre-wrap break-words min-h-[3rem]">
+                  {detailBooking.notes?.trim() ? detailBooking.notes : "No notes"}
+                </div>
+              </div>
+            </div>
+
+            <div className="border-t p-4 flex flex-wrap gap-2 bg-white">
+              {detailBooking.status === "pending" && (
+                <button
+                  type="button"
+                  onClick={async () => {
+                    await updateStatus(detailBooking.id, "confirmed");
+                    setDetailBooking(null);
+                  }}
+                  disabled={updatingId === detailBooking.id}
+                  className="px-3 py-2 text-xs font-medium rounded-lg bg-green-50 text-green-700 border border-green-200 disabled:opacity-50"
+                >
+                  Confirm
+                </button>
+              )}
+              {detailBooking.status !== "cancelled" && detailBooking.status !== "completed" && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRescheduleBooking(detailBooking);
+                      setRescheduleForm({
+                        booking_date: detailBooking.booking_date?.slice(0, 10) || "",
+                        booking_time: detailBooking.booking_time,
+                        confirm: detailBooking.status !== "confirmed",
+                      });
+                      setDetailBooking(null);
+                    }}
+                    disabled={updatingId === detailBooking.id}
+                    className="px-3 py-2 text-xs font-medium rounded-lg bg-blue-50 text-blue-700 border border-blue-200 disabled:opacity-50"
+                  >
+                    Reschedule
+                  </button>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const reason = prompt("Cancellation reason (optional):");
+                      await updateStatus(detailBooking.id, "cancelled", reason || undefined);
+                      setDetailBooking(null);
+                    }}
+                    disabled={updatingId === detailBooking.id}
+                    className="px-3 py-2 text-xs font-medium rounded-lg bg-red-50 text-red-700 border border-red-200 disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                </>
+              )}
+              {detailBooking.status === "confirmed" && (
+                <button
+                  type="button"
+                  onClick={async () => {
+                    await updateStatus(detailBooking.id, "completed");
+                    setDetailBooking(null);
+                  }}
+                  disabled={updatingId === detailBooking.id}
+                  className="px-3 py-2 text-xs font-medium rounded-lg bg-gray-50 text-gray-700 border border-gray-200 disabled:opacity-50"
+                >
+                  Complete
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setDetailBooking(null)}
+                className="ml-auto px-3 py-2 text-xs font-medium rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}
