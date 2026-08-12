@@ -45,11 +45,12 @@ class FormController extends Controller
         ]);
     }
 
-    public function adminIndex(): JsonResponse
+    public function adminIndex(Request $request): JsonResponse
     {
+        $perPage = min(50, max(10, (int) $request->input('per_page', 20)));
         $submissions = FormSubmission::with(['form', 'files'])
             ->latest()
-            ->paginate(20);
+            ->paginate($perPage);
 
         $submissions->getCollection()->transform(fn ($s) => [
             'id' => $s->id,
