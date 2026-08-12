@@ -43,7 +43,7 @@ export type SubmissionDetail = {
 
 const SUMMARY_FIELD_ORDER = ["gold_items", "estimated_total", "items_count", "expected_price", "name", "email", "phone"];
 
-type SuggestedReply = { id: string; label: string; text: string };
+type SuggestedReply = { id: string; label: string; body: string };
 
 function fieldValue(data: Record<string, string>, ...keys: string[]) {
   for (const key of keys) {
@@ -57,10 +57,29 @@ function firstName(fullName: string) {
   return fullName.trim().split(/\s+/)[0] || "";
 }
 
+function greetingFor(name: string) {
+  return name ? `Hi ${name}, ` : "Hi, ";
+}
+
+function itemPhraseFrom(detail: SubmissionDetail) {
+  const data = detail.data || {};
+  const itemType = fieldValue(data, "item_type", "item", "what_are_you_selling");
+  const subject = fieldValue(data, "subject");
+  const blob = `${itemType} ${subject} ${fieldValue(data, "description", "item_description", "details", "message")}`.toLowerCase();
+
+  if (/gold and diamond|gold & diamond|gold \/ diamond/.test(blob)) return "your gold and diamond rings";
+  if (itemType) return `your ${itemType.toLowerCase()}`;
+  if (/diamond ring/.test(blob)) return "your diamond rings";
+  if (/gold ring/.test(blob)) return "your gold rings";
+  if (/diamond/.test(blob)) return "your diamonds";
+  if (/gold/.test(blob)) return "your gold";
+  if (/watch/.test(blob)) return "your watch";
+  if (subject) return `your ${subject.toLowerCase().replace(/^selling\s+/, "")}`;
+  return "your jewellery";
+}
+
 function buildSuggestedReplies(detail: SubmissionDetail, whatsapp: string): SuggestedReply[] {
   const data = detail.data || {};
-  const name = firstName(fieldValue(data, "name", "full_name"));
-  const hi = name ? `Hi ${name}, ` : "Hi, ";
   const itemType = fieldValue(data, "item_type", "item", "what_are_you_selling");
   const description = fieldValue(data, "description", "item_description", "details", "message");
   const preferred = fieldValue(data, "preferred_contact", "contact_method").toLowerCase();
@@ -70,78 +89,87 @@ function buildSuggestedReplies(detail: SubmissionDetail, whatsapp: string): Sugg
     .map((m) => m.body)
     .join(" ")
     .toLowerCase();
-  const blob = `${itemType} ${description} ${customerText} ${detail.form_name}`.toLowerCase();
-  const itemPhrase = itemType ? `your ${itemType.toLowerCase()}` : "your item";
+  const blob = `${itemType} ${description} ${customerText} ${detail.form_name} ${fieldValue(data, "subject")}`.toLowerCase();
+  const itemPhrase = itemPhraseFrom(detail);
   const waDigits = (whatsapp || "").replace(/\D/g, "");
   const waLink = waDigits ? `https://wa.me/${waDigits}` : "WhatsApp";
+  const replies: SuggestedReply[] = [];
 
-  const replies: SuggestedReply[] = [
-    {
-      id: "received",
-      label: "We've received this",
-      text: `${hi}thank you for your enquiry about ${itemPhrase}. We have received it and our team is reviewing the details.`,
-    },
-  ];
+  if (/do you (purchase|buy)|do you take|would you buy|are you buying/.test(blob)) {
+    replies.push({
+      id: "yes-we-buy",
+      label: "Yes, we buy these",
+      body: `yes we buy ${itemPhrase.replace(/^your /, "")}. You are welcome to send photos for a free valuation, or visit us when you are in London.`,
+    });
+  }
+
+  if (/travel|travelling|traveling|coming to london|visit london|from ireland|ireland|in london soon/.test(blob)) {
+    replies.push({
+      id: "coming-to-london",
+      label: "Coming to London",
+      body: `when you are in London you can visit our Hatton Garden showroom for a same-day valuation of ${itemPhrase} — no appointment is essential, but booking a time helps us prepare.`,
+    });
+  }
+
+  replies.push({
+    id: "received",
+    label: "We've received this",
+    body: `thank you for your enquiry about ${itemPhrase}. We have received it and our team is reviewing the details.`,
+  });
 
   if (!hasPhotos) {
     replies.push({
       id: "more-details",
       label: "Need photos & details",
-      text: `${hi}to give you an accurate valuation of ${itemPhrase}, please send photos (front, back and hallmarks), approximate weight, and carat if known.`,
+      body: `to give you an accurate valuation of ${itemPhrase}, please send photos (front, back and hallmarks), approximate weight, and carat if known.`,
     });
   } else if (description.length < 40 || /photo|picture|image|clearer|blur/i.test(blob)) {
     replies.push({
       id: "more-details",
       label: "Need clearer photos",
-      text: `${hi}thank you for the photos of ${itemPhrase}. Please send a few clearer shots — front, back, hallmarks — plus approximate weight and any certificates.`,
+      body: `please send a few clearer photos of ${itemPhrase} — front, back and hallmarks — plus approximate weight and any certificates.`,
     });
   } else {
     replies.push({
       id: "more-details",
       label: "Need more details",
-      text: `${hi}thank you for the details on ${itemPhrase}. Could you also confirm the approximate weight, carat if known, and whether you have any certificates?`,
+      body: `could you also confirm the approximate weight of ${itemPhrase}, carat if known, and whether you have any certificates?`,
     });
   }
 
   replies.push({
     id: "whatsapp",
     label: preferred.includes("whatsapp") ? "Continue on WhatsApp" : "Send to WhatsApp",
-    text: `${hi}please send all photos and details for ${itemPhrase} to our WhatsApp and we will get back to you quickly: ${waLink}`,
+    body: `please send all photos and details for ${itemPhrase} to our WhatsApp and we will get back to you quickly: ${waLink}`,
   });
 
-  if (/visit|appointment|hatton|come in|in person|showroom/.test(blob)) {
-    replies.push({
-      id: "visit",
-      label: "Book a visit",
-      text: `${hi}we would be happy to value ${itemPhrase} in person at our Hatton Garden showroom. Please book a time that suits you — no obligation.`,
-    });
-  } else {
-    replies.push({
-      id: "visit",
-      label: "Visit Hatton Garden",
-      text: `${hi}if you prefer, you can bring ${itemPhrase} to our Hatton Garden showroom for a same-day valuation. No obligation.`,
-    });
+  if (!replies.some((r) => r.id === "coming-to-london")) {
+    if (/visit|appointment|hatton|come in|in person|showroom/.test(blob)) {
+      replies.push({
+        id: "visit",
+        label: "Book a visit",
+        body: `we would be happy to value ${itemPhrase} in person at our Hatton Garden showroom. Please book a time that suits you — no obligation.`,
+      });
+    } else {
+      replies.push({
+        id: "visit",
+        label: "Visit Hatton Garden",
+        body: `if you prefer, you can bring ${itemPhrase} to our Hatton Garden showroom for a same-day valuation. No obligation.`,
+      });
+    }
   }
 
-  if (/price|offer|how much|worth|quote|valuation/.test(blob)) {
-    replies.push({
-      id: "offer-soon",
-      label: "Offer coming soon",
-      text: `${hi}we are preparing an offer for ${itemPhrase} now and will send it through as soon as it is ready.`,
-    });
-  } else {
-    replies.push({
-      id: "offer-soon",
-      label: "We'll send an offer",
-      text: `${hi}our valuers are looking at ${itemPhrase} and we will send you an offer shortly.`,
-    });
-  }
+  replies.push({
+    id: "offer-soon",
+    label: "We'll send an offer",
+    body: `our valuers will look at ${itemPhrase} and send you an offer as soon as we have the photos and details.`,
+  });
 
   if (/gold|scrap|chain|ring|bangle|hallmark/.test(blob) || itemType.toLowerCase().includes("gold")) {
     replies.push({
       id: "hallmark",
       label: "Ask hallmark / weight",
-      text: "Could you confirm the carat (9ct, 18ct, 22ct) and approximate weight in grams? A close-up of any hallmark would also help.",
+      body: `could you confirm the carat (9ct, 18ct, 22ct) and approximate weight in grams? A close-up of any hallmark would also help.`,
     });
   }
 
@@ -149,7 +177,7 @@ function buildSuggestedReplies(detail: SubmissionDetail, whatsapp: string): Sugg
     replies.push({
       id: "certificate",
       label: "Ask for certificate",
-      text: "If you have a GIA or other gemstone certificate, please send a photo of it. If not, extra close-ups of the stone will help us assess it.",
+      body: `if you have a GIA or other diamond certificate, please send a photo of it. If not, extra close-ups of the stones will help us assess them.`,
     });
   }
 
@@ -157,7 +185,7 @@ function buildSuggestedReplies(detail: SubmissionDetail, whatsapp: string): Sugg
     replies.push({
       id: "watch-papers",
       label: "Ask box & papers",
-      text: "Please let us know the watch brand and model, and whether you have the original box and papers. Photos of the dial, case back and clasp would be useful.",
+      body: `please let us know the watch brand and model, and whether you have the original box and papers. Photos of the dial, case back and clasp would be useful.`,
     });
   }
 
@@ -165,18 +193,24 @@ function buildSuggestedReplies(detail: SubmissionDetail, whatsapp: string): Sugg
     replies.push({
       id: "call",
       label: "We'll call you",
-      text: `${hi}we will give you a call shortly to go through ${itemPhrase}. If another time is better, just reply with a convenient slot.`,
+      body: `we will give you a call shortly to go through ${itemPhrase}. If another time is better, just reply with a convenient slot.`,
     });
   }
 
   return replies;
 }
 
-function combineSuggestedTexts(presets: SuggestedReply[], selectedIds: string[]) {
-  return presets
-    .filter((preset) => selectedIds.includes(preset.id))
-    .map((preset) => preset.text)
-    .join("\n\n");
+function combineSuggestedTexts(presets: SuggestedReply[], selectedIds: string[], greeting: string) {
+  const selected = presets.filter((preset) => selectedIds.includes(preset.id));
+  if (!selected.length) return "";
+
+  const sentences = selected.map((preset, index) => {
+    const body = preset.body.trim().replace(/\s+/g, " ");
+    if (index === 0) return body.charAt(0).toLowerCase() + body.slice(1);
+    return body.charAt(0).toUpperCase() + body.slice(1);
+  });
+
+  return `${greeting}${sentences.join(" ")}`;
 }
 
 function formatFields(data: Record<string, string>) {
@@ -332,13 +366,16 @@ export function SubmissionChatPanel({
 
   const fields = detail ? formatFields(detail.data || {}) : [];
   const presets = detail ? buildSuggestedReplies(detail, settings.whatsapp) : [];
+  const greeting = detail
+    ? greetingFor(firstName(fieldValue(detail.data || {}, "name", "full_name")))
+    : "Hi, ";
 
   function toggleSuggestedReply(id: string) {
     const nextIds = selectedReplyIds.includes(id)
       ? selectedReplyIds.filter((item) => item !== id)
       : [...selectedReplyIds, id];
     setSelectedReplyIds(nextIds);
-    setReply(combineSuggestedTexts(presets, nextIds));
+    setReply(combineSuggestedTexts(presets, nextIds, greeting));
     requestAnimationFrame(() => replyRef.current?.focus());
   }
 
@@ -456,7 +493,7 @@ export function SubmissionChatPanel({
             onChange={(e) => {
               const value = e.target.value;
               setReply(value);
-              if (value !== combineSuggestedTexts(presets, selectedReplyIds)) {
+              if (value !== combineSuggestedTexts(presets, selectedReplyIds, greeting)) {
                 setSelectedReplyIds([]);
               }
             }}
