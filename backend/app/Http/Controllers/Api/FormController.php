@@ -149,11 +149,13 @@ class FormController extends Controller
             ->with('form')
             ->firstOrFail();
 
+        $this->conversationService->markAdminMessagesViewed($submission);
+
         return response()->json([
             'data' => [
                 'form_name' => $submission->form?->title ?? 'Your enquiry',
                 'customer_name' => $this->conversationService->customerName($submission),
-                'messages' => $this->conversationService->formatMessages($submission),
+                'messages' => $this->conversationService->formatMessages($submission->fresh()),
                 'created_at_human' => $submission->created_at->diffForHumans(),
             ],
         ]);
@@ -175,6 +177,31 @@ class FormController extends Controller
                 'messages' => $this->conversationService->formatMessages($submission->fresh()),
             ],
         ]);
+    }
+
+    public function mailOpen(string $token)
+    {
+        $this->conversationService->markMessageOpenedByToken($token);
+
+        // 1x1 transparent GIF
+        $gif = base64_decode('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7');
+
+        return response($gif, 200, [
+            'Content-Type' => 'image/gif',
+            'Content-Length' => (string) strlen($gif),
+            'Cache-Control' => 'no-store, no-cache, must-revalidate, max-age=0',
+            'Pragma' => 'no-cache',
+        ]);
+    }
+
+    public function mailClick(string $token)
+    {
+        $message = $this->conversationService->markMessageClickedByToken($token);
+        $url = $message
+            ? $this->conversationService->conversationUrl($message->submission)
+            : rtrim(\App\Models\Setting::get('frontend_url', 'https://www.finejewellerybuyers.co.uk'), '/');
+
+        return redirect()->away($url);
     }
 
     private function formatSubmissionDetail(FormSubmission $submission): array

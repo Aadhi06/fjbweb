@@ -45,7 +45,7 @@ class SubmissionConversationService
 
         $submission->update(['status' => 'replied']);
 
-        $this->emailCustomer($submission, $message, $admin?->name);
+        $this->emailCustomer($submission, $record, $admin?->name);
 
         return $record;
     }
@@ -67,7 +67,7 @@ class SubmissionConversationService
         return $record;
     }
 
-    private function emailCustomer(FormSubmission $submission, string $message, ?string $adminName): void
+    private function emailCustomer(FormSubmission $submission, FormSubmissionMessage $message, ?string $adminName): void
     {
         $mailConfig = app(MailConfigService::class);
         if (!$mailConfig->isConfigured()) {
@@ -92,6 +92,50 @@ class SubmissionConversationService
         } catch (\Exception $e) {
             Log::error("Failed to send submission reply to customer: {$e->getMessage()}");
         }
+    }
+
+    public function apiBaseUrl(): string
+    {
+        return rtrim(config('app.url', 'https://api.finejewellerybuyers.co.uk'), '/');
+    }
+
+    public function openPixelUrl(FormSubmissionMessage $message): string
+    {
+        return $this->apiBaseUrl() . '/api/mail/open/' . $message->open_token;
+    }
+
+    public function trackedConversationUrl(FormSubmission $submission, FormSubmissionMessage $message): string
+    {
+        return $this->apiBaseUrl() . '/api/mail/click/' . $message->open_token;
+    }
+
+    public function markAdminMessagesViewed(FormSubmission $submission): void
+    {
+        $submission->messages()
+            ->where('sender', 'admin')
+            ->whereNull('page_viewed_at')
+            ->get()
+            ->each(fn (FormSubmissionMessage $m) => $m->markPageViewed());
+    }
+
+    public function markMessageOpenedByToken(string $token): ?FormSubmissionMessage
+    {
+        $message = FormSubmissionMessage::where('open_token', $token)->where('sender', 'admin')->first();
+        if ($message) {
+            $message->markEmailOpened();
+        }
+
+        return $message;
+    }
+
+    public function markMessageClickedByToken(string $token): ?FormSubmissionMessage
+    {
+        $message = FormSubmissionMessage::where('open_token', $token)->where('sender', 'admin')->first();
+        if ($message) {
+            $message->markPageViewed();
+        }
+
+        return $message;
     }
 
     public function markRead(FormSubmission $submission): void
@@ -203,6 +247,13 @@ class SubmissionConversationService
                 'sender' => $m->sender,
                 'body' => $m->body,
                 'admin_name' => $m->adminUser?->name,
+                'email_opened_at' => $m->email_opened_at?->toIso8601String(),
+                'email_opened_at_human' => $m->email_opened_at?->diffForHumans(),
+                'page_viewed_at' => $m->page_viewed_at?->toIso8601String(),
+                'page_viewed_at_human' => $m->page_viewed_at?->diffForHumans(),
+                'delivery_status' => $m->sender === 'admin'
+                    ? ($m->page_viewed_at ? 'chat_opened' : ($m->email_opened_at ? 'email_opened' : 'sent'))
+                    : null,
                 'created_at' => $m->created_at->toIso8601String(),
                 'created_at_human' => $m->created_at->diffForHumans(),
             ])

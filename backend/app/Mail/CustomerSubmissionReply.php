@@ -3,6 +3,7 @@
 namespace App\Mail;
 
 use App\Models\FormSubmission;
+use App\Models\FormSubmissionMessage;
 use App\Models\Setting;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
@@ -17,7 +18,7 @@ class CustomerSubmissionReply extends Mailable
 
     public function __construct(
         public FormSubmission $submission,
-        public string $message,
+        public FormSubmissionMessage $messageRecord,
         public string $conversationUrl,
         public ?string $adminName = null,
     ) {}
@@ -42,12 +43,15 @@ class CustomerSubmissionReply extends Mailable
 
     private function buildHtml(): string
     {
+        $service = app(\App\Services\SubmissionConversationService::class);
         $businessName = htmlspecialchars(Setting::get('business_name', 'Fine Jewellery Buyers'));
-        $name = htmlspecialchars(app(\App\Services\SubmissionConversationService::class)->customerName($this->submission));
+        $name = htmlspecialchars($service->customerName($this->submission));
         $from = htmlspecialchars($this->adminName ?? $businessName);
-        $message = nl2br(htmlspecialchars($this->message));
-        $url = htmlspecialchars($this->conversationUrl);
+        $message = nl2br(htmlspecialchars($this->messageRecord->body));
+        $trackedUrl = htmlspecialchars($service->trackedConversationUrl($this->submission, $this->messageRecord));
+        $pixelUrl = htmlspecialchars($service->openPixelUrl($this->messageRecord));
         $formTitle = htmlspecialchars($this->submission->form?->title ?? 'your enquiry');
+        $plainUrl = htmlspecialchars($this->conversationUrl);
 
         return <<<HTML
         <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:600px;margin:0 auto;padding:20px;">
@@ -65,9 +69,10 @@ class CustomerSubmissionReply extends Mailable
                     Please use the button below to reply so we can keep the conversation in one place. If you reply to this email instead, it will still reach our team.
                 </p>
                 <p style="margin:0 0 20px;text-align:center;">
-                    <a href="{$url}" style="display:inline-block;background:#000;color:#fff;padding:12px 24px;border-radius:999px;text-decoration:none;font-weight:600;font-size:14px;">Reply to Fine Jewellery Buyers</a>
+                    <a href="{$trackedUrl}" style="display:inline-block;background:#000;color:#fff;padding:12px 24px;border-radius:999px;text-decoration:none;font-weight:600;font-size:14px;">Reply to Fine Jewellery Buyers</a>
                 </p>
-                <p style="margin:0;font-size:12px;color:#9ca3af;word-break:break-all;">Or copy this link: {$url}</p>
+                <p style="margin:0;font-size:12px;color:#9ca3af;word-break:break-all;">Or copy this link: {$plainUrl}</p>
+                <img src="{$pixelUrl}" width="1" height="1" alt="" style="display:block;width:1px;height:1px;border:0;" />
             </div>
         </div>
         HTML;

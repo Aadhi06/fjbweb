@@ -21,6 +21,11 @@ export type ChatMessage = {
   body: string;
   admin_name?: string | null;
   created_at_human: string;
+  email_opened_at?: string | null;
+  email_opened_at_human?: string | null;
+  page_viewed_at?: string | null;
+  page_viewed_at_human?: string | null;
+  delivery_status?: "sent" | "email_opened" | "chat_opened" | null;
 };
 
 export type SubmissionFile = {
@@ -231,6 +236,15 @@ function formatFields(data: Record<string, string>) {
 
 function ChatBubble({ msg }: { msg: ChatMessage }) {
   const isAdmin = msg.sender === "admin";
+  const statusLabel =
+    msg.delivery_status === "chat_opened"
+      ? `Chat opened${msg.page_viewed_at_human ? ` · ${msg.page_viewed_at_human}` : ""}`
+      : msg.delivery_status === "email_opened"
+        ? `Email opened${msg.email_opened_at_human ? ` · ${msg.email_opened_at_human}` : ""}`
+        : isAdmin
+          ? "Sent"
+          : null;
+
   return (
     <div className={`flex ${isAdmin ? "justify-end" : "justify-start"}`}>
       <div
@@ -242,7 +256,22 @@ function ChatBubble({ msg }: { msg: ChatMessage }) {
           {isAdmin ? (msg.admin_name || "You") : "Customer"}
         </p>
         <p className="text-sm whitespace-pre-wrap break-words">{msg.body}</p>
-        <p className="text-[10px] opacity-60 mt-1">{msg.created_at_human}</p>
+        <div className={`mt-1 flex items-center gap-2 text-[10px] ${isAdmin ? "opacity-70 justify-end" : "opacity-60"}`}>
+          <span>{msg.created_at_human}</span>
+          {statusLabel ? (
+            <span
+              className={`inline-flex items-center px-1.5 py-0.5 rounded-full font-medium ${
+                msg.delivery_status === "chat_opened"
+                  ? "bg-green-500/20 text-green-200"
+                  : msg.delivery_status === "email_opened"
+                    ? "bg-amber-400/25 text-amber-100"
+                    : "bg-white/10 text-white/80"
+              }`}
+            >
+              {statusLabel}
+            </span>
+          ) : null}
+        </div>
       </div>
     </div>
   );
