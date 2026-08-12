@@ -156,6 +156,7 @@ class SubmissionConversationService
     {
         $mailConfig = app(MailConfigService::class);
         if (!$mailConfig->isConfigured()) {
+            $mailConfig->logIfNotConfigured('customer-reply-admin');
             return;
         }
 

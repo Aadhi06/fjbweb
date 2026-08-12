@@ -6,6 +6,7 @@ use App\Models\FormSubmission;
 use App\Models\Setting;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
+use Illuminate\Mail\Mailables\Address;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
@@ -24,9 +25,13 @@ class CustomerSubmissionReply extends Mailable
     public function envelope(): Envelope
     {
         $formTitle = $this->submission->form?->title ?? 'Your enquiry';
+        $adminEmail = Setting::get('admin_email', 'info@finejewellerybuyers.co.uk');
 
         return new Envelope(
             subject: "Re: {$formTitle} — Fine Jewellery Buyers",
+            replyTo: [
+                new Address($adminEmail, Setting::get('business_name', 'Fine Jewellery Buyers')),
+            ],
         );
     }
 
@@ -57,7 +62,7 @@ class CustomerSubmissionReply extends Mailable
                     <p style="margin:0;font-size:14px;color:#111827;line-height:1.6;">{$message}</p>
                 </div>
                 <p style="margin:0 0 16px;color:#374151;font-size:14px;">
-                    You can reply to continue the conversation on our secure message page:
+                    Please use the button below to reply so we can keep the conversation in one place. If you reply to this email instead, it will still reach our team.
                 </p>
                 <p style="margin:0 0 20px;text-align:center;">
                     <a href="{$url}" style="display:inline-block;background:#000;color:#fff;padding:12px 24px;border-radius:999px;text-decoration:none;font-weight:600;font-size:14px;">Reply to Fine Jewellery Buyers</a>
