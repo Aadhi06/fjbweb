@@ -96,7 +96,12 @@ class SubmissionConversationService
 
     public function apiBaseUrl(): string
     {
-        return rtrim(config('app.url', 'https://api.finejewellerybuyers.co.uk'), '/');
+        $url = rtrim((string) config('app.url'), '/');
+        if (!$url || str_contains($url, 'localhost') || str_contains($url, '127.0.0.1')) {
+            return 'https://api.finejewellerybuyers.co.uk';
+        }
+
+        return $url;
     }
 
     public function openPixelUrl(FormSubmissionMessage $message): string
