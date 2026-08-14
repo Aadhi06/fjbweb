@@ -25,6 +25,7 @@ class MetalRateService
     private const SPOT_METALS = [
         'XAU' => 'gold',
         'XAG' => 'silver',
+        'XPT' => 'platinum',
         'XPD' => 'palladium',
     ];
 
@@ -143,7 +144,7 @@ class MetalRateService
 
     private function fetchFromMetalPriceApi(string $apiKey): bool
     {
-        $data = $this->requestMetalPriceApi($apiKey, 'GBP', 'XAU,XAG,XPD');
+        $data = $this->requestMetalPriceApi($apiKey, 'GBP', 'XAU,XAG,XPT,XPD');
 
         if (!$data) {
             return $this->fetchFromMetalPriceApiUsd($apiKey);
@@ -167,7 +168,7 @@ class MetalRateService
 
     private function fetchFromMetalPriceApiUsd(string $apiKey): bool
     {
-        $data = $this->requestMetalPriceApi($apiKey, 'USD', 'XAU,XAG,XPD,GBP');
+        $data = $this->requestMetalPriceApi($apiKey, 'USD', 'XAU,XAG,XPT,XPD,GBP');
 
         if (!$data) {
             return false;
@@ -294,8 +295,16 @@ class MetalRateService
         }
 
         $purity = '999';
-        $label = $metal === 'palladium' ? 'Palladium' : 'Silver';
-        $sortOrder = $metal === 'palladium' ? 11 : 10;
+        $label = match ($metal) {
+            'palladium' => 'Palladium',
+            'platinum' => 'Platinum',
+            default => 'Silver',
+        };
+        $sortOrder = match ($metal) {
+            'platinum' => 10,
+            'palladium' => 11,
+            default => 9,
+        };
 
         MetalRate::updateOrCreate(
             ['metal' => $metal, 'purity' => $purity],
@@ -328,7 +337,7 @@ class MetalRateService
 
         return Cache::remember('metal_rates', 25, function () {
             $rates = MetalRate::active()
-                ->whereIn('metal', ['gold', 'silver', 'palladium'])
+                ->whereIn('metal', ['gold', 'silver', 'platinum', 'palladium'])
                 ->ordered()
                 ->get();
 

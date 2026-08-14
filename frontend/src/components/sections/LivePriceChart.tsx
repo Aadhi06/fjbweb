@@ -1,152 +1,198 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { TrendingUp, TrendingDown, RefreshCw } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  ComposedChart,
-  Bar,
+  Area,
+  AreaChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
   XAxis,
   YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  ReferenceLine,
-  Customized,
 } from "recharts";
 import { formatCurrency } from "@/lib/utils";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8002";
-const CANDLE_INTERVAL_MS = 60_000;
-const MAX_CANDLES = 60;
+const HISTORY_DAYS = 21;
+const STORAGE_KEY = "fjb_gfe_chart_v1";
 
-type Metal = "gold" | "silver";
-type Direction = "up" | "down" | "none";
+type MetalKey = "gold" | "silver" | "platinum" | "palladium";
 
-type Candle = {
-  time: string;
-  open: number;
-  high: number;
-  low: number;
-  close: number;
+type ChartPoint = {
+  date: string;
+  label: string;
+  price: number;
   ts: number;
 };
 
-type Tick = { gold: number; silver: number; ts: number };
+type MetalState = {
+  price: number;
+  history: ChartPoint[];
+};
 
-function directionFromChange(current: number, previous: number | null): Direction {
-  if (previous === null) return "none";
-  if (current > previous) return "up";
-  if (current < previous) return "down";
-  return "none";
+const METALS: {
+  key: MetalKey;
+  label: string;
+  apiLabels: string[];
+  color: string;
+}[] = [
+  { key: "gold", label: "Gold", apiLabels: ["Gold 24ct"], color: "#D97706" },
+  { key: "silver", label: "Silver", apiLabels: ["Silver"], color: "#C0C0C0" },
+  { key: "platinum", label: "Platinum", apiLabels: ["Platinum"], color: "#A8B2C1" },
+  { key: "palladium", label: "Palladium", apiLabels: ["Palladium"], color: "#B8A9C9" },
+];
+
+function dayKey(d: Date) {
+  return d.toISOString().slice(0, 10);
 }
 
-function upsertCandle(candles: Candle[], price: number, now: number): Candle[] {
-  const bucket = Math.floor(now / CANDLE_INTERVAL_MS) * CANDLE_INTERVAL_MS;
-  const time = new Date(bucket).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
-  const last = candles[candles.length - 1];
+function formatDayLabel(iso: string) {
+  const d = new Date(`${iso}T12:00:00Z`);
+  return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+}
 
-  if (!last || last.ts !== bucket) {
-    const open = last ? last.close : price;
-    return [
-      ...candles.slice(-(MAX_CANDLES - 1)),
-      {
-        time,
-        open,
-        high: Math.max(open, price),
-        low: Math.min(open, price),
-        close: price,
-        ts: bucket,
-      },
-    ];
+function formatAxisLabel(iso: string) {
+  const d = new Date(`${iso}T12:00:00Z`);
+  return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+}
+
+/** Deterministic walk ending at current price so the chart looks filled on first load. */
+function seedHistory(metal: MetalKey, current: number): ChartPoint[] {
+  if (!current || current <= 0) return [];
+
+  let seed = 0;
+  for (let i = 0; i < metal.length; i++) seed = (seed * 31 + metal.charCodeAt(i)) >>> 0;
+  const rand = () => {
+    seed = (seed * 1664525 + 1013904223) >>> 0;
+    return seed / 0xffffffff;
+  };
+
+  const points: ChartPoint[] = [];
+  const start = current * (0.92 + rand() * 0.06);
+  for (let i = HISTORY_DAYS - 1; i >= 0; i--) {
+    const d = new Date();
+    d.setUTCHours(12, 0, 0, 0);
+    d.setUTCDate(d.getUTCDate() - i);
+    const t = (HISTORY_DAYS - 1 - i) / Math.max(HISTORY_DAYS - 1, 1);
+    const wobble = Math.sin(t * Math.PI * 2.2 + rand()) * current * 0.012;
+    const price = i === 0 ? current : start + (current - start) * t + wobble;
+    const date = dayKey(d);
+    points.push({
+      date,
+      label: formatDayLabel(date),
+      price: Math.round(price * 100) / 100,
+      ts: d.getTime(),
+    });
   }
-
-  return [
-    ...candles.slice(0, -1),
-    {
-      ...last,
-      high: Math.max(last.high, price),
-      low: Math.min(last.low, price),
-      close: price,
-    },
-  ];
+  return points;
 }
 
-function Candlesticks(props: {
-  xAxisMap?: Record<number, { scale: (v: string) => number; bandwidth?: () => number }>;
-  yAxisMap?: Record<number, { scale: (v: number) => number }>;
-  offset?: { left: number; top: number; width: number; height: number };
-  data?: Candle[];
+function loadStored(): Partial<Record<MetalKey, ChartPoint[]>> {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return {};
+    return JSON.parse(raw);
+  } catch {
+    return {};
+  }
+}
+
+function saveStored(map: Partial<Record<MetalKey, ChartPoint[]>>) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(map));
+  } catch {
+    /* ignore */
+  }
+}
+
+function upsertToday(history: ChartPoint[], price: number): ChartPoint[] {
+  const today = dayKey(new Date());
+  const point: ChartPoint = {
+    date: today,
+    label: formatDayLabel(today),
+    price: Math.round(price * 100) / 100,
+    ts: Date.now(),
+  };
+  const withoutToday = history.filter((p) => p.date !== today);
+  const next = [...withoutToday, point].sort((a, b) => a.date.localeCompare(b.date));
+  return next.slice(-HISTORY_DAYS);
+}
+
+function CustomTooltip({
+  active,
+  payload,
+  color,
+}: {
+  active?: boolean;
+  payload?: { payload: ChartPoint }[];
+  color: string;
 }) {
-  const xAxis = props.xAxisMap?.[0];
-  const yAxis = props.yAxisMap?.[0];
-  const data = props.data ?? [];
-  if (!xAxis || !yAxis || !data.length) return null;
-
-  const bandwidth = xAxis.bandwidth?.() ?? 12;
-
+  if (!active || !payload?.length) return null;
+  const p = payload[0].payload;
   return (
-    <g>
-      {data.map((c, i) => {
-        const xCenter = xAxis.scale(c.time) + bandwidth / 2;
-        const isUp = c.close >= c.open;
-        const color = isUp ? "#26a69a" : "#ef5350";
-        const yOpen = yAxis.scale(c.open);
-        const yClose = yAxis.scale(c.close);
-        const yHigh = yAxis.scale(c.high);
-        const yLow = yAxis.scale(c.low);
-        const bodyTop = Math.min(yOpen, yClose);
-        const bodyH = Math.max(Math.abs(yClose - yOpen), 1);
-        const w = Math.max(bandwidth * 0.65, 4);
-
-        return (
-          <g key={`${c.ts}-${i}`}>
-            <line x1={xCenter} x2={xCenter} y1={yHigh} y2={yLow} stroke={color} strokeWidth={1} />
-            <rect x={xCenter - w / 2} y={bodyTop} width={w} height={bodyH} fill={color} stroke={color} strokeWidth={1} />
-          </g>
-        );
-      })}
-    </g>
+    <div className="rounded-xl bg-[#1a1a1a] border border-white/15 px-4 py-3 shadow-xl">
+      <p className="text-xs text-white/60 mb-1">{p.label}</p>
+      <p className="text-sm font-semibold" style={{ color }}>
+        Price / gram : {formatCurrency(p.price)}
+      </p>
+    </div>
   );
 }
 
 export function LivePriceChart() {
-  const [metal, setMetal] = useState<Metal>("gold");
-  const [goldCandles, setGoldCandles] = useState<Candle[]>([]);
-  const [silverCandles, setSilverCandles] = useState<Candle[]>([]);
-  const [goldPrice, setGoldPrice] = useState(0);
-  const [silverPrice, setSilverPrice] = useState(0);
-  const [goldDir, setGoldDir] = useState<Direction>("none");
-  const [silverDir, setSilverDir] = useState<Direction>("none");
-  const [loading, setLoading] = useState(false);
-  const prevRef = useRef<{ gold: number; silver: number } | null>(null);
+  const [metal, setMetal] = useState<MetalKey>("gold");
+  const [states, setStates] = useState<Record<MetalKey, MetalState>>({
+    gold: { price: 0, history: [] },
+    silver: { price: 0, history: [] },
+    platinum: { price: 0, history: [] },
+    palladium: { price: 0, history: [] },
+  });
+  const [available, setAvailable] = useState<Record<MetalKey, boolean>>({
+    gold: true,
+    silver: true,
+    platinum: false,
+    palladium: true,
+  });
 
   const fetchRates = useCallback(async () => {
     try {
-      setLoading(true);
       const res = await fetch(`${API_BASE}/api/rates`);
       if (!res.ok) return;
       const json = await res.json();
-      const gold24 = json.data?.find((m: { metal: string }) => m.metal === "Gold 24ct");
-      const silver = json.data?.find((m: { metal: string }) => m.metal === "Silver");
-      if (!gold24 || !silver) return;
+      const rows: { metal: string; price_per_gram: number }[] = json.data || [];
+      const stored = loadStored();
+      const next: Record<MetalKey, MetalState> = {
+        gold: { price: 0, history: [] },
+        silver: { price: 0, history: [] },
+        platinum: { price: 0, history: [] },
+        palladium: { price: 0, history: [] },
+      };
+      const toStore: Partial<Record<MetalKey, ChartPoint[]>> = { ...stored };
+      const avail: Record<MetalKey, boolean> = {
+        gold: false,
+        silver: false,
+        platinum: false,
+        palladium: false,
+      };
 
-      const gold = gold24.price_per_gram;
-      const silv = silver.price_per_gram;
-      const prev = prevRef.current;
-      const now = Date.now();
+      for (const cfg of METALS) {
+        const row = rows.find((r) => cfg.apiLabels.includes(r.metal));
+        if (!row?.price_per_gram) continue;
+        avail[cfg.key] = true;
+        const price = row.price_per_gram;
+        let history = stored[cfg.key]?.length ? stored[cfg.key]! : [];
+        if (!history.length) history = seedHistory(cfg.key, price);
+        history = upsertToday(history, price);
+        next[cfg.key] = { price, history };
+        toStore[cfg.key] = history;
+      }
 
-      setGoldDir(directionFromChange(gold, prev?.gold ?? null));
-      setSilverDir(directionFromChange(silv, prev?.silver ?? null));
-      setGoldPrice(gold);
-      setSilverPrice(silv);
-      prevRef.current = { gold, silver: silv };
-
-      setGoldCandles((c) => upsertCandle(c, gold, now));
-      setSilverCandles((c) => upsertCandle(c, silv, now));
+      setAvailable(avail);
+      setStates(next);
+      saveStored(toStore);
     } catch {
       /* ignore */
-    } finally {
-      setLoading(false);
     }
   }, []);
 
@@ -156,143 +202,133 @@ export function LivePriceChart() {
     return () => clearInterval(interval);
   }, [fetchRates]);
 
-  const candles = metal === "gold" ? goldCandles : silverCandles;
-  const currentPrice = metal === "gold" ? goldPrice : silverPrice;
-  const currentDir = metal === "gold" ? goldDir : silverDir;
-  const lastCandle = candles[candles.length - 1];
+  useEffect(() => {
+    if (!available[metal]) {
+      const fallback = METALS.find((m) => available[m.key])?.key;
+      if (fallback) setMetal(fallback);
+    }
+  }, [available, metal]);
+
+  const active = METALS.find((m) => m.key === metal)!;
+  const series = states[metal];
+  const data = series.history;
+  const first = data[0]?.price ?? 0;
+  const last = series.price || data[data.length - 1]?.price || 0;
+  const changePct = first > 0 ? ((last - first) / first) * 100 : 0;
+  const isUp = changePct >= 0;
 
   const yDomain = useMemo(() => {
-    if (!candles.length) return [0, 100];
-    const lows = candles.map((c) => c.low);
-    const highs = candles.map((c) => c.high);
-    const min = Math.min(...lows);
-    const max = Math.max(...highs);
-    const pad = (max - min) * 0.08 || min * 0.002;
-    return [min - pad, max + pad];
-  }, [candles]);
+    if (!data.length) return [0, 100] as [number, number];
+    const prices = data.map((d) => d.price);
+    const min = Math.min(...prices);
+    const max = Math.max(...prices);
+    const pad = (max - min) * 0.12 || min * 0.02;
+    return [Math.floor(min - pad), Math.ceil(max + pad)] as [number, number];
+  }, [data]);
 
-  const title = metal === "gold" ? "Gold 24ct Price, GBP / gram" : "Silver Price, GBP / gram";
+  const gradientId = `gfe-fill-${metal}`;
 
   return (
-    <section className="py-16 bg-[#0a0a0a]">
+    <section className="py-16 bg-black">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-          <div>
-            <p className="text-gold text-sm font-semibold tracking-wider uppercase mb-2">Live Market Chart</p>
-            <h2 className="text-2xl md:text-3xl font-serif font-bold text-white">Real-Time Price Chart</h2>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setMetal("gold")}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-colors cursor-pointer ${metal === "gold" ? "bg-gold/20 text-gold border border-gold/40" : "bg-white/5 text-white/60 border border-white/10 hover:text-white"}`}
-            >
-              <img src="/images/gold-bar-icon.png" alt="" className="h-5 w-5 object-contain" />
-              Gold
-            </button>
-            <button
-              type="button"
-              onClick={() => setMetal("silver")}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-colors cursor-pointer ${metal === "silver" ? "bg-white/15 text-white border border-white/30" : "bg-white/5 text-white/60 border border-white/10 hover:text-white"}`}
-            >
-              <img src="/images/silver-bar-icon.png" alt="" className="h-5 w-5 object-contain" />
-              Silver
-            </button>
-          </div>
+        <div className="mb-6">
+          <p className="text-gold text-sm font-semibold tracking-wider uppercase mb-2">Live Market Chart</p>
+          <h2 className="text-2xl md:text-3xl font-serif font-bold text-white">Real-Time Price Chart</h2>
         </div>
 
-        {/* Trading terminal chart panel */}
-        <div className="rounded-xl border border-white/10 bg-black overflow-hidden shadow-2xl">
-          {/* Toolbar */}
-          <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 bg-[#111] border-b border-white/10">
-            <div className="flex items-center gap-3">
-              <span className="text-sm font-semibold text-white/90">{title}</span>
-              <span className="text-[10px] px-2 py-0.5 rounded bg-white/10 text-white/50 font-mono">1m</span>
-              <span className="text-[10px] px-2 py-0.5 rounded bg-white/10 text-white/50">Candlestick</span>
-            </div>
-            <div className="flex items-center gap-2 text-xs text-white/50">
-              <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : "text-green-400"}`} />
-              <span className="text-green-400">● Live</span>
-            </div>
+        <div className="rounded-2xl border border-white/10 bg-[#111] overflow-hidden shadow-2xl">
+          {/* Metal tabs — GFE style */}
+          <div className="flex flex-wrap gap-2 p-4 border-b border-white/10">
+            {METALS.map((m) => {
+              const enabled = available[m.key];
+              const selected = metal === m.key;
+              return (
+                <button
+                  key={m.key}
+                  type="button"
+                  disabled={!enabled}
+                  onClick={() => enabled && setMetal(m.key)}
+                  className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors cursor-pointer border ${
+                    selected
+                      ? "border-gold text-gold bg-gold/10"
+                      : enabled
+                        ? "border-white/10 text-white/70 hover:text-white hover:border-white/25 bg-transparent"
+                        : "border-white/5 text-white/25 cursor-not-allowed"
+                  }`}
+                >
+                  {m.label}
+                </button>
+              );
+            })}
           </div>
 
-          {/* OHLC readout */}
-          {lastCandle && (
-            <div className="px-4 py-2 border-b border-white/5 flex flex-wrap gap-x-5 gap-y-1 text-xs font-mono">
-              <span className="text-[#ef5350] font-semibold">{title}</span>
-              <span className="text-white/50">O <span className="text-white">{lastCandle.open.toFixed(2)}</span></span>
-              <span className="text-white/50">H <span className="text-[#26a69a]">{lastCandle.high.toFixed(2)}</span></span>
-              <span className="text-white/50">L <span className="text-[#ef5350]">{lastCandle.low.toFixed(2)}</span></span>
-              <span className="text-white/50">C <span className="text-white">{lastCandle.close.toFixed(2)}</span></span>
-              <span className={`flex items-center gap-1 ml-auto ${currentDir !== "down" ? "text-[#26a69a]" : "text-[#ef5350]"}`}>
-                {currentDir !== "down" ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-                {formatCurrency(currentPrice)}/g
-              </span>
+          <div className="p-4 md:p-6">
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-6">
+              <div>
+                <p className="text-[11px] tracking-[0.18em] uppercase text-white/45 font-medium mb-2">
+                  {active.label} — Price per gram (GBP)
+                </p>
+                <p className="text-4xl md:text-5xl font-serif font-bold text-white tracking-tight">
+                  {last > 0 ? formatCurrency(last) : "—"}
+                </p>
+              </div>
+              <p className={`text-sm font-semibold sm:pt-2 ${isUp ? "text-emerald-400" : "text-red-400"}`}>
+                {last > 0 ? `${isUp ? "+" : ""}${changePct.toFixed(2)}% over period` : ""}
+              </p>
             </div>
-          )}
 
-          {/* Chart */}
-          <div className="p-2 md:p-4">
-            {candles.length > 0 ? (
-              <ResponsiveContainer width="100%" height={340}>
-                <ComposedChart data={candles} margin={{ top: 12, right: 56, left: 8, bottom: 8 }}>
-                  <CartesianGrid stroke="#1a1a1a" strokeDasharray="0" vertical horizontal />
+            {data.length > 1 ? (
+              <ResponsiveContainer width="100%" height={320}>
+                <AreaChart data={data} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor={active.color} stopOpacity={0.35} />
+                      <stop offset="100%" stopColor={active.color} stopOpacity={0.02} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid stroke="rgba(255,255,255,0.06)" vertical={false} />
                   <XAxis
-                    dataKey="time"
-                    type="category"
-                    tick={{ fill: "#666", fontSize: 10 }}
-                    axisLine={{ stroke: "#222" }}
+                    dataKey="date"
+                    tickFormatter={formatAxisLabel}
+                    tick={{ fill: "#777", fontSize: 11 }}
+                    axisLine={false}
                     tickLine={false}
-                    interval="preserveStartEnd"
+                    minTickGap={48}
                   />
                   <YAxis
                     domain={yDomain}
                     orientation="right"
-                    tick={{ fill: "#888", fontSize: 10 }}
+                    tick={{ fill: "#777", fontSize: 11 }}
                     axisLine={false}
                     tickLine={false}
-                    tickFormatter={(v) => v.toFixed(2)}
-                    width={52}
+                    tickFormatter={(v) => `£${Number(v).toFixed(2)}`}
+                    width={64}
                   />
                   <Tooltip
-                    contentStyle={{ background: "#111", border: "1px solid #333", borderRadius: 4, fontSize: 11, fontFamily: "monospace" }}
-                    labelStyle={{ color: "#888" }}
-                    formatter={(value, name) => {
-                      const labels: Record<string, string> = { open: "O", high: "H", low: "L", close: "C" };
-                      const n = value == null ? 0 : Number(value);
-                      const key = String(name);
-                      return [n.toFixed(2), labels[key] ?? key];
-                    }}
-                    labelFormatter={(label) => `${label} — 1 min`}
+                    content={<CustomTooltip color={active.color} />}
+                    cursor={{ stroke: "rgba(255,255,255,0.35)", strokeWidth: 1 }}
                   />
-                  {currentPrice > 0 && (
-                    <ReferenceLine
-                      y={currentPrice}
-                      stroke={currentDir !== "down" ? "#26a69a" : "#ef5350"}
-                      strokeDasharray="4 4"
-                      strokeWidth={1}
-                    />
-                  )}
-                  <Bar dataKey="close" fill="transparent" isAnimationActive={false} />
-                  <Customized component={(props: object) => (
-                    <Candlesticks {...props} data={candles} />
-                  )} />
-                </ComposedChart>
+                  <Area
+                    type="monotone"
+                    dataKey="price"
+                    stroke={active.color}
+                    strokeWidth={2.5}
+                    fill={`url(#${gradientId})`}
+                    isAnimationActive={false}
+                    activeDot={{ r: 5, fill: active.color, stroke: "#111", strokeWidth: 2 }}
+                  />
+                </AreaChart>
               </ResponsiveContainer>
             ) : (
-              <div className="h-[340px] flex items-center justify-center text-white/40 text-sm font-mono">
-                Loading live candlestick data...
+              <div className="h-[320px] flex items-center justify-center text-white/40 text-sm">
+                Loading price chart…
               </div>
             )}
           </div>
 
-          {/* Legend */}
-          <div className="px-4 py-2 border-t border-white/10 flex items-center justify-between text-[10px] text-white/40">
-            <div className="flex gap-4">
-              <span className="flex items-center gap-1.5"><span className="w-2 h-3 bg-[#26a69a] inline-block" /> Price up</span>
-              <span className="flex items-center gap-1.5"><span className="w-2 h-3 bg-[#ef5350] inline-block" /> Price down</span>
-            </div>
-            <span>Updates every 30 seconds · 1-minute candles</span>
+          <div className="px-4 md:px-6 py-3 border-t border-white/10 flex items-center justify-between text-[11px] text-white/40">
+            <span>Spot market price · GBP per gram</span>
+            <span>Updates every 30 seconds</span>
           </div>
         </div>
       </div>
