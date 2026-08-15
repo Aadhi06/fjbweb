@@ -48,6 +48,7 @@ Route::get('/settings', [SettingController::class, 'index']);
 // cPanel cron (no SSH): curl -s "https://api.yourdomain.co.uk/api/cron?key=YOUR_CRON_SECRET"
 Route::get('/cron', [CronController::class, 'run']);
 Route::get('/cron/fetch-rates', [CronController::class, 'fetchRates']);
+Route::get('/cron/booking-digest', [CronController::class, 'bookingDigest']);
 
 Route::post('/newsletter/subscribe', [NewsletterController::class, 'subscribe'])
     ->middleware(\App\Http\Middleware\AntiSpam::class);
@@ -86,6 +87,8 @@ Route::middleware('auth:sanctum')->prefix('admin')->group(function () {
     Route::put('/metal-rates/buying-percentages', [RateController::class, 'updateBuyingPercentages']);
 
     Route::get('/bookings', [BookingController::class, 'index']);
+    Route::put('/bookings/{booking}', [BookingController::class, 'update']);
+    Route::post('/bookings/{booking}/remind', [BookingController::class, 'remind']);
     Route::put('/bookings/{booking}/status', [BookingController::class, 'updateStatus']);
     Route::put('/bookings/{booking}/reschedule', [BookingController::class, 'reschedule']);
     Route::get('/booking-email-templates', [BookingController::class, 'emailTemplates']);

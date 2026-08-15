@@ -23,12 +23,35 @@ class CronController extends Controller
         }
 
         Artisan::call('schedule:run');
+        $scheduleOutput = trim(Artisan::output()) ?: 'schedule:run completed';
+
+        $digest = null;
+        $londonHour = now('Europe/London')->hour;
+        if ($londonHour === 8) {
+            $digest = app(\App\Services\BookingMailService::class)->sendDailyDigest();
+        }
 
         return response()->json([
             'ok' => true,
             'ran_at' => now()->toIso8601String(),
-            'output' => trim(Artisan::output()) ?: 'schedule:run completed',
+            'output' => $scheduleOutput,
+            'booking_digest' => $digest,
         ]);
+    }
+
+    public function bookingDigest(Request $request): JsonResponse
+    {
+        $secret = (string) config('services.cron_secret', '');
+        $key = (string) $request->query('key', '');
+
+        if ($secret === '' || !hash_equals($secret, $key)) {
+            return response()->json(['error' => 'Forbidden'], 403);
+        }
+
+        $force = $request->boolean('force');
+        $result = app(\App\Services\BookingMailService::class)->sendDailyDigest($force);
+
+        return response()->json($result);
     }
 
     /**

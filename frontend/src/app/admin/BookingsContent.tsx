@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { CalendarDays, ChevronDown, Loader2, Mail, RefreshCw, X } from "lucide-react";
+import { CalendarDays, ChevronDown, Loader2, Mail, RefreshCw, X, Bell } from "lucide-react";
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8002") + "/api";
 
@@ -64,6 +64,23 @@ export function BookingsContent({
   const [detailBooking, setDetailBooking] = useState<BookingRecord | null>(null);
   const [rescheduleForm, setRescheduleForm] = useState({ booking_date: "", booking_time: "", confirm: true });
   const [cancelReason, setCancelReason] = useState("");
+  const [editForm, setEditForm] = useState({ name: "", email: "", phone: "", notes: "" });
+  const [savingDetails, setSavingDetails] = useState(false);
+
+  function openDetail(b: BookingRecord) {
+    setDetailBooking(b);
+    setEditForm({
+      name: b.name || "",
+      email: b.email || "",
+      phone: b.phone || "",
+      notes: b.notes || "",
+    });
+  }
+
+  function applyBookingUpdate(updated: BookingRecord) {
+    setBookings((list) => list.map((x) => (x.id === updated.id ? { ...x, ...updated } : x)));
+    setDetailBooking((current) => (current?.id === updated.id ? { ...current, ...updated } : current));
+  }
 
   function formatBookingDate(date: string) {
     if (!date) return "—";
@@ -132,6 +149,49 @@ export function BookingsContent({
     }
   }
 
+  async function saveDetails(): Promise<boolean> {
+    if (!detailBooking) return false;
+    if (!editForm.email.trim()) {
+      showToast("Email is required", "error");
+      return false;
+    }
+    setSavingDetails(true);
+    try {
+      const res = await fetch(`${API_URL}/admin/bookings/${detailBooking.id}`, {
+        method: "PUT",
+        headers: getAuthHeaders(),
+        body: JSON.stringify(editForm),
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.message || "Failed");
+      applyBookingUpdate(data.booking);
+      showToast("Customer details saved", "success");
+      return true;
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "Failed to save details", "error");
+      return false;
+    } finally {
+      setSavingDetails(false);
+    }
+  }
+
+  async function sendReminder(booking: BookingRecord) {
+    setUpdatingId(booking.id);
+    try {
+      const res = await fetch(`${API_URL}/admin/bookings/${booking.id}/remind`, {
+        method: "POST",
+        headers: getAuthHeaders(),
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.message || "Failed");
+      showToast(data?.message || "Reminder sent", "success");
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "Failed to send reminder", "error");
+    } finally {
+      setUpdatingId(null);
+    }
+  }
+
   async function handleReschedule(e: React.FormEvent) {
     e.preventDefault();
     if (!rescheduleBooking) return;
@@ -173,7 +233,7 @@ export function BookingsContent({
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-2xl font-bold text-black mb-1">Bookings</h2>
-          <p className="text-gray-500">Confirm, cancel, or reschedule — customers are emailed automatically</p>
+          <p className="text-gray-500">Confirm, remind, or reschedule — customers are emailed automatically. Admin gets today &amp; tomorrow each morning at 8am.</p>
         </div>
         <button onClick={() => { setLoading(true); fetchBookings(); }} className="flex items-center gap-2 text-sm text-gray-600 hover:text-black">
           <RefreshCw className="w-4 h-4" /> Refresh
@@ -234,7 +294,7 @@ export function BookingsContent({
                 {bookings.map((b) => (
                   <tr
                     key={b.id}
-                    onClick={() => setDetailBooking(b)}
+                    onClick={() => openDetail(b)}
                     className="border-b border-gray-100 hover:bg-amber-50/40 cursor-pointer transition-colors"
                   >
                     <td className="px-4 py-3 font-medium text-black">{b.name}</td>
@@ -269,6 +329,13 @@ export function BookingsContent({
                               className="px-2 py-1 text-xs font-medium rounded bg-blue-50 text-blue-700 border border-blue-200 disabled:opacity-50"
                             >
                               Reschedule
+                            </button>
+                            <button
+                              onClick={() => sendReminder(b)}
+                              disabled={updatingId === b.id}
+                              className="px-2 py-1 text-xs font-medium rounded bg-amber-50 text-amber-800 border border-amber-200 disabled:opacity-50"
+                            >
+                              Remind
                             </button>
                             <button
                               onClick={() => {
@@ -312,17 +379,31 @@ export function BookingsContent({
 
             <div className="overflow-y-auto p-5 space-y-4 flex-1">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <p className="text-xs font-medium uppercase tracking-wide text-gray-400 mb-1">Email</p>
-                  <a href={`mailto:${detailBooking.email}`} className="text-sm text-black hover:underline break-all">
-                    {detailBooking.email}
-                  </a>
+                <div className="sm:col-span-2">
+                  <label className="text-xs font-medium uppercase tracking-wide text-gray-400 mb-1 block">Name</label>
+                  <input
+                    value={editForm.name}
+                    onChange={(e) => setEditForm((f) => ({ ...f, name: e.target.value }))}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
+                  />
                 </div>
                 <div>
-                  <p className="text-xs font-medium uppercase tracking-wide text-gray-400 mb-1">Phone</p>
-                  <a href={`tel:${detailBooking.phone}`} className="text-sm text-black hover:underline">
-                    {detailBooking.phone || "—"}
-                  </a>
+                  <label className="text-xs font-medium uppercase tracking-wide text-gray-400 mb-1 block">Email</label>
+                  <input
+                    type="email"
+                    value={editForm.email}
+                    onChange={(e) => setEditForm((f) => ({ ...f, email: e.target.value }))}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
+                  />
+                  <p className="text-[11px] text-gray-400 mt-1">Reminders and booking emails go here. Fix typos before sending.</p>
+                </div>
+                <div>
+                  <label className="text-xs font-medium uppercase tracking-wide text-gray-400 mb-1 block">Phone</label>
+                  <input
+                    value={editForm.phone}
+                    onChange={(e) => setEditForm((f) => ({ ...f, phone: e.target.value }))}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
+                  />
                 </div>
                 <div>
                   <p className="text-xs font-medium uppercase tracking-wide text-gray-400 mb-1">Service</p>
@@ -342,11 +423,22 @@ export function BookingsContent({
               </div>
 
               <div>
-                <p className="text-xs font-medium uppercase tracking-wide text-gray-400 mb-1">Notes</p>
-                <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-800 whitespace-pre-wrap break-words min-h-[3rem]">
-                  {detailBooking.notes?.trim() ? detailBooking.notes : "No notes"}
-                </div>
+                <label className="text-xs font-medium uppercase tracking-wide text-gray-400 mb-1 block">Notes</label>
+                <textarea
+                  value={editForm.notes}
+                  onChange={(e) => setEditForm((f) => ({ ...f, notes: e.target.value }))}
+                  rows={3}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
+                />
               </div>
+              <button
+                type="button"
+                onClick={saveDetails}
+                disabled={savingDetails}
+                className="px-3 py-2 text-xs font-medium rounded-lg bg-black text-white disabled:opacity-50"
+              >
+                {savingDetails ? "Saving…" : "Save customer details"}
+              </button>
             </div>
 
             <div className="border-t p-4 flex flex-wrap gap-2 bg-white">
@@ -365,6 +457,25 @@ export function BookingsContent({
               )}
               {detailBooking.status !== "cancelled" && detailBooking.status !== "completed" && (
                 <>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const dirty =
+                        editForm.email !== (detailBooking.email || "") ||
+                        editForm.name !== (detailBooking.name || "") ||
+                        editForm.phone !== (detailBooking.phone || "") ||
+                        editForm.notes !== (detailBooking.notes || "");
+                      if (dirty) {
+                        const saved = await saveDetails();
+                        if (!saved) return;
+                      }
+                      await sendReminder(detailBooking);
+                    }}
+                    disabled={updatingId === detailBooking.id || savingDetails}
+                    className="px-3 py-2 text-xs font-medium rounded-lg bg-amber-50 text-amber-800 border border-amber-200 disabled:opacity-50 inline-flex items-center gap-1"
+                  >
+                    <Bell className="w-3.5 h-3.5" /> Remind
+                  </button>
                   <button
                     type="button"
                     onClick={() => {

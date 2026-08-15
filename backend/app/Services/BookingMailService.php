@@ -3,12 +3,16 @@
 namespace App\Services;
 
 use App\Mail\AdminBookingNotification;
+use App\Mail\AdminDailyAppointments;
 use App\Mail\CustomerBookingCancelled;
 use App\Mail\CustomerBookingConfirmed;
 use App\Mail\CustomerBookingReceived;
+use App\Mail\CustomerBookingReminder;
 use App\Mail\CustomerBookingRescheduled;
 use App\Models\Booking;
 use App\Models\Setting;
+use Carbon\Carbon;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
@@ -48,6 +52,72 @@ class BookingMailService
         $this->send(function () use ($booking, $previousDate, $previousTime) {
             Mail::to($booking->email)->send(new CustomerBookingRescheduled($booking, $previousDate, $previousTime));
         }, 'customer booking rescheduled');
+    }
+
+    public function sendReminder(Booking $booking): bool
+    {
+        return $this->send(function () use ($booking) {
+            Mail::to($booking->email)->send(new CustomerBookingReminder($booking));
+        }, 'customer booking reminder');
+    }
+
+    /**
+     * @return array{sent: bool, message: string, today: int, tomorrow: int}
+     */
+    public function sendDailyDigest(bool $force = false): array
+    {
+        $today = Carbon::now('Europe/London')->startOfDay();
+        $tomorrow = $today->copy()->addDay();
+        $cacheKey = 'bookings_digest_' . $today->toDateString();
+
+        if (!$force && Cache::has($cacheKey)) {
+            return [
+                'sent' => false,
+                'message' => 'Digest already sent today.',
+                'today' => 0,
+                'tomorrow' => 0,
+            ];
+        }
+
+        $todayBookings = Booking::query()
+            ->whereDate('booking_date', $today->toDateString())
+            ->whereIn('status', ['pending', 'confirmed'])
+            ->orderBy('booking_time')
+            ->get();
+
+        $tomorrowBookings = Booking::query()
+            ->whereDate('booking_date', $tomorrow->toDateString())
+            ->whereIn('status', ['pending', 'confirmed'])
+            ->orderBy('booking_time')
+            ->get();
+
+        $ok = $this->send(function () use ($todayBookings, $tomorrowBookings, $today, $tomorrow) {
+            $adminEmail = Setting::get('admin_email', 'info@finejewellerybuyers.co.uk');
+            Mail::to($adminEmail)->send(new AdminDailyAppointments(
+                $todayBookings,
+                $tomorrowBookings,
+                $today->format('l, j F Y'),
+                $tomorrow->format('l, j F Y'),
+            ));
+        }, 'admin daily appointments digest');
+
+        if (!$ok) {
+            return [
+                'sent' => false,
+                'message' => 'Digest not sent. Check SMTP settings.',
+                'today' => $todayBookings->count(),
+                'tomorrow' => $tomorrowBookings->count(),
+            ];
+        }
+
+        Cache::put($cacheKey, true, now('Europe/London')->endOfDay());
+
+        return [
+            'sent' => true,
+            'message' => 'Digest emailed to admin.',
+            'today' => $todayBookings->count(),
+            'tomorrow' => $tomorrowBookings->count(),
+        ];
     }
 
     public function getTemplatePreviews(): array
@@ -94,29 +164,45 @@ class BookingMailService
                 'html' => (new CustomerBookingRescheduled($sample, 'Monday, 7 July 2026', '10:00'))->render(),
             ],
             [
+                'id' => 'booking_reminder',
+                'name' => 'Appointment Reminder (customer)',
+                'description' => 'Sent when admin taps Remind on a booking.',
+                'subject' => (new CustomerBookingReminder($sample))->envelope()->subject,
+                'html' => (new CustomerBookingReminder($sample))->render(),
+            ],
+            [
                 'id' => 'booking_admin',
                 'name' => 'New Booking (admin)',
                 'description' => 'Sent to admin when a new booking is submitted.',
                 'subject' => (new AdminBookingNotification($sample))->envelope()->subject,
                 'html' => (new AdminBookingNotification($sample))->render(),
             ],
+            [
+                'id' => 'booking_admin_digest',
+                'name' => "Today & Tomorrow (admin)",
+                'description' => 'Sent automatically each morning at 8am with today’s and tomorrow’s appointments.',
+                'subject' => (new AdminDailyAppointments(collect([$sample]), collect(), now()->format('l, j F Y'), now()->addDay()->format('l, j F Y')))->envelope()->subject,
+                'html' => (new AdminDailyAppointments(collect([$sample]), collect(), now()->format('l, j F Y'), now()->addDay()->format('l, j F Y')))->render(),
+            ],
         ];
     }
 
-    private function send(callable $callback, string $label): void
+    private function send(callable $callback, string $label): bool
     {
         $mailConfig = app(MailConfigService::class);
         if (!$mailConfig->isConfigured()) {
             $mailConfig->logIfNotConfigured("booking:{$label}");
-            return;
+            return false;
         }
 
         $mailConfig->applyFromSettings();
 
         try {
             $callback();
+            return true;
         } catch (\Exception $e) {
             Log::error("Failed to send {$label}: {$e->getMessage()}");
+            return false;
         }
     }
 }

@@ -1,0 +1,51 @@
+BOOKINGS — Reminder + edit email + 8am digest
+=============================================
+
+Upload to: public_html/api/  (merge folders — overwrite existing files)
+
+WHAT THIS UPDATE DOES
+---------------------
+1. Admin can edit customer name / email / phone / notes on a booking
+2. Remind button emails the customer appointment reminder template
+3. Each morning at 8am (London) admin receives today’s + tomorrow’s appointments
+
+FILES IN THIS ZIP
+-----------------
+app/Mail/CustomerBookingReminder.php          NEW
+app/Mail/AdminDailyAppointments.php           NEW
+app/Services/BookingMailService.php
+app/Http/Controllers/Api/BookingController.php
+app/Http/Controllers/Api/CronController.php
+app/Console/Commands/SendDailyBookingDigest.php  NEW
+routes/api.php
+routes/console.php
+public/send-booking-digest.php                NEW
+
+INSTALL
+-------
+1. Upload backend-booking-remind-digest.zip to public_html/api/
+2. Extract — overwrite when prompted
+3. Clear cache:
+   https://api.finejewellerybuyers.co.uk/clear-cache.php?key=RandomCronKey2026FJB
+
+CRON (required for 8am admin email)
+-----------------------------------
+Hostinger → Cron Jobs → Add:
+
+  wget -q -O - "https://api.finejewellerybuyers.co.uk/send-booking-digest.php?key=RandomCronKey2026FJB" >/dev/null 2>&1
+
+Schedule: once daily at 08:00 (server time should be Europe/London, or set the hour so it runs at 8am UK).
+
+If you already have a cron hitting /api/cron every minute, the digest also sends automatically when London time is 8am. The dedicated URL above is still the most reliable.
+
+To send a test now (does not wait until 8am):
+  https://api.finejewellerybuyers.co.uk/send-booking-digest.php?key=RandomCronKey2026FJB&force=1
+
+The email goes to Admin → Settings → admin email (fallback info@finejewellerybuyers.co.uk).
+
+FRONTEND
+--------
+Push/deploy the frontend so Admin → Bookings shows:
+  - Editable email / name / phone
+  - Remind button
+  - Save customer details

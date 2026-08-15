@@ -144,6 +144,54 @@ class BookingController extends Controller
         return response()->json($query->paginate(20));
     }
 
+    public function update(Request $request, Booking $booking): JsonResponse
+    {
+        $validated = $request->validate([
+            'name' => 'sometimes|string|max:255',
+            'email' => 'sometimes|email|max:255',
+            'phone' => 'sometimes|string|max:20',
+            'notes' => 'nullable|string|max:1000',
+        ]);
+
+        $booking->update($validated);
+        $booking->refresh();
+
+        try {
+            app(MarketingContactService::class)->upsertFromBooking($booking);
+        } catch (\Exception $e) {
+            Log::error("Failed to sync marketing contact after booking update: {$e->getMessage()}");
+        }
+
+        return response()->json([
+            'message' => 'Booking details updated.',
+            'booking' => $booking,
+        ]);
+    }
+
+    public function remind(Booking $booking): JsonResponse
+    {
+        if (in_array($booking->status, ['cancelled', 'completed'], true)) {
+            return response()->json(['message' => 'Cannot remind a cancelled or completed booking.'], 422);
+        }
+
+        if (!$booking->email) {
+            return response()->json(['message' => 'This booking has no email address.'], 422);
+        }
+
+        $sent = $this->mailService->sendReminder($booking);
+
+        if (!$sent) {
+            return response()->json([
+                'message' => 'Could not send reminder. Check SMTP settings in Admin → Settings.',
+            ], 500);
+        }
+
+        return response()->json([
+            'message' => 'Reminder emailed to ' . $booking->email,
+            'booking' => $booking,
+        ]);
+    }
+
     public function updateStatus(Request $request, Booking $booking): JsonResponse
     {
         $validated = $request->validate([
