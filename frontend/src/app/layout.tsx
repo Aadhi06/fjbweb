@@ -77,6 +77,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
         <link rel="icon" href="/favicon-32.png?v=fjb2" type="image/png" sizes="32x32" />
         <link rel="icon" href="/favicon-16.png?v=fjb2" type="image/png" sizes="16x16" />
         <link rel="apple-touch-icon" href="/apple-icon.png?v=fjb2" />
+        <link rel="alternate" type="text/plain" href={`${SITE_URL}/llms.txt`} title="LLM-readable site summary" />
         {gaId ? (
           <>
             <Script src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`} strategy="afterInteractive" />

@@ -6,7 +6,32 @@ export default function robots(): MetadataRoute.Robots {
     rules: [
       {
         userAgent: "*",
-        allow: "/",
+        allow: ["/", "/llms.txt"],
+        disallow: ["/admin/", "/admin"],
+      },
+      {
+        userAgent: "GPTBot",
+        allow: ["/", "/llms.txt"],
+        disallow: ["/admin/", "/admin"],
+      },
+      {
+        userAgent: "ChatGPT-User",
+        allow: ["/", "/llms.txt"],
+        disallow: ["/admin/", "/admin"],
+      },
+      {
+        userAgent: "ClaudeBot",
+        allow: ["/", "/llms.txt"],
+        disallow: ["/admin/", "/admin"],
+      },
+      {
+        userAgent: "PerplexityBot",
+        allow: ["/", "/llms.txt"],
+        disallow: ["/admin/", "/admin"],
+      },
+      {
+        userAgent: "Google-Extended",
+        allow: ["/", "/llms.txt"],
         disallow: ["/admin/", "/admin"],
       },
     ],
