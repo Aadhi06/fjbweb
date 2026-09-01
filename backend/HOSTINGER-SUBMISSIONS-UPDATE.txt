@@ -1,0 +1,53 @@
+BACKEND UPDATE — Form submission photos & email summary
+========================================================
+
+Upload to: public_html/api/  (merge folders — do not replace entire api folder)
+
+FILES IN THIS ZIP:
+------------------
+routes/api.php
+app/Http/Controllers/Api/FormController.php
+app/Mail/AdminFormNotification.php
+app/Mail/CustomerFormConfirmation.php
+app/Models/FormSubmissionFile.php
+app/Services/FormSubmissionService.php
+database/migrations/2026_07_05_140000_add_photos_to_gold_valuation_form.php
+public/run-migrate.php
+public/clear-cache.php
+
+WHAT THIS UPDATE DOES:
+----------------------
+1. Admin email shows uploaded photo previews + attaches image files
+2. Customer confirmation email includes full submission copy:
+   - Gold items breakdown
+   - Estimated total quotation
+   - Uploaded photo preview + attachment
+3. Public URL to view submission photos:
+   https://api.finejewellerybuyers.co.uk/api/submission-files/{id}
+4. Admin API returns file URLs for each submission
+
+AFTER UPLOAD:
+-------------
+1. Run migration (if not done yet):
+   https://api.finejewellerybuyers.co.uk/run-migrate.php?key=YOUR_CRON_SECRET
+
+2. Clear route cache:
+   https://api.finejewellerybuyers.co.uk/clear-cache.php?key=YOUR_CRON_SECRET
+
+3. Delete run-migrate.php and clear-cache.php after use
+
+4. Test: submit gold calculator form with a photo — check admin + customer emails
+
+ADMIN PANEL PHOTO PREVIEW:
+--------------------------
+The admin "Form Submissions" photo gallery is in the FRONTEND.
+Redeploy Vercel after pulling latest frontend from GitHub.
+
+VERIFY:
+-------
+Submit a test gold valuation → admin email should show:
+  - Gold Items (line by line)
+  - Estimated Total (highlighted)
+  - Photo image inline + attached file
+
+Customer email should show the same summary + attached photo.

@@ -1,0 +1,42 @@
+HOSTINGER — Latest Update (Messages + Field Reorder + Enquiry Chat)
+==================================================================
+
+WHAT'S INCLUDED
+---------------
+• Admin Messages inbox API + unread count
+• Enquiry chat (admin/customer replies)
+• Form field drag-and-drop reorder API
+• Expected Price field on Free Valuation form
+• Customer reply email notifications
+
+INSTALL STEPS
+-------------
+1. Upload backend-latest-update.zip to your Laravel root on Hostinger
+   (same folder as app/, routes/, database/, public/)
+
+2. Extract — overwrite existing files when prompted
+
+3. Run migrations (browser):
+   https://api.finejewellerybuyers.co.uk/run-migrate.php?key=RandomCronKey2026FJB
+
+   You should see migrations for:
+   - add_submission_conversation_tables
+   - add_admin_last_read_at_to_form_submissions
+   - add_expected_price_to_free_valuation_form (if not already run)
+
+4. Clear cache:
+   https://api.finejewellerybuyers.co.uk/clear-cache.php?key=RandomCronKey2026FJB
+
+5. Frontend (Vercel) — already deployed from git push da244b1
+   Hard refresh admin: finejewellerybuyers.co.uk/admin
+
+NEW ADMIN FEATURES (after deploy)
+---------------------------------
+• Sidebar: Messages tab with unread badge
+• Floating orange chat button (bottom-right) when customer replies
+• Form Fields: drag rows to reorder (Expecting Price above Upload Photos)
+
+SECURITY
+--------
+Delete run-migrate.php and clear-cache.php from public/ after use.
+Change CRON_SECRET in .env when done.

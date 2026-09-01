@@ -1,0 +1,22 @@
+HOSTINGER — Enquiry Chat Update
+================================
+
+1. Upload and extract backend-enquiry-chat-update.zip into your Laravel root (same folder as app/, routes/, etc.)
+
+2. Run migration:
+   https://api.finejewellerybuyers.co.uk/run-migrate.php?key=YOUR_CRON_SECRET
+
+3. Clear cache:
+   https://api.finejewellerybuyers.co.uk/clear-cache.php?key=YOUR_CRON_SECRET
+
+4. Deploy frontend to Vercel (or push git) for:
+   - Admin Form Submissions → Chat button
+   - Customer page: /enquiry/{token}
+
+5. Ensure SMTP is configured in Admin → Settings so reply emails send.
+
+New API routes:
+- GET  /api/admin/submissions/{id}        (detail + messages)
+- POST /api/admin/submissions/{id}/messages (admin reply)
+- GET  /api/enquiry/{token}                 (customer conversation)
+- POST /api/enquiry/{token}/messages        (customer reply)

@@ -1,0 +1,34 @@
+HOSTINGER — Metals Update (10ct, 14ct, 21ct + Palladium + Buying %)
+==================================================================
+
+WHAT'S INCLUDED
+---------------
+• Gold carats: 9ct, 10ct, 14ct, 18ct, 21ct, 22ct, 24ct
+• Palladium live rates (XPD from MetalPriceAPI)
+• Separate buying % per metal (Admin → Settings → Metal Price API)
+• Gold calculator: Gold / Silver / Palladium
+
+INSTALL STEPS
+-------------
+1. Upload backend-metals-update.zip to Laravel root → extract (overwrite)
+
+2. Run migration:
+   https://api.finejewellerybuyers.co.uk/run-migrate.php?key=RandomCronKey2026FJB
+
+3. Clear cache:
+   https://api.finejewellerybuyers.co.uk/clear-cache.php?key=RandomCronKey2026FJB
+
+4. Fetch live rates (updates palladium + new gold carats):
+   https://api.finejewellerybuyers.co.uk/fetch-rates.php?key=RandomCronKey2026FJB
+
+5. Frontend (Vercel) — already deployed from git push 2d25e19
+   Hard refresh admin after deploy.
+
+ADMIN — SET BUYING %
+--------------------
+Settings → Metal Price API → scroll to buying % table
+Set each metal separately → Save Buying Percentages
+
+SECURITY
+--------
+Delete run-migrate.php, clear-cache.php, fetch-rates.php from public/ after use.
