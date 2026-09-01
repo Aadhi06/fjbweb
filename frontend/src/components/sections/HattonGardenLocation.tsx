@@ -15,9 +15,9 @@ export function HattonGardenLocation() {
     <section className="py-20 bg-gray-50" id="visit-us">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <SectionHeading
-          label="Visit Us"
-          title="Our Office"
-          description="Visit us for a free, no-obligation valuation and instant cash on the spot."
+          label="Hatton Garden, London"
+          title="Where to Sell Gold & Jewellery in London"
+          description="Fine Jewellery Buyers is a gold and jewellery buyer at 88–90 Hatton Garden. Walk in for a free valuation, or sell by insured post from anywhere in the UK."
         />
 
         <div className="grid lg:grid-cols-2 gap-10 items-center">
@@ -79,19 +79,28 @@ export function HattonGardenLocation() {
                   href={address.mapsUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-black text-white font-semibold rounded-full hover:bg-black/90 transition-colors text-sm"
+                  className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-black text-white font-semibold rounded-full hover:bg-black/90 transition-colors text-sm min-h-12"
                 >
                   <Navigation className="w-4 h-4" />
                   Get Directions
                 </a>
                 <Link
                   href="/book-appointment"
-                  className="inline-flex items-center justify-center gap-2 px-6 py-3 border-2 border-gold/40 text-gold-dark font-semibold rounded-full hover:bg-gold/10 transition-colors text-sm"
+                  className="inline-flex items-center justify-center gap-2 px-6 py-3 border-2 border-gold/40 text-gold-dark font-semibold rounded-full hover:bg-gold/10 transition-colors text-sm min-h-12"
                 >
                   <CalendarDays className="w-4 h-4" />
                   Book Appointment
                 </Link>
               </div>
+              <p className="text-sm text-muted-foreground mt-5">
+                <Link href="/sell-gold-london" className="text-gold-dark font-semibold hover:underline">
+                  Sell gold in London
+                </Link>
+                {" · "}
+                <Link href="/sell-jewellery-hatton-garden" className="text-gold-dark font-semibold hover:underline">
+                  Sell jewellery in Hatton Garden
+                </Link>
+              </p>
             </div>
           </div>
         </div>

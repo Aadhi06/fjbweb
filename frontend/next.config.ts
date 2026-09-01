@@ -21,15 +21,33 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  async headers() {
+  async redirects() {
     return [
-      {
-        source: "/llms.txt",
-        headers: [
-          { key: "Content-Type", value: "text/plain; charset=utf-8" },
-          { key: "Cache-Control", value: "public, max-age=86400, stale-while-revalidate=604800" },
-        ],
-      },
+      { source: "/where-to-sell-gold-in-london", destination: "/sell-gold-london", permanent: true },
+      { source: "/where-can-i-sell-gold-in-london", destination: "/sell-gold-london", permanent: true },
+      { source: "/sell-gold-in-london", destination: "/sell-gold-london", permanent: true },
+      { source: "/gold-buyers-london", destination: "/sell-gold-london", permanent: true },
+      { source: "/where-to-sell-jewellery-in-hatton-garden", destination: "/sell-jewellery-hatton-garden", permanent: true },
+      { source: "/sell-jewellery-in-hatton-garden", destination: "/sell-jewellery-hatton-garden", permanent: true },
+      { source: "/hatton-garden-jewellery-buyers", destination: "/sell-jewellery-hatton-garden", permanent: true },
+    ];
+  },
+  async rewrites() {
+    return [
+      { source: "/.well-known/llms.txt", destination: "/llms.txt" },
+      { source: "/.well-known/llms-full.txt", destination: "/llms-full.txt" },
+    ];
+  },
+  async headers() {
+    const plainText = [
+      { key: "Content-Type", value: "text/plain; charset=utf-8" },
+      { key: "Cache-Control", value: "public, max-age=86400, stale-while-revalidate=604800" },
+    ];
+    return [
+      { source: "/llms.txt", headers: plainText },
+      { source: "/llms-full.txt", headers: plainText },
+      { source: "/.well-known/llms.txt", headers: plainText },
+      { source: "/.well-known/llms-full.txt", headers: plainText },
     ];
   },
 };

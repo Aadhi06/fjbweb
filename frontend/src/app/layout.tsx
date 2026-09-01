@@ -78,6 +78,8 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
         <link rel="icon" href="/favicon-16.png?v=fjb2" type="image/png" sizes="16x16" />
         <link rel="apple-touch-icon" href="/apple-icon.png?v=fjb2" />
         <link rel="alternate" type="text/plain" href={`${SITE_URL}/llms.txt`} title="LLM-readable site summary" />
+        <link rel="alternate" type="text/plain" href={`${SITE_URL}/llms-full.txt`} title="Full LLM-readable site summary" />
+        <link rel="describedby" href={`${SITE_URL}/.well-known/llms.txt`} />
         {gaId ? (
           <>
             <Script src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`} strategy="afterInteractive" />
@@ -114,7 +116,14 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
         ) : null}
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd(settings.address)) }}
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd({
+            address: settings.address,
+            phone: settings.phone,
+            email: settings.email,
+            openingHours: settings.opening_hours,
+            googleReviewUrl: settings.google_review_url,
+            trustpilotUrl: settings.trustpilot_url,
+          })) }}
         />
         <script
           type="application/ld+json"

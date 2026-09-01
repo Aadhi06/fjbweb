@@ -72,6 +72,7 @@ export const servicesData: Record<string, ServiceData> = {
       { title: "Get paid today", text: "Accept our offer and receive an instant bank transfer the same day." },
     ],
     faqs: [
+      { question: "Where can I sell gold in London?", answer: "Visit Fine Jewellery Buyers at 88–90 Hatton Garden, London for a free in-person valuation, or sell by insured post from anywhere in the UK. Walk-ins welcome; same-day payment on accepted offers." },
       { question: "How is my gold price calculated?", answer: "We multiply the weight of your gold by its purity (carat) and our live buying rate per gram. You can see today's rates on our Live Rates page." },
       { question: "Do you buy unhallmarked gold?", answer: "Yes. We use professional testing equipment to verify gold content regardless of hallmarks." },
       { question: "Is there a minimum amount of gold I can sell?", answer: "No minimum. Whether it's a single broken chain or a large collection, we offer the same professional service." },
@@ -173,7 +174,7 @@ export const servicesData: Record<string, ServiceData> = {
   },
   "sell-jewellery": {
     title: "Sell Jewellery",
-    heading: "We Buy Cartier, Tiffany, Boodles & Designer Jewellery",
+    heading: "Sell Jewellery in Hatton Garden — Cartier, Tiffany & Boodles",
     description: "Sell Cartier, Tiffany & Co., Boodles, Van Cleef & Arpels, Bulgari and luxury brands. Instant cash, best UK prices — we pay above scrap gold for authenticated designer pieces.",
     heroImage: "/images/service-hero-sell-jewellery.png",
     icon: Gem,
@@ -203,6 +204,7 @@ export const servicesData: Record<string, ServiceData> = {
       { title: "Final offer", text: "After inspection, receive a detailed offer and same-day payment." },
     ],
     faqs: [
+      { question: "Where can I sell jewellery in Hatton Garden?", answer: "At Fine Jewellery Buyers, 88–90 Hatton Garden, London. We buy designer jewellery including Cartier, Tiffany and Boodles, plus gold and diamonds. Walk-ins welcome; instant cash on acceptance." },
       { question: "Do you buy Cartier jewellery in the UK?", answer: "Yes. We buy all Cartier pieces including Love bracelets, Juste un Clou, Panthère and Trinity collections. Instant cash paid on acceptance." },
       { question: "How much will you pay for Tiffany & Co. jewellery?", answer: "We pay above scrap gold value for Tiffany pieces. Send photos for a free valuation — price depends on collection, condition and stones." },
       { question: "Do you buy Boodles jewellery?", answer: "Yes. We buy Boodles Raindance, Classic Collection and all Boodles fine jewellery at competitive UK market prices." },

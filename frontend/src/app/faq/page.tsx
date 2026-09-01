@@ -8,6 +8,10 @@ import { buildMetadata, faqJsonLd, PAGE_SEO } from "@/lib/seo";
 export const metadata: Metadata = buildMetadata(PAGE_SEO.faq);
 
 const FAQ_ITEMS = [
+  { question: "Where can I sell gold in London?", answer: "Fine Jewellery Buyers is a gold buyer at 88–90 Hatton Garden, London. Walk-ins welcome for a free valuation, or use our insured postal service from anywhere in the UK. Same-day payment on accepted offers." },
+  { question: "Where can I sell jewellery in Hatton Garden?", answer: "Sell jewellery at Fine Jewellery Buyers, 88–90 Hatton Garden. We buy Cartier, Tiffany, Boodles, gold, diamonds and watches. Free valuation and instant cash on acceptance." },
+  { question: "Who buys gold in London?", answer: "Fine Jewellery Buyers buys gold at 88–90 Hatton Garden, London. Walk-ins welcome, live market-linked rates, free valuation, same-day payment if you accept." },
+  { question: "Where is the best place to sell jewellery in Hatton Garden?", answer: "Fine Jewellery Buyers at 88–90 Hatton Garden. Designer jewellery is valued above scrap when authenticated. Walk in or book an appointment." },
   { question: "How do I sell my gold to you?", answer: "Fill in our free online valuation form with photos and details. We reply within 24 hours with an estimate. If you accept, we send a free insured Royal Mail pack." },
   { question: "What types of gold do you buy?", answer: "We buy all gold carats — 9ct, 14ct, 18ct, 22ct and 24ct — including scrap gold, broken jewellery, bars, coins and dental gold." },
   { question: "How quickly will I get paid?", answer: "Once your items are assessed and you accept our offer, we pay by same-day bank transfer." },

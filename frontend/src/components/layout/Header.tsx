@@ -9,6 +9,8 @@ import { useSettings } from "@/lib/useSettings";
 import { TopBarTicker } from "@/components/layout/TopBarTicker";
 
 const services = [
+  { name: "Sell Gold in London", href: "/sell-gold-london" },
+  { name: "Sell Jewellery in Hatton Garden", href: "/sell-jewellery-hatton-garden" },
   { name: "Sell Gold", href: "/services/sell-gold" },
   { name: "Sell Diamonds", href: "/services/sell-diamonds" },
   { name: "Sell Gemstones", href: "/services/sell-gemstones" },
@@ -301,7 +303,7 @@ export function Header() {
                 </div>
               )}
               <div className="hidden sm:block">
-                <h1 className="text-lg font-serif font-bold text-black leading-tight">Fine Jewellery</h1>
+                <p className="text-lg font-serif font-bold text-black leading-tight">Fine Jewellery</p>
                 <p className="text-xs text-gold-dark font-semibold tracking-wider uppercase">Buyers</p>
               </div>
             </Link>
@@ -314,7 +316,7 @@ export function Header() {
                   Services <ChevronDown className={cn("w-4 h-4 transition-transform duration-200", servicesOpen && "rotate-180")} />
                 </button>
                 {servicesOpen && (
-                  <div className="absolute top-full left-0 w-56 bg-white rounded-xl shadow-xl border border-border py-2 fade-in">
+                  <div className="absolute top-full left-0 w-72 bg-white rounded-xl shadow-xl border border-border py-2 fade-in">
                     {services.map((s) => (
                       <Link key={s.href} href={s.href} className="block px-4 py-2.5 text-sm text-black/70 hover:bg-muted hover:text-gold-dark transition-colors cursor-pointer">{s.name}</Link>
                     ))}

@@ -9,8 +9,16 @@ export const SITE_URL =
 export const DEFAULT_OG_IMAGE = `${SITE_URL}/images/logo.png`;
 export const DEFAULT_FAVICON = `${SITE_URL}/images/logo.png`;
 
+/** 88–90 Hatton Garden, London — used in LocalBusiness schema for ChatGPT / maps. */
+export const HATTON_GARDEN_GEO = {
+  latitude: 51.5204,
+  longitude: -0.1084,
+} as const;
+
 /** Primary pages Google may surface as brand sitelinks. */
 export const PRIMARY_NAV_LINKS: { name: string; path: string }[] = [
+  { name: "Sell Gold in London", path: "/sell-gold-london" },
+  { name: "Sell Jewellery in Hatton Garden", path: "/sell-jewellery-hatton-garden" },
   { name: "Free Valuation", path: "/free-valuation" },
   { name: "Live Rates", path: "/live-rates" },
   { name: "Sell Gold", path: "/services/sell-gold" },
@@ -94,7 +102,9 @@ export const PAGE_SEO: Record<string, PageSeo> = {
       "Hatton Garden gold buyer",
       "sell gold Hatton Garden",
       "sell gold London",
+      "where can I sell gold in London",
       "gold buyer London",
+      "sell jewellery in Hatton Garden",
       "sell Cartier London",
       "sell Tiffany jewellery London",
       "sell Boodles jewellery",
@@ -170,6 +180,34 @@ export const PAGE_SEO: Record<string, PageSeo> = {
       "Terms and conditions for selling gold and jewellery to Fine Jewellery Buyers, using our website, valuations and insured postal service.",
     path: "/terms",
   },
+  "sell-gold-london": {
+    title: "Where to Sell Gold in London | Hatton Garden Gold Buyers",
+    description:
+      "Sell gold in London at Fine Jewellery Buyers, 88–90 Hatton Garden. Free in-person valuation, live market rates, same-day payment. Walk-ins welcome or sell by post UK-wide.",
+    path: "/sell-gold-london",
+    keywords: [
+      "where can I sell gold in London",
+      "sell gold London",
+      "gold buyer London",
+      "Hatton Garden gold buyer",
+      "sell scrap gold London",
+      "best gold buyers London",
+    ],
+  },
+  "sell-jewellery-hatton-garden": {
+    title: "Sell Jewellery in Hatton Garden | Instant Cash London",
+    description:
+      "Sell jewellery in Hatton Garden at Fine Jewellery Buyers, 88–90 Hatton Garden, London. Cartier, Tiffany, Boodles, gold and diamonds. Free valuation and instant cash.",
+    path: "/sell-jewellery-hatton-garden",
+    keywords: [
+      "sell jewellery in Hatton Garden",
+      "sell jewellery Hatton Garden",
+      "Hatton Garden jewellery buyers",
+      "where to sell jewellery in Hatton Garden",
+      "sell designer jewellery London",
+      "Hatton Garden gold and jewellery buyer",
+    ],
+  },
 };
 
 export const SERVICE_SEO: Record<
@@ -177,10 +215,18 @@ export const SERVICE_SEO: Record<
   { title: string; description: string; keywords: string[] }
 > = {
   "sell-gold": {
-    title: "Sell Gold UK | Best Scrap & Jewellery Gold Prices",
+    title: "Sell Gold in London | Hatton Garden Gold Buyers",
     description:
-      "Sell gold jewellery, scrap gold, bars and coins at live UK market rates. All carats accepted — 9ct to 24ct. Free valuation and same-day payment.",
-    keywords: ["sell gold", "sell scrap gold", "gold buyer UK", "sell gold jewellery"],
+      "Sell gold in London at Fine Jewellery Buyers, Hatton Garden. Scrap gold, jewellery, bars and coins — 9ct to 24ct at live rates. Free valuation and same-day payment.",
+    keywords: [
+      "sell gold London",
+      "where to sell gold in London",
+      "Hatton Garden gold buyer",
+      "gold buyer London",
+      "sell scrap gold London",
+      "sell gold",
+      "gold buyer UK",
+    ],
   },
   "sell-diamonds": {
     title: "Sell Diamonds UK | Certified & Loose Diamond Buyers",
@@ -201,16 +247,17 @@ export const SERVICE_SEO: Record<
     keywords: ["sell Rolex UK", "sell luxury watch", "watch buyer London"],
   },
   "sell-jewellery": {
-    title: "Sell Cartier, Tiffany & Boodles | Designer Jewellery UK",
+    title: "Sell Jewellery in Hatton Garden | Designer Jewellery Buyers",
     description:
-      "We buy Cartier, Tiffany & Co., Boodles, Van Cleef & Arpels, Bulgari and luxury brands. Instant cash, best prices — above scrap gold value for authenticated designer pieces.",
+      "Sell jewellery in Hatton Garden, London. Cartier, Tiffany, Boodles and designer pieces — free valuation, instant cash, above scrap gold value when authenticated.",
     keywords: [
+      "sell jewellery Hatton Garden",
+      "sell jewellery in Hatton Garden",
+      "Hatton Garden jewellery buyers",
+      "sell designer jewellery London",
       "sell Cartier UK",
       "sell Tiffany jewellery",
       "sell Boodles",
-      "sell designer jewellery",
-      "sell Van Cleef Arpels",
-      "sell Bulgari",
       "instant cash jewellery",
       "designer jewellery buyer London",
     ],
@@ -229,7 +276,16 @@ export const SERVICE_SEO: Record<
   },
 };
 
-export function organizationJsonLd(address?: string) {
+export type OrganizationJsonLdInput = {
+  address?: string;
+  phone?: string;
+  email?: string;
+  openingHours?: string;
+  googleReviewUrl?: string;
+  trustpilotUrl?: string;
+};
+
+function parsePostalAddress(address?: string) {
   const full = (address || "88–90 Hatton Garden, London EC1N 8AA").trim();
   const parts = full.split(",").map((p) => p.trim()).filter(Boolean);
   const last = parts[parts.length - 1] || "";
@@ -237,15 +293,28 @@ export function organizationJsonLd(address?: string) {
   const postalCode = postcodeMatch?.[1]?.toUpperCase() || "";
   const locality = last.replace(postcodeMatch?.[0] || "", "").trim() || "London";
   const streetAddress = parts.length > 1 ? parts.slice(0, -1).join(", ") : full;
+  return { full, streetAddress, locality, postalCode };
+}
+
+export function organizationJsonLd(input?: OrganizationJsonLdInput | string) {
+  const opts: OrganizationJsonLdInput = typeof input === "string" ? { address: input } : input || {};
+  const { full, streetAddress, locality, postalCode } = parsePostalAddress(opts.address);
+  const mapsQuery = encodeURIComponent(full);
 
   return {
     "@context": "https://schema.org",
-    "@type": "JewelryStore",
+    "@type": ["JewelryStore", "LocalBusiness"],
+    "@id": `${SITE_URL}/#business`,
     name: SITE_NAME,
+    alternateName: ["FJB", "Fine Jewellery Buyers Hatton Garden", "Fine Jewellery Buyers London"],
     url: SITE_URL,
     logo: `${SITE_URL}/images/logo.png`,
+    image: [`${SITE_URL}/images/hatton-garden-building.jpg`, `${SITE_URL}/images/logo.png`],
     description:
-      "Hatton Garden, London gold and jewellery buyer — gold, scrap gold, diamonds, gemstones, luxury watches and designer brands including Cartier and Tiffany.",
+      "Gold and jewellery buyer in Hatton Garden, London. Sell gold, scrap gold, diamonds, gemstones, luxury watches and designer jewellery including Cartier, Tiffany and Boodles. Free valuations, live market-linked prices, same-day payment.",
+    slogan: "Sell gold and jewellery in Hatton Garden, London",
+    telephone: opts.phone || undefined,
+    email: opts.email || undefined,
     address: {
       "@type": "PostalAddress",
       streetAddress,
@@ -254,12 +323,60 @@ export function organizationJsonLd(address?: string) {
       addressRegion: "England",
       addressCountry: "GB",
     },
+    geo: {
+      "@type": "GeoCoordinates",
+      latitude: HATTON_GARDEN_GEO.latitude,
+      longitude: HATTON_GARDEN_GEO.longitude,
+    },
+    hasMap: `https://www.google.com/maps/search/?api=1&query=${mapsQuery}`,
+    openingHoursSpecification: [
+      {
+        "@type": "OpeningHoursSpecification",
+        dayOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+        opens: "10:00",
+        closes: "18:00",
+      },
+    ],
+    openingHours: opts.openingHours || "Mo-Sa 10:00-18:00",
     areaServed: [
       { "@type": "City", name: "London" },
+      { "@type": "AdministrativeArea", name: "Hatton Garden" },
       { "@type": "Country", name: "United Kingdom" },
     ],
+    knowsAbout: [
+      "selling gold in London",
+      "Hatton Garden gold buyers",
+      "selling jewellery in Hatton Garden",
+      "scrap gold valuation",
+      "designer jewellery buying",
+    ],
+    currenciesAccepted: "GBP",
+    paymentAccepted: "Cash, Bank Transfer",
     priceRange: "£££",
-    sameAs: [],
+    hasOfferCatalog: {
+      "@type": "OfferCatalog",
+      name: "Jewellery buying services",
+      itemListElement: [
+        { "@type": "Offer", itemOffered: { "@type": "Service", name: "Sell gold in London", url: `${SITE_URL}/sell-gold-london` } },
+        { "@type": "Offer", itemOffered: { "@type": "Service", name: "Sell jewellery in Hatton Garden", url: `${SITE_URL}/sell-jewellery-hatton-garden` } },
+        { "@type": "Offer", itemOffered: { "@type": "Service", name: "Sell gold", url: `${SITE_URL}/services/sell-gold` } },
+        { "@type": "Offer", itemOffered: { "@type": "Service", name: "Sell jewellery", url: `${SITE_URL}/services/sell-jewellery` } },
+        { "@type": "Offer", itemOffered: { "@type": "Service", name: "Sell diamonds", url: `${SITE_URL}/services/sell-diamonds` } },
+        { "@type": "Offer", itemOffered: { "@type": "Service", name: "Sell watches", url: `${SITE_URL}/services/sell-watches` } },
+      ],
+    },
+    contactPoint: opts.phone
+      ? {
+          "@type": "ContactPoint",
+          telephone: opts.phone,
+          contactType: "customer service",
+          areaServed: "GB",
+          availableLanguage: ["English"],
+        }
+      : undefined,
+    sameAs: [opts.googleReviewUrl, opts.trustpilotUrl].filter(
+      (url): url is string => Boolean(url && url.startsWith("http"))
+    ),
   };
 }
 
@@ -323,6 +440,48 @@ export function faqJsonLd(faqs: { question: string; answer: string }[]) {
       "@type": "Question",
       name: faq.question,
       acceptedAnswer: { "@type": "Answer", text: faq.answer },
+    })),
+  };
+}
+
+export function speakableWebPageJsonLd(opts: {
+  path: string;
+  name: string;
+  description: string;
+}) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    "@id": `${SITE_URL}${opts.path}#webpage`,
+    url: `${SITE_URL}${opts.path}`,
+    name: opts.name,
+    description: opts.description,
+    inLanguage: "en-GB",
+    isPartOf: { "@id": `${SITE_URL}/#business` },
+    about: { "@id": `${SITE_URL}/#business` },
+    mainEntity: { "@id": `${SITE_URL}/#business` },
+    speakable: {
+      "@type": "SpeakableSpecification",
+      cssSelector: [".ai-direct-answer", "h1"],
+    },
+  };
+}
+
+export function howToJsonLd(opts: {
+  name: string;
+  description: string;
+  steps: { name: string; text: string }[];
+}) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "HowTo",
+    name: opts.name,
+    description: opts.description,
+    step: opts.steps.map((step, i) => ({
+      "@type": "HowToStep",
+      position: i + 1,
+      name: step.name,
+      text: step.text,
     })),
   };
 }

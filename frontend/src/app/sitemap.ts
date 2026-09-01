@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { pingIndexNow } from "@/lib/indexnow";
 import { SITE_URL, SERVICE_SLUGS } from "@/lib/seo";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8002";
@@ -8,6 +9,8 @@ export const revalidate = 3600;
 
 const STATIC_PAGES: { path: string; priority: number; changeFrequency: MetadataRoute.Sitemap[0]["changeFrequency"] }[] = [
   { path: "/", priority: 1, changeFrequency: "daily" },
+  { path: "/sell-gold-london", priority: 0.95, changeFrequency: "weekly" },
+  { path: "/sell-jewellery-hatton-garden", priority: 0.95, changeFrequency: "weekly" },
   { path: "/free-valuation", priority: 0.95, changeFrequency: "weekly" },
   { path: "/live-rates", priority: 0.9, changeFrequency: "hourly" },
   { path: "/gold-calculator", priority: 0.9, changeFrequency: "weekly" },
@@ -63,5 +66,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.6,
   }));
 
-  return [...staticEntries, ...serviceEntries, ...blogEntries];
+  const entries = [...staticEntries, ...serviceEntries, ...blogEntries];
+  await pingIndexNow();
+  return entries;
 }
