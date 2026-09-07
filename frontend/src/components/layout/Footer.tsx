@@ -77,6 +77,17 @@ export function Footer() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-white/40 text-center md:text-left">
           <div className="space-y-1">
             <p>&copy; {new Date().getFullYear()} Fine Jewellery Buyers. All rights reserved.</p>
+            <p>
+              Web Designed &amp; Developed By{" "}
+              <a
+                href="https://avenque.io"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-white/70 transition-colors cursor-pointer"
+              >
+                Avenque Ltd
+              </a>
+            </p>
           </div>
           <div className="flex items-center gap-6">
             <Link href="/privacy" className="hover:text-white/70 transition-colors cursor-pointer">Privacy Policy</Link>
