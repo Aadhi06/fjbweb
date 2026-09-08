@@ -1,8 +1,53 @@
 "use client";
 
-import { useState, FormEvent } from "react";
+import { useState, FormEvent, ChangeEvent } from "react";
 import type { DynamicForm, FormField } from "@/lib/types";
 import { showFormError, showFormSuccess, showFormWarning } from "@/lib/alerts";
+
+const MAX_PHOTOS = 5;
+
+function PhotoUploadField({ field }: { field: FormField }) {
+  const [selectedCount, setSelectedCount] = useState(0);
+
+  function handleChange(e: ChangeEvent<HTMLInputElement>) {
+    const files = e.target.files;
+    if (!files) {
+      setSelectedCount(0);
+      return;
+    }
+    if (files.length > MAX_PHOTOS) {
+      const limited = new DataTransfer();
+      Array.from(files).slice(0, MAX_PHOTOS).forEach((file) => limited.items.add(file));
+      e.target.files = limited.files;
+      setSelectedCount(MAX_PHOTOS);
+      void showFormWarning("Up to 5 images", "You can upload up to 5 images. Extra pictures were not added.");
+      return;
+    }
+    setSelectedCount(files.length);
+  }
+
+  return (
+    <div>
+      <p className="text-sm text-muted-foreground mb-2">
+        You can upload up to 5 images. Please upload more pictures for an easy reply.
+      </p>
+      <input
+        type="file"
+        name={`${field.name}[]`}
+        required={field.required}
+        accept="image/*"
+        multiple
+        onChange={handleChange}
+        className="w-full text-sm text-muted-foreground file:mr-4 file:py-3 file:px-6 file:rounded-full file:border-0 file:text-sm file:font-bold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 cursor-pointer"
+      />
+      {selectedCount > 0 && (
+        <p className="text-xs text-muted-foreground mt-2">
+          {selectedCount} of {MAX_PHOTOS} images selected
+        </p>
+      )}
+    </div>
+  );
+}
 
 function FormFieldComponent({ field, defaultValue }: { field: FormField; defaultValue?: string }) {
   const baseClasses = "w-full px-4 py-3 rounded-xl border border-border bg-white text-secondary placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors";
@@ -36,7 +81,7 @@ function FormFieldComponent({ field, defaultValue }: { field: FormField; default
         </label>
       );
     case "file":
-      return <input type="file" name={field.name} required={field.required} accept="image/*,.pdf" multiple className="w-full text-sm text-muted-foreground file:mr-4 file:py-3 file:px-6 file:rounded-full file:border-0 file:text-sm file:font-bold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 cursor-pointer" />;
+      return <PhotoUploadField field={field} />;
     default:
       return <input type={field.type} name={field.name} placeholder={field.placeholder} required={field.required} className={baseClasses} />;
   }
@@ -55,6 +100,7 @@ export function DynamicFormRenderer({
   const [error, setError] = useState("");
   const [honeypot, setHoneypot] = useState("");
   const [formLoadedAt] = useState(() => Date.now());
+  const [formKey, setFormKey] = useState(0);
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -77,6 +123,7 @@ export function DynamicFormRenderer({
         form.success_message || "Your submission has been received. We'll be in touch within 24 hours."
       );
       formEl.reset();
+      setFormKey((key) => key + 1);
       if (typeof window !== "undefined" && (window as unknown as Record<string, unknown>).gtag) {
         (window as unknown as { gtag: (...args: unknown[]) => void }).gtag("event", "conversion", { send_to: "form_submission", event_category: "form", event_label: form.slug });
       }
@@ -98,7 +145,7 @@ export function DynamicFormRenderer({
           <label className="block text-sm font-semibold text-secondary mb-2">
             {field.label}{field.required && <span className="text-destructive ml-1">*</span>}
           </label>
-          <FormFieldComponent field={field} defaultValue={defaultValues?.[field.name]} />
+          <FormFieldComponent key={`${field.id}-${formKey}`} field={field} defaultValue={defaultValues?.[field.name]} />
         </div>
       ))}
       <div style={{ position: 'absolute', left: '-9999px', opacity: 0, height: 0, overflow: 'hidden' }} aria-hidden="true">

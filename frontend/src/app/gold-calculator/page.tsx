@@ -144,11 +144,17 @@ export default function GoldCalculatorPage() {
     setValuationError("");
 
     const fd = new FormData(formEl);
-    const photo = fd.get("photos");
-    if (!(photo instanceof File) || photo.size === 0) {
+    const photos = fd.getAll("photos[]").filter((file): file is File => file instanceof File && file.size > 0);
+    if (photos.length === 0) {
       const message = "Please upload at least one photo of your gold or silver items.";
       setValuationError(message);
       await showFormWarning("Photo Required", message);
+      return;
+    }
+    if (photos.length > 5) {
+      const message = "You can upload up to 5 images.";
+      setValuationError(message);
+      await showFormWarning("Up to 5 images", message);
       return;
     }
 
@@ -244,12 +250,21 @@ export default function GoldCalculatorPage() {
                   </div>
                   <div>
                     <label className="block text-sm font-semibold text-secondary mb-2">Upload Photos <span className="text-destructive">*</span></label>
-                    <p className="text-sm text-muted-foreground mb-2">Add at least one clear photo of your gold or silver items.</p>
+                    <p className="text-sm text-muted-foreground mb-2">You can upload up to 5 images. Please upload more pictures for an easy reply.</p>
                     <input
                       type="file"
-                      name="photos"
+                      name="photos[]"
                       required
                       accept="image/*"
+                      multiple
+                      onChange={(e) => {
+                        const files = e.target.files;
+                        if (!files || files.length <= 5) return;
+                        const limited = new DataTransfer();
+                        Array.from(files).slice(0, 5).forEach((file) => limited.items.add(file));
+                        e.target.files = limited.files;
+                        void showFormWarning("Up to 5 images", "You can upload up to 5 images. Extra pictures were not added.");
+                      }}
                       className="w-full text-sm text-muted-foreground file:mr-4 file:py-3 file:px-6 file:rounded-full file:border-0 file:text-sm file:font-bold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 cursor-pointer"
                     />
                   </div>

@@ -72,7 +72,7 @@ function FreeValuationContent() {
             <div className="flex-1">
               <p className="font-semibold text-black text-sm sm:text-base">You&apos;re almost there!</p>
               <p className="text-muted-foreground text-xs sm:text-sm">
-                Fill in the form below — add your details, describe your item{itemType ? ` (${itemType})` : ""}, and upload photos if you have them.
+                Fill in the form below — add your details, describe your item{itemType ? ` (${itemType})` : ""}, and upload up to 5 photos so we can reply more easily.
               </p>
             </div>
             <ArrowDown className="w-5 h-5 text-gold-dark shrink-0 hidden sm:block animate-bounce" />

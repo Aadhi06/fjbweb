@@ -31,6 +31,11 @@ class FormSubmissionService
                 if ($request->hasFile($field->name)) {
                     $uploadedFiles = $request->file($field->name);
                     $uploadedFiles = is_array($uploadedFiles) ? $uploadedFiles : [$uploadedFiles];
+                    if (count($uploadedFiles) > 5) {
+                        throw ValidationException::withMessages([
+                            $field->name => ['You can upload up to 5 images.'],
+                        ]);
+                    }
                     foreach ($uploadedFiles as $file) {
                         $files[] = [
                             'field_name' => $field->name,
@@ -98,9 +103,11 @@ class FormSubmissionService
             }
 
             if ($field->type === 'file') {
-                $rules[$field->name] = 'required|file|image|max:10240';
+                $rules[$field->name] = 'required|array|min:1|max:5';
+                $rules["{$field->name}.*"] = 'file|image|max:10240';
                 $messages["{$field->name}.required"] = 'Please upload at least one photo.';
-                $messages["{$field->name}.image"] = 'Please upload a valid image file.';
+                $messages["{$field->name}.max"] = 'You can upload up to 5 images.';
+                $messages["{$field->name}.*.image"] = 'Please upload a valid image file.';
             } else {
                 $rules[$field->name] = 'required';
             }

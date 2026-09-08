@@ -46,11 +46,29 @@ class AdminFormNotification extends Mailable
 
     private function buildHtml(): string
     {
-        $rows = '';
+        $fields = '';
+        $photos = '';
+
         foreach ($this->buildOrderedFields() as $label => $meta) {
+            if ($meta['type'] === 'file') {
+                $photos = $this->formatFilesHtml($this->submission->files->where('field_name', $meta['name']));
+                continue;
+            }
+
             $labelEsc = htmlspecialchars($label);
             $value = $this->formatValue($meta['name'], $meta['type'], $meta['value']);
-            $rows .= "<tr><td style=\"padding:8px 12px;border:1px solid #e5e7eb;font-weight:600;color:#374151;white-space:nowrap;vertical-align:top;\">{$labelEsc}</td><td style=\"padding:8px 12px;border:1px solid #e5e7eb;color:#111827;\">{$value}</td></tr>";
+            $fields .= <<<HTML
+            <tr>
+                <td style="padding:14px 16px;border-bottom:1px solid #e5e7eb;">
+                    <p style="margin:0 0 4px;font-size:12px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:#6b7280;">{$labelEsc}</p>
+                    <div style="margin:0;font-size:16px;line-height:1.5;color:#111827;word-break:break-word;">{$value}</div>
+                </td>
+            </tr>
+            HTML;
+        }
+
+        if ($photos === '' && $this->submission->files->isNotEmpty()) {
+            $photos = $this->formatFilesHtml($this->submission->files);
         }
 
         $formTitle = htmlspecialchars($this->form->title);
@@ -58,18 +76,41 @@ class AdminFormNotification extends Mailable
         $ip = htmlspecialchars($this->submission->ip_address ?? 'N/A');
 
         return <<<HTML
-        <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:600px;margin:0 auto;padding:20px;">
-            <div style="background:#111827;color:#fff;padding:20px 24px;border-radius:8px 8px 0 0;">
-                <h1 style="margin:0;font-size:18px;">New {$formTitle} Submission</h1>
-            </div>
-            <div style="background:#ffffff;border:1px solid #e5e7eb;border-top:none;padding:24px;border-radius:0 0 8px 8px;">
-                <p style="margin:0 0 16px;color:#6b7280;font-size:14px;">Received on {$timestamp} &middot; IP: {$ip}</p>
-                <table style="width:100%;border-collapse:collapse;font-size:14px;">
-                    {$rows}
-                </table>
-                <p style="margin:20px 0 0;font-size:13px;color:#9ca3af;">Uploaded photos are attached to this email and shown above when possible.</p>
-            </div>
-        </div>
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>New {$formTitle} Submission</title>
+        </head>
+        <body style="margin:0;padding:0;background:#f3f4f6;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f3f4f6;border-collapse:collapse;">
+                <tr>
+                    <td align="center" style="padding:12px;">
+                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;background:#ffffff;border-collapse:collapse;border-radius:12px;overflow:hidden;">
+                            <tr>
+                                <td style="background:#111827;color:#ffffff;padding:20px 16px;">
+                                    <p style="margin:0;font-size:18px;line-height:1.3;font-weight:700;">New {$formTitle} Submission</p>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="padding:14px 16px;background:#f9fafb;border-bottom:1px solid #e5e7eb;">
+                                    <p style="margin:0;font-size:13px;line-height:1.5;color:#6b7280;">Received on {$timestamp}<br>IP: {$ip}</p>
+                                </td>
+                            </tr>
+                            {$fields}
+                            {$photos}
+                            <tr>
+                                <td style="padding:14px 16px;">
+                                    <p style="margin:0;font-size:13px;line-height:1.5;color:#6b7280;">Photos are also attached to this email so you can open them full size.</p>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+            </table>
+        </body>
+        </html>
         HTML;
     }
 
@@ -155,23 +196,60 @@ class AdminFormNotification extends Mailable
             return '<div style="white-space:pre-line;line-height:1.6;">' . nl2br($text) . '</div>';
         }
 
-        return nl2br(htmlspecialchars((string) $value));
+        $text = htmlspecialchars((string) $value);
+        if (in_array($fieldName, ['email'], true) || $type === 'email' || filter_var((string) $value, FILTER_VALIDATE_EMAIL)) {
+            return '<a href="mailto:' . $text . '" style="color:#D97706;font-weight:600;word-break:break-all;">' . $text . '</a>';
+        }
+        if (in_array($fieldName, ['phone'], true) || $type === 'phone') {
+            $tel = preg_replace('/\s+/', '', (string) $value);
+            return '<a href="tel:' . htmlspecialchars($tel) . '" style="color:#D97706;font-weight:600;">' . $text . '</a>';
+        }
+
+        return nl2br($text);
     }
 
     private function formatFilesHtml($files): string
     {
         if ($files->isEmpty()) {
-            return '<span style="color:#9ca3af;">No files uploaded</span>';
+            return <<<HTML
+            <tr>
+                <td style="padding:14px 16px;border-bottom:1px solid #e5e7eb;">
+                    <p style="margin:0 0 4px;font-size:12px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:#6b7280;">Upload Photos</p>
+                    <p style="margin:0;font-size:16px;color:#9ca3af;">No photos uploaded</p>
+                </td>
+            </tr>
+            HTML;
         }
 
-        $html = '';
+        $html = <<<HTML
+        <tr>
+            <td style="padding:14px 16px 8px;border-bottom:1px solid #e5e7eb;">
+                <p style="margin:0;font-size:12px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:#6b7280;">Upload Photos</p>
+            </td>
+        </tr>
+        HTML;
+
+        $index = 1;
+        $total = $files->count();
         foreach ($files as $file) {
             $name = htmlspecialchars($file->original_name);
             $url = htmlspecialchars($file->publicUrl());
-            $html .= "<p style=\"margin:0 0 8px;\"><a href=\"{$url}\" style=\"color:#D97706;font-weight:600;\">View {$name}</a></p>";
+            $image = '';
             if ($file->isImage()) {
-                $html .= "<img src=\"{$url}\" alt=\"{$name}\" style=\"max-width:280px;height:auto;border-radius:8px;border:1px solid #e5e7eb;display:block;margin-bottom:12px;\">";
+                $image = "<img src=\"{$url}\" alt=\"{$name}\" width=\"100%\" style=\"display:block;width:100%;max-width:100%;height:auto;border:0;border-radius:8px;\">";
             }
+
+            $html .= <<<HTML
+            <tr>
+                <td style="padding:0 16px 16px;">
+                    <p style="margin:0 0 8px;font-size:14px;line-height:1.4;color:#374151;">Photo {$index} of {$total}</p>
+                    <a href="{$url}" style="color:#D97706;font-weight:600;font-size:14px;line-height:1.4;word-break:break-all;text-decoration:underline;">View full photo</a>
+                    <p style="margin:4px 0 10px;font-size:12px;line-height:1.4;color:#6b7280;word-break:break-all;">{$name}</p>
+                    {$image}
+                </td>
+            </tr>
+            HTML;
+            $index++;
         }
 
         return $html;
