@@ -74,26 +74,26 @@ export function Footer() {
       </div>
 
       <div className="border-t border-white/10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-white/40 text-center md:text-left">
-          <div className="space-y-1">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 grid grid-cols-1 md:grid-cols-[1fr_auto] gap-4 text-xs text-white/40 items-center">
+          <div className="space-y-1 text-center">
             <p>Copyright &copy; {new Date().getFullYear()} Fine Jewellery Buyers. All rights reserved.</p>
             <p>Fine Jewellery Buyers is Trading Name of PREOWNED FINE JEWELLERY LTD 16108001</p>
-            <p>
-              Web Designed &amp; Developed By{" "}
-              <a
-                href="https://avenque.io"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hover:text-white/70 transition-colors cursor-pointer"
-              >
-                Avenque Ltd
-              </a>
-            </p>
+            <div className="flex items-center justify-center gap-6 pt-1">
+              <Link href="/privacy" className="hover:text-white/70 transition-colors cursor-pointer">Privacy Policy</Link>
+              <Link href="/terms" className="hover:text-white/70 transition-colors cursor-pointer">Terms of Service</Link>
+            </div>
           </div>
-          <div className="flex items-center gap-6">
-            <Link href="/privacy" className="hover:text-white/70 transition-colors cursor-pointer">Privacy Policy</Link>
-            <Link href="/terms" className="hover:text-white/70 transition-colors cursor-pointer">Terms of Service</Link>
-          </div>
+          <p className="text-center md:text-right whitespace-nowrap">
+            Web Designed &amp; Developed By{" "}
+            <a
+              href="https://avenque.io"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-white/70 transition-colors cursor-pointer"
+            >
+              Avenque Ltd
+            </a>
+          </p>
         </div>
       </div>
     </footer>
