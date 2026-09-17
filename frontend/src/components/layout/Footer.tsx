@@ -77,6 +77,7 @@ export function Footer() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-white/40 text-center md:text-left">
           <div className="space-y-1">
             <p>&copy; {new Date().getFullYear()} Fine Jewellery Buyers. All rights reserved.</p>
+            <p>Fine Jewellery Buyers is a trading name of PreOwned Fine Jewellery Ltd.</p>
             <p>
               Web Designed &amp; Developed By{" "}
               <a
