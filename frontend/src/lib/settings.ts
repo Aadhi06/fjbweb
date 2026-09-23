@@ -13,6 +13,8 @@ export interface SiteSettings {
   google_place_id: string;
   google_review_url: string;
   trustpilot_url: string;
+  trustindex_widget_id: string;
+  trustindex_inbox_url: string;
   google_rating: number;
   total_reviews: number;
   years_in_business: number;
@@ -56,6 +58,8 @@ export const defaultSettings: SiteSettings = {
   google_place_id: "",
   google_review_url: "",
   trustpilot_url: "",
+  trustindex_widget_id: "bbaf65d82db81281c8362394a13",
+  trustindex_inbox_url: "https://admin.trustindex.io/",
   google_rating: 4.9,
   total_reviews: 1000,
   years_in_business: 15,

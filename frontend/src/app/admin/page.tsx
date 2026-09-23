@@ -47,7 +47,13 @@ import {
   Megaphone,
   HardHat,
   MessageSquare,
+  ExternalLink,
 } from "lucide-react";
+import {
+  DEFAULT_TRUSTINDEX_INBOX_URL,
+  DEFAULT_TRUSTINDEX_WIDGET_ID,
+  TrustindexWidget,
+} from "@/components/reviews/TrustindexWidget";
 import { MarketingContent } from "./MarketingContent";
 import { FormsContent } from "./FormsContent";
 import { BookingsContent } from "./BookingsContent";
@@ -346,74 +352,44 @@ function LogoUpload({ currentUrl, onUploaded }: { currentUrl: string; onUploaded
   );
 }
 
-// ─── Google Review Status (used inside Settings) ─────────────────────────────
-
-function GoogleReviewStatus() {
-  const [status, setStatus] = useState<{ cached_google_reviews: number; manual_reviews: number; last_fetched_at: string | null } | null>(null);
-  const [fetching, setFetching] = useState(false);
-  const [result, setResult] = useState<{ success: boolean; message: string } | null>(null);
-
-  useEffect(() => {
-    fetch(`${API_URL}/admin/reviews/status`, { headers: getAuthHeaders() })
-      .then((r) => r.json())
-      .then(setStatus)
-      .catch(() => {});
-  }, []);
-
-  async function handleFetch() {
-    setFetching(true);
-    setResult(null);
-    try {
-      const res = await fetch(`${API_URL}/admin/reviews/fetch`, { method: "POST", headers: getAuthHeaders() });
-      const data = await res.json();
-      setResult({ success: data.success, message: data.message });
-      if (data.success) {
-        setStatus((s) => s ? { ...s, cached_google_reviews: data.cached_google_reviews, last_fetched_at: data.last_fetched_at } : s);
-      }
-    } catch {
-      setResult({ success: false, message: "Network error" });
-    } finally {
-      setFetching(false);
-    }
-  }
+function TrustindexStatus({
+  widgetId,
+  inboxUrl,
+}: {
+  widgetId: string;
+  inboxUrl: string;
+}) {
+  const connectedId = widgetId.trim() || DEFAULT_TRUSTINDEX_WIDGET_ID;
+  const replyUrl = inboxUrl.trim() || DEFAULT_TRUSTINDEX_INBOX_URL;
 
   return (
     <div className="mt-5 pt-5 border-t border-gray-100">
-      <div className="flex items-center justify-between mb-3">
-        <p className="text-sm font-semibold text-gray-700">Fetch Status</p>
-        <button
-          onClick={handleFetch}
-          disabled={fetching}
-          className="bg-[#D97706] text-white font-semibold rounded-lg px-5 py-2 hover:bg-[#B45309] disabled:opacity-50 flex items-center gap-2 transition-colors text-sm"
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
+        <div>
+          <p className="text-sm font-semibold text-gray-700">Trustindex connection</p>
+          <p className="text-xs text-gray-500 mt-0.5">Website reviews use this widget. Reply from Review Management.</p>
+        </div>
+        <a
+          href={replyUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="bg-[#D97706] text-white font-semibold rounded-lg px-5 py-2 hover:bg-[#B45309] inline-flex items-center justify-center gap-2 transition-colors text-sm min-h-11"
         >
-          {fetching ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-          Fetch Reviews Now
-        </button>
+          <MessageSquare className="w-4 h-4" />
+          Reply immediately
+          <ExternalLink className="w-3.5 h-3.5" />
+        </a>
       </div>
-      {status && (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <div className="bg-gray-50 rounded-lg px-4 py-3 border border-gray-100">
-            <p className="text-xs text-gray-500">Cached Google Reviews</p>
-            <p className="text-lg font-bold text-black">{status.cached_google_reviews}</p>
-          </div>
-          <div className="bg-gray-50 rounded-lg px-4 py-3 border border-gray-100">
-            <p className="text-xs text-gray-500">Manual Reviews</p>
-            <p className="text-lg font-bold text-black">{status.manual_reviews}</p>
-          </div>
-          <div className="bg-gray-50 rounded-lg px-4 py-3 border border-gray-100">
-            <p className="text-xs text-gray-500">Last Fetched</p>
-            <p className="text-sm font-medium text-black">
-              {status.last_fetched_at ? new Date(status.last_fetched_at).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "Never"}
-            </p>
-          </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="bg-green-50 rounded-lg px-4 py-3 border border-green-200">
+          <p className="text-xs text-green-700">Widget status</p>
+          <p className="text-sm font-semibold text-green-900">Connected</p>
         </div>
-      )}
-      {result && (
-        <div className={`mt-3 text-sm rounded-lg px-4 py-2.5 flex items-center gap-2 ${result.success ? "bg-green-50 border border-green-200 text-green-700" : "bg-red-50 border border-red-200 text-red-700"}`}>
-          {result.success ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
-          {result.message}
+        <div className="bg-gray-50 rounded-lg px-4 py-3 border border-gray-100 min-w-0">
+          <p className="text-xs text-gray-500">Widget ID</p>
+          <p className="text-sm font-medium text-black truncate">{connectedId}</p>
         </div>
-      )}
+      </div>
     </div>
   );
 }
@@ -581,7 +557,14 @@ function SettingsContent() {
     "newsletter_popup_show_name",
   ];
   const metalKeys = ["metal_api_provider", "metal_api_key"];
-  const googleKeys = ["google_place_id", "google_api_key", "google_review_url", "trustpilot_url"];
+  const googleKeys = [
+    "trustindex_widget_id",
+    "trustindex_inbox_url",
+    "google_place_id",
+    "google_api_key",
+    "google_review_url",
+    "trustpilot_url",
+  ];
   const smtpKeys = ["smtp_host", "smtp_port", "smtp_username", "smtp_password", "smtp_from_address", "smtp_from_name", "smtp_encryption"];
   const trackingKeys = ["gtm_id", "ga_id", "meta_pixel_id", "clarity_id"];
 
@@ -862,8 +845,26 @@ function SettingsContent() {
 
         <CollapsibleSection title="Google Reviews" icon={Star}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-            <FormInput label="Google Place ID" value={settings.google_place_id ?? ""} onChange={(v) => update("google_place_id", v)} placeholder="ChIJ..." />
-            <PasswordInput label="Google API Key" value={settings.google_api_key ?? ""} onChange={(v) => update("google_api_key", v)} placeholder="AIza..." />
+            <div className="md:col-span-2">
+              <FormInput
+                label="Trustindex Widget ID"
+                value={settings.trustindex_widget_id ?? ""}
+                onChange={(v) => update("trustindex_widget_id", v)}
+                placeholder={DEFAULT_TRUSTINDEX_WIDGET_ID}
+              />
+              <p className="text-xs text-gray-400 mt-1">From your Trustindex embed code. Leave blank to use the connected widget.</p>
+            </div>
+            <div className="md:col-span-2">
+              <FormInput
+                label="Trustindex Review Inbox URL"
+                value={settings.trustindex_inbox_url ?? ""}
+                onChange={(v) => update("trustindex_inbox_url", v)}
+                placeholder={DEFAULT_TRUSTINDEX_INBOX_URL}
+              />
+              <p className="text-xs text-gray-400 mt-1">Opens Review Management so you can reply to Google reviews immediately.</p>
+            </div>
+            <FormInput label="Google Place ID (optional)" value={settings.google_place_id ?? ""} onChange={(v) => update("google_place_id", v)} placeholder="ChIJ..." />
+            <PasswordInput label="Google API Key (optional)" value={settings.google_api_key ?? ""} onChange={(v) => update("google_api_key", v)} placeholder="AIza..." />
             <div className="md:col-span-2">
               <FormInput
                 label="Review Us on Google — Button URL"
@@ -884,7 +885,10 @@ function SettingsContent() {
             </div>
           </div>
           <SaveButton keys={googleKeys} />
-          <GoogleReviewStatus />
+          <TrustindexStatus
+            widgetId={settings.trustindex_widget_id ?? ""}
+            inboxUrl={settings.trustindex_inbox_url ?? ""}
+          />
         </CollapsibleSection>
 
         <CollapsibleSection title="SMTP / Email" icon={Mail}>
@@ -2063,28 +2067,15 @@ function ManualReviewFormModal({ review, onClose, onSaved }: { review: ManualRev
 }
 
 function ReviewsContent() {
-  type GoogleAdminReview = {
-    review_key: string;
-    author_name: string;
-    rating: number;
-    text: string;
-    relative_time_description: string;
-    time: number;
-    source: string;
-    is_hidden: boolean;
-    reply_text?: string | null;
-  };
-
   const [reviews, setReviews] = useState<ManualReviewRecord[]>([]);
-  const [googleReviews, setGoogleReviews] = useState<GoogleAdminReview[]>([]);
   const [loading, setLoading] = useState(true);
   const [editReview, setEditReview] = useState<ManualReviewRecord | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [togglingId, setTogglingId] = useState<number | null>(null);
-  const [moderatingKey, setModeratingKey] = useState<string | null>(null);
-  const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({});
-  const [replyOpenKey, setReplyOpenKey] = useState<string | null>(null);
+  const [widgetId, setWidgetId] = useState(DEFAULT_TRUSTINDEX_WIDGET_ID);
+  const [inboxUrl, setInboxUrl] = useState(DEFAULT_TRUSTINDEX_INBOX_URL);
+  const [inboxOpen, setInboxOpen] = useState(true);
   const { toast, showToast, clearToast } = useToast();
 
   const fetchManual = useCallback(async () => {
@@ -2093,33 +2084,33 @@ function ReviewsContent() {
     setReviews(data.data || []);
   }, []);
 
-  const fetchGoogle = useCallback(async () => {
-    const res = await fetch(`${API_URL}/admin/reviews/google`, { headers: getAuthHeaders() });
+  const fetchSettings = useCallback(async () => {
+    const res = await fetch(`${API_URL}/admin/settings`, { headers: getAuthHeaders() });
     const data = await res.json();
-    const list: GoogleAdminReview[] = data.data || [];
-    setGoogleReviews(list);
-    setReplyDrafts((prev) => {
-      const next = { ...prev };
-      list.forEach((r) => {
-        if (next[r.review_key] === undefined) next[r.review_key] = r.reply_text || "";
-      });
-      return next;
-    });
+    const nextWidget = String(data.data?.trustindex_widget_id || "").trim();
+    const nextInbox = String(data.data?.trustindex_inbox_url || "").trim();
+    setWidgetId(nextWidget || DEFAULT_TRUSTINDEX_WIDGET_ID);
+    setInboxUrl(nextInbox || DEFAULT_TRUSTINDEX_INBOX_URL);
   }, []);
 
   const fetchAll = useCallback(async () => {
     try {
-      await Promise.all([fetchManual(), fetchGoogle()]);
+      await Promise.all([fetchManual(), fetchSettings()]);
     } catch {
       showToast("Failed to load reviews", "error");
     } finally {
       setLoading(false);
     }
-  }, [fetchManual, fetchGoogle, showToast]);
+  }, [fetchManual, fetchSettings, showToast]);
 
   useEffect(() => {
     fetchAll();
   }, [fetchAll]);
+
+  function openTrustindexInbox() {
+    window.open(inboxUrl, "trustindex-inbox", "noopener,noreferrer");
+    setInboxOpen(true);
+  }
 
   function handleSaved() {
     setShowForm(false);
@@ -2161,51 +2152,6 @@ function ReviewsContent() {
     }
   }
 
-  async function moderateReview(
-    review: GoogleAdminReview,
-    payload: { is_hidden?: boolean; reply_text?: string; clear_reply?: boolean }
-  ) {
-    setModeratingKey(review.review_key);
-    try {
-      const res = await fetch(`${API_URL}/admin/reviews/moderate`, {
-        method: "PUT",
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          review_key: review.review_key,
-          author_name: review.author_name,
-          rating: review.rating,
-          ...payload,
-        }),
-      });
-      if (!res.ok) {
-        const d = await res.json().catch(() => null);
-        throw new Error(d?.message || "Failed");
-      }
-      const data = await res.json();
-      setGoogleReviews((list) =>
-        list.map((r) =>
-          r.review_key === review.review_key
-            ? {
-                ...r,
-                is_hidden: data.data?.is_hidden ?? r.is_hidden,
-                reply_text: data.data?.reply_text ?? (payload.clear_reply ? null : r.reply_text),
-              }
-            : r
-        )
-      );
-      if (payload.reply_text !== undefined || payload.clear_reply) {
-        showToast(payload.clear_reply ? "Reply removed" : "Reply saved — shown on website", "success");
-        setReplyOpenKey(null);
-      } else if (payload.is_hidden !== undefined) {
-        showToast(payload.is_hidden ? "Review hidden from website" : "Review visible on website", "success");
-      }
-    } catch (err) {
-      showToast(err instanceof Error ? err.message : "Failed to update review", "error");
-    } finally {
-      setModeratingKey(null);
-    }
-  }
-
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -2221,133 +2167,97 @@ function ReviewsContent() {
         <ManualReviewFormModal review={editReview} onClose={() => { setShowForm(false); setEditReview(null); }} onSaved={handleSaved} />
       )}
 
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
         <div>
           <h2 className="text-2xl font-bold text-black mb-1">Reviews</h2>
-          <p className="text-gray-500">Website shows 5-star reviews only. Hide or reply from here.</p>
+          <p className="text-gray-500">Google reviews are powered by Trustindex. Reply from your inbox here.</p>
         </div>
         <div className="flex items-center gap-3">
-          <button onClick={() => { setLoading(true); fetchAll(); }} className="flex items-center gap-2 text-sm text-gray-600 hover:text-black transition-colors">
+          <button onClick={() => { setLoading(true); fetchAll(); }} className="flex items-center gap-2 text-sm text-gray-600 hover:text-black transition-colors min-h-11">
             <RefreshCw className="w-4 h-4" /> Refresh
           </button>
           <button
             onClick={() => { setEditReview(null); setShowForm(true); }}
-            className="bg-[#D97706] text-white font-semibold rounded-lg px-5 py-2.5 hover:bg-[#B45309] flex items-center gap-2 transition-colors text-sm"
+            className="bg-white text-gray-800 font-semibold rounded-lg px-5 py-2.5 hover:bg-gray-50 border border-gray-200 flex items-center gap-2 transition-colors text-sm min-h-11"
           >
             <Plus className="w-4 h-4" /> Add Manual Review
           </button>
         </div>
       </div>
 
-      <div className="bg-amber-50 border border-amber-200 rounded-xl px-5 py-4 mb-6">
-        <p className="text-sm text-amber-900">
-          <strong>Website display:</strong> only <strong>5-star</strong> reviews that are not hidden. Low ratings stay in admin so you can hide them or leave a public reply.
-          Replies appear on the website under the review (not posted to Google Business Profile).
-        </p>
+      <div className="bg-white rounded-xl border border-gray-200 p-5 sm:p-6 mb-6">
+        <div className="flex flex-col lg:flex-row lg:items-start gap-5">
+          <div className="w-12 h-12 rounded-xl bg-black flex items-center justify-center flex-shrink-0">
+            <Star className="w-6 h-6 text-amber-500 fill-amber-500" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex flex-wrap items-center gap-2 mb-1">
+              <h3 className="text-lg font-semibold text-black">Trustindex Google Reviews</h3>
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold uppercase tracking-wide bg-green-50 text-green-700 border border-green-200">
+                Connected
+              </span>
+            </div>
+            <p className="text-sm text-gray-600 leading-relaxed">
+              The website widget is live. Open Review Management to reply to Google reviews immediately — replies post to Google when your Google Business Profile is connected in Trustindex.
+            </p>
+            <p className="text-xs text-gray-400 mt-2 truncate">Widget ID: {widgetId}</p>
+          </div>
+          <button
+            type="button"
+            onClick={openTrustindexInbox}
+            className="bg-[#D97706] text-white font-semibold rounded-lg px-5 py-3 hover:bg-[#B45309] inline-flex items-center justify-center gap-2 transition-colors text-sm min-h-11 flex-shrink-0"
+          >
+            <MessageSquare className="w-4 h-4" />
+            Reply immediately
+            <ExternalLink className="w-3.5 h-3.5" />
+          </button>
+        </div>
       </div>
 
-      <h3 className="text-lg font-semibold text-black mb-3">Google Reviews</h3>
-      {googleReviews.length === 0 ? (
-        <div className="bg-white rounded-xl border border-gray-200 p-8 text-center mb-8">
-          <p className="text-gray-500 text-sm">No Google reviews cached yet. Fetch them from Settings → Google Reviews.</p>
+      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-5 py-4 border-b border-gray-100">
+          <div>
+            <h3 className="text-base font-semibold text-black">Trustindex Review Inbox</h3>
+            <p className="text-xs text-gray-500 mt-0.5">Sign in once, then reply to Google reviews without leaving admin.</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setInboxOpen((open) => !open)}
+              className="px-3 py-2 text-sm font-medium rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 min-h-11"
+            >
+              {inboxOpen ? "Hide inbox" : "Show inbox"}
+            </button>
+            <a
+              href={inboxUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-3 py-2 text-sm font-medium rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 inline-flex items-center gap-1.5 min-h-11"
+            >
+              Open in new tab
+              <ExternalLink className="w-3.5 h-3.5" />
+            </a>
+          </div>
         </div>
-      ) : (
-        <div className="space-y-3 mb-10">
-          {googleReviews.map((review) => (
-            <div key={review.review_key} className={`bg-white rounded-xl border p-5 ${review.is_hidden ? "border-red-200 bg-red-50/20" : "border-gray-200"}`}>
-              <div className="flex items-start gap-4">
-                <div className="w-10 h-10 rounded-full bg-black flex items-center justify-center text-amber-500 font-bold text-sm flex-shrink-0">
-                  {review.author_name.charAt(0).toUpperCase()}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex flex-wrap items-center gap-2 mb-1">
-                    <p className="font-semibold text-black text-sm">{review.author_name}</p>
-                    <div className="flex items-center gap-0.5">
-                      {Array.from({ length: 5 }).map((_, i) => (
-                        <Star key={i} className={`w-3.5 h-3.5 ${i < review.rating ? "text-amber-500 fill-amber-500" : "text-gray-200 fill-gray-200"}`} />
-                      ))}
-                    </div>
-                    {review.rating < 5 && (
-                      <span className="text-[10px] uppercase font-semibold px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 border border-gray-200">
-                        Hidden on site (not 5★)
-                      </span>
-                    )}
-                    {review.is_hidden && (
-                      <span className="text-[10px] uppercase font-semibold px-2 py-0.5 rounded-full bg-red-50 text-red-700 border border-red-200">
-                        Removed from site
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-sm text-gray-600 whitespace-pre-wrap">{review.text}</p>
-                  <p className="text-xs text-gray-400 mt-1">{review.relative_time_description}</p>
-                  {review.reply_text ? (
-                    <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50/50 px-3 py-2">
-                      <p className="text-[11px] font-semibold text-amber-800 mb-0.5">Your reply (on website)</p>
-                      <p className="text-sm text-gray-700 whitespace-pre-wrap">{review.reply_text}</p>
-                    </div>
-                  ) : null}
-                  {replyOpenKey === review.review_key && (
-                    <div className="mt-3 space-y-2">
-                      <textarea
-                        value={replyDrafts[review.review_key] ?? ""}
-                        onChange={(e) => setReplyDrafts((d) => ({ ...d, [review.review_key]: e.target.value }))}
-                        rows={3}
-                        placeholder="Write a public reply shown on your website…"
-                        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
-                      />
-                      <div className="flex flex-wrap gap-2">
-                        <button
-                          type="button"
-                          disabled={moderatingKey === review.review_key}
-                          onClick={() => moderateReview(review, { reply_text: replyDrafts[review.review_key] || "" })}
-                          className="px-3 py-1.5 text-xs font-medium rounded-md bg-[#D97706] text-white hover:bg-[#B45309] disabled:opacity-50"
-                        >
-                          {moderatingKey === review.review_key ? "Saving…" : "Save Reply"}
-                        </button>
-                        {review.reply_text ? (
-                          <button
-                            type="button"
-                            disabled={moderatingKey === review.review_key}
-                            onClick={() => moderateReview(review, { clear_reply: true })}
-                            className="px-3 py-1.5 text-xs font-medium rounded-md bg-gray-100 text-gray-700 border border-gray-200"
-                          >
-                            Clear Reply
-                          </button>
-                        ) : null}
-                        <button type="button" onClick={() => setReplyOpenKey(null)} className="px-3 py-1.5 text-xs font-medium text-gray-500">
-                          Cancel
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-                <div className="flex flex-col gap-2 flex-shrink-0">
-                  <button
-                    type="button"
-                    disabled={moderatingKey === review.review_key}
-                    onClick={() => moderateReview(review, { is_hidden: !review.is_hidden })}
-                    className={`px-2.5 py-1 text-xs font-medium rounded-md border transition-colors flex items-center gap-1 disabled:opacity-50 ${
-                      review.is_hidden
-                        ? "bg-green-50 text-green-700 border-green-200"
-                        : "bg-red-50 text-red-700 border-red-200"
-                    }`}
-                  >
-                    {review.is_hidden ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
-                    {review.is_hidden ? "Show" : "Remove"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setReplyOpenKey(replyOpenKey === review.review_key ? null : review.review_key)}
-                    className="px-2.5 py-1 text-xs font-medium rounded-md bg-blue-50 text-blue-700 border border-blue-200 flex items-center gap-1"
-                  >
-                    <MessageSquare className="w-3.5 h-3.5" /> Reply
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+        {inboxOpen && (
+          <div className="relative bg-gray-50">
+            <iframe
+              title="Trustindex Review Management"
+              src={inboxUrl}
+              className="w-full h-[720px] bg-white"
+              referrerPolicy="no-referrer-when-downgrade"
+            />
+            <p className="absolute left-4 right-4 bottom-4 text-xs text-gray-500 bg-white/95 border border-gray-200 rounded-lg px-3 py-2">
+              If this inbox stays blank, Trustindex is blocking the embed. Use <strong>Reply immediately</strong> to open Review Management and post your reply.
+            </p>
+          </div>
+        )}
+      </div>
+
+      <h3 className="text-lg font-semibold text-black mb-3">Website widget preview</h3>
+      <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-6 mb-10 min-h-[280px]">
+        <TrustindexWidget widgetId={widgetId} />
+      </div>
 
       <h3 className="text-lg font-semibold text-black mb-3">Manual Reviews</h3>
       {reviews.length === 0 ? (
@@ -2356,7 +2266,7 @@ function ReviewsContent() {
             <Star className="w-8 h-8 text-gray-400" />
           </div>
           <h3 className="text-lg font-semibold text-gray-700 mb-2">No manual reviews yet</h3>
-          <p className="text-gray-500 text-sm mb-6">Add 5-star testimonials to show more reviews on the homepage.</p>
+          <p className="text-gray-500 text-sm mb-6">Optional extras for internal records. The public site now shows Trustindex Google reviews.</p>
           <button
             onClick={() => { setEditReview(null); setShowForm(true); }}
             className="bg-[#D97706] text-white font-semibold rounded-lg px-6 py-2.5 hover:bg-[#B45309] inline-flex items-center gap-2 transition-colors text-sm"
