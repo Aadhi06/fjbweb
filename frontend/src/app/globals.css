@@ -87,3 +87,11 @@ details > summary {
 details > summary::-webkit-details-marker {
   display: none;
 }
+
+/* Trustindex paints a duplicate carousel after the footer when the loader sits on body. */
+body > .ti-widget,
+body > [class*="ti-widget"],
+footer ~ .ti-widget,
+footer ~ [class*="ti-widget"] {
+  display: none !important;
+}

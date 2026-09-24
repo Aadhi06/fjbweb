@@ -49,7 +49,7 @@ export function GoogleReviews() {
           description="Trusted by thousands across the UK with verified Google reviews."
         />
 
-        <div className="min-h-[320px]">
+        <div className="min-h-[320px] overflow-hidden">
           <TrustindexWidget widgetId={widgetId} />
         </div>
 
