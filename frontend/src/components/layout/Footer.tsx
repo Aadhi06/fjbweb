@@ -7,7 +7,10 @@ import { useSettings } from "@/lib/useSettings";
 
 const footerLinks = {
   services: [
-    { name: "Sell Gold", href: "/services/sell-gold" },
+    { name: "Sell Gold", href: "/sell-gold" },
+    { name: "Sell Gold Bars", href: "/sell-gold-bars" },
+    { name: "Sell Gold Coins", href: "/sell-gold-coins" },
+    { name: "Sell Inherited Gold", href: "/sell-inherited-gold" },
     { name: "Sell Diamonds", href: "/services/sell-diamonds" },
     { name: "Sell Gemstones", href: "/services/sell-gemstones" },
     { name: "Sell Watches", href: "/services/sell-watches" },

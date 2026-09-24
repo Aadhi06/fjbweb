@@ -4,8 +4,8 @@ import { SectionHeading } from "@/components/ui/SectionHeading";
 import { ArrowRight } from "lucide-react";
 
 const categories = [
-  { title: "Gold (All Carats)", description: "We buy all gold — 9ct, 14ct, 18ct, 22ct, 24ct. Jewellery, bars, coins, and bullion at live rates.", image: "/images/gold-carats.png", href: "/services/sell-gold" },
-  { title: "Scrap Gold", description: "Broken chains, old rings, dental gold, gold dust — any condition accepted at top prices.", image: "/images/gold-scrap.png", href: "/services/sell-gold" },
+  { title: "Gold (All Carats)", description: "We buy all gold — 9ct, 14ct, 18ct, 22ct, 24ct. Jewellery, bars, coins, and bullion at live rates.", image: "/images/gold-carats.png", href: "/sell-gold" },
+  { title: "Scrap Gold", description: "Broken chains, old rings, dental gold, gold dust — any condition accepted at top prices.", image: "/images/gold-scrap.png", href: "/sell-gold" },
   { title: "Diamonds", description: "Loose diamonds, diamond jewellery, certified and non-certified. All shapes and sizes.", image: "/images/diamond-loose.png", href: "/services/sell-diamonds" },
   { title: "Gemstones", description: "Rubies, sapphires, emeralds, and other precious gemstones — loose or set in jewellery.", image: "/images/gemstones-precious.png", href: "/services/sell-gemstones" },
   { title: "Luxury Watches", description: "Rolex, Omega, Cartier, Patek Philippe, Audemars Piguet, and other luxury brands.", image: "/images/watches-luxury.png", href: "/services/sell-watches" },

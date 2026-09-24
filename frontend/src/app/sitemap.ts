@@ -9,7 +9,11 @@ export const revalidate = 3600;
 
 const STATIC_PAGES: { path: string; priority: number; changeFrequency: MetadataRoute.Sitemap[0]["changeFrequency"] }[] = [
   { path: "/", priority: 1, changeFrequency: "daily" },
+  { path: "/sell-gold", priority: 0.98, changeFrequency: "weekly" },
   { path: "/sell-gold-london", priority: 0.95, changeFrequency: "weekly" },
+  { path: "/sell-gold-bars", priority: 0.94, changeFrequency: "weekly" },
+  { path: "/sell-gold-coins", priority: 0.94, changeFrequency: "weekly" },
+  { path: "/sell-inherited-gold", priority: 0.94, changeFrequency: "weekly" },
   { path: "/sell-jewellery-hatton-garden", priority: 0.95, changeFrequency: "weekly" },
   { path: "/free-valuation", priority: 0.95, changeFrequency: "weekly" },
   { path: "/live-rates", priority: 0.9, changeFrequency: "hourly" },
@@ -52,7 +56,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority,
   }));
 
-  const serviceEntries: MetadataRoute.Sitemap = SERVICE_SLUGS.map((slug) => ({
+  const serviceEntries: MetadataRoute.Sitemap = SERVICE_SLUGS.filter((slug) => slug !== "sell-gold").map((slug) => ({
     url: `${SITE_URL}/services/${slug}`,
     lastModified: now,
     changeFrequency: "weekly",

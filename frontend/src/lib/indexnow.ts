@@ -5,9 +5,12 @@ export const INDEXNOW_KEY = "c7e4a91f2b8d46a0b3f15e9c8d2a7041";
 
 const PRIORITY_PATHS = [
   "/",
+  "/sell-gold",
   "/sell-gold-london",
+  "/sell-gold-bars",
+  "/sell-gold-coins",
+  "/sell-inherited-gold",
   "/sell-jewellery-hatton-garden",
-  "/services/sell-gold",
   "/services/sell-jewellery",
   "/faq",
   "/llms.txt",

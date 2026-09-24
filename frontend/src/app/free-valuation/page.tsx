@@ -8,7 +8,69 @@ import { Shield, Clock, Banknote, ArrowDown, Sparkles } from "lucide-react";
 import type { DynamicForm } from "@/lib/types";
 import { useSettings } from "@/lib/useSettings";
 
-const fallbackForm: DynamicForm = {
+const ITEM_TYPE_OPTIONS = [
+  "Gold Jewellery",
+  "Gold bars / bullion",
+  "Gold coins / sovereigns",
+  "Inherited gold collection",
+  "Diamonds",
+  "Luxury Watch",
+  "Silver",
+  "Platinum",
+  "Branded Jewellery",
+  "Gemstones",
+  "Other",
+];
+
+const VALUE_BAND_OPTIONS = [
+  "Under £500",
+  "£500 – £2,000",
+  "£2,000 – £5,000",
+  "£5,000 – £15,000",
+  "£15,000+",
+];
+
+function withHighValueFields(form: DynamicForm): DynamicForm {
+  const fields = form.fields.map((field) => {
+    if (field.name === "item_type") {
+      return { ...field, options: ITEM_TYPE_OPTIONS };
+    }
+    if (field.name === "expected_price") {
+      return {
+        ...field,
+        type: "select",
+        label: "Expected value",
+        placeholder: "Select a range",
+        required: true,
+        options: VALUE_BAND_OPTIONS,
+      };
+    }
+    return field;
+  });
+
+  if (!fields.some((field) => field.name === "expected_price")) {
+    const descriptionIndex = fields.findIndex((field) => field.name === "description");
+    const valueField = {
+      id: 9,
+      name: "expected_price",
+      label: "Expected value",
+      type: "select",
+      placeholder: "Select a range",
+      required: true,
+      options: VALUE_BAND_OPTIONS,
+      order: 6,
+    };
+    if (descriptionIndex >= 0) {
+      fields.splice(descriptionIndex + 1, 0, valueField);
+    } else {
+      fields.push(valueField);
+    }
+  }
+
+  return { ...form, fields };
+}
+
+const fallbackForm: DynamicForm = withHighValueFields({
   id: 1, title: "Free Valuation", slug: "free-valuation",
   description: "Fill in the form below and our experts will provide a free valuation within 24 hours.",
   success_message: "Thank you! We will contact you within 24 hours with a valuation.",
@@ -16,14 +78,14 @@ const fallbackForm: DynamicForm = {
     { id: 1, name: "name", label: "Full Name", type: "text", placeholder: "John Smith", required: true, order: 1 },
     { id: 2, name: "email", label: "Email Address", type: "email", placeholder: "john@example.com", required: true, order: 2 },
     { id: 3, name: "phone", label: "Phone Number", type: "phone", placeholder: "07XXX XXXXXX", required: true, order: 3 },
-    { id: 4, name: "item_type", label: "What are you selling?", type: "select", required: true, options: ["Gold Jewellery", "Diamonds", "Luxury Watch", "Silver", "Platinum", "Branded Jewellery", "Gemstones", "Other"], order: 4 },
+    { id: 4, name: "item_type", label: "What are you selling?", type: "select", required: true, options: ITEM_TYPE_OPTIONS, order: 4 },
     { id: 5, name: "description", label: "Item Description", type: "textarea", placeholder: "Describe your item(s) - carat, weight, brand, condition...", required: true, order: 5 },
-    { id: 9, name: "expected_price", label: "Expected Price", type: "text", placeholder: "e.g. £500 or best offer", required: false, order: 6 },
+    { id: 9, name: "expected_price", label: "Expected value", type: "select", placeholder: "Select a range", required: true, options: VALUE_BAND_OPTIONS, order: 6 },
     { id: 6, name: "photos", label: "Upload Photos", type: "file", required: false, order: 7 },
     { id: 7, name: "preferred_contact", label: "Preferred Contact Method", type: "radio", required: true, options: ["Phone", "Email", "WhatsApp"], order: 8 },
     { id: 8, name: "consent", label: "I agree to the privacy policy", type: "checkbox", required: true, order: 9 },
   ],
-};
+});
 
 function FreeValuationContent() {
   const [form, setForm] = useState<DynamicForm>(fallbackForm);
@@ -32,6 +94,7 @@ function FreeValuationContent() {
   const searchParams = useSearchParams();
   const fromGuide = searchParams.get("from") === "guide";
   const itemType = searchParams.get("item") || "";
+  const expectedValue = searchParams.get("value") || "";
 
   useEffect(() => {
     async function fetchForm() {
@@ -39,7 +102,7 @@ function FreeValuationContent() {
         const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8002"}/api/forms/free-valuation`);
         if (res.ok) {
           const json = await res.json();
-          setForm(json.data || json);
+          setForm(withHighValueFields(json.data || json));
         }
       } catch {}
     }
@@ -59,7 +122,13 @@ function FreeValuationContent() {
     };
   }, [fromGuide]);
 
-  const defaultValues = itemType ? { item_type: itemType } : undefined;
+  const defaultValues =
+    itemType || expectedValue
+      ? {
+          ...(itemType ? { item_type: itemType } : {}),
+          ...(expectedValue ? { expected_price: expectedValue } : {}),
+        }
+      : undefined;
 
   return (
     <>

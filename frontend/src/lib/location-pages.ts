@@ -109,7 +109,9 @@ export const LOCATION_PAGES: Record<LocationPageContent["slug"], LocationPageCon
     faqs: LONDON_GOLD_FAQS,
     heroImage: "/images/service-hero-sell-gold.png",
     related: [
-      { name: "Sell Gold", href: "/services/sell-gold" },
+      { name: "Sell Gold", href: "/sell-gold" },
+      { name: "Sell Gold Bars", href: "/sell-gold-bars" },
+      { name: "Sell Gold Coins", href: "/sell-gold-coins" },
       { name: "Gold Calculator", href: "/gold-calculator" },
       { name: "Live Rates", href: "/live-rates" },
       { name: "Sell Jewellery in Hatton Garden", href: "/sell-jewellery-hatton-garden" },

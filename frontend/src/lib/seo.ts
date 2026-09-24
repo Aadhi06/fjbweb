@@ -21,7 +21,9 @@ export const PRIMARY_NAV_LINKS: { name: string; path: string }[] = [
   { name: "Sell Jewellery in Hatton Garden", path: "/sell-jewellery-hatton-garden" },
   { name: "Free Valuation", path: "/free-valuation" },
   { name: "Live Rates", path: "/live-rates" },
-  { name: "Sell Gold", path: "/services/sell-gold" },
+  { name: "Sell Gold", path: "/sell-gold" },
+  { name: "Sell Gold Bars", path: "/sell-gold-bars" },
+  { name: "Sell Gold Coins", path: "/sell-gold-coins" },
   { name: "Sell Diamonds", path: "/services/sell-diamonds" },
   { name: "Gold Calculator", path: "/gold-calculator" },
   { name: "How It Works", path: "/how-it-works" },
@@ -208,6 +210,63 @@ export const PAGE_SEO: Record<string, PageSeo> = {
       "Hatton Garden gold and jewellery buyer",
     ],
   },
+  "sell-gold": {
+    title: "Sell Gold UK | Live Prices, Same-Day Payment",
+    description:
+      "Sell gold in the UK to Fine Jewellery Buyers. Jewellery, scrap, bars and coins — 9ct to 24ct at live market rates. Free valuation, Hatton Garden or insured post, same-day payment.",
+    path: "/sell-gold",
+    keywords: [
+      "sell gold",
+      "sell gold UK",
+      "gold buyer UK",
+      "sell gold near me",
+      "where to sell gold",
+      "gold buyers",
+      "sell scrap gold",
+      "sell gold jewellery",
+    ],
+  },
+  "sell-gold-bars": {
+    title: "Sell Gold Bars UK | PAMP, Perth Mint & Kilo Bars",
+    description:
+      "Sell gold bars in the UK — PAMP, Perth Mint, Royal Mint and other investment bars. Live bullion-linked prices, private Hatton Garden valuation or insured post, same-day payment.",
+    path: "/sell-gold-bars",
+    keywords: [
+      "sell gold bars",
+      "sell gold bars UK",
+      "sell gold bar",
+      "gold bar buyers UK",
+      "sell PAMP gold bar",
+      "sell kilo gold bar",
+    ],
+  },
+  "sell-gold-coins": {
+    title: "Sell Gold Coins & Sovereigns UK | Krugerrands Bought",
+    description:
+      "Sell gold sovereigns, Krugerrands and Britannias in the UK. Hatton Garden coin buyers — live gold prices, collector premium when due, same-day payment.",
+    path: "/sell-gold-coins",
+    keywords: [
+      "sell gold coins",
+      "sell gold sovereigns",
+      "sell Krugerrands",
+      "gold coin buyers UK",
+      "sell Britannia coins",
+      "sell half sovereigns",
+    ],
+  },
+  "sell-inherited-gold": {
+    title: "Sell Inherited Gold UK | Estate Jewellery Buyers",
+    description:
+      "Sell inherited gold and estate jewellery in the UK. Private Hatton Garden valuation or insured post. Jewellery, coins and bars sorted line by line — not one scrap quote.",
+    path: "/sell-inherited-gold",
+    keywords: [
+      "sell inherited gold",
+      "sell inherited jewellery",
+      "estate gold buyers UK",
+      "sell gold from probate",
+      "inherited gold valuation",
+    ],
+  },
 };
 
 export const SERVICE_SEO: Record<
@@ -345,8 +404,12 @@ export function organizationJsonLd(input?: OrganizationJsonLdInput | string) {
     ],
     knowsAbout: [
       "selling gold in London",
+      "sell gold UK",
       "Hatton Garden gold buyers",
       "selling jewellery in Hatton Garden",
+      "sell gold bars",
+      "sell gold sovereigns",
+      "inherited gold valuation",
       "scrap gold valuation",
       "designer jewellery buying",
     ],
@@ -359,7 +422,10 @@ export function organizationJsonLd(input?: OrganizationJsonLdInput | string) {
       itemListElement: [
         { "@type": "Offer", itemOffered: { "@type": "Service", name: "Sell gold in London", url: `${SITE_URL}/sell-gold-london` } },
         { "@type": "Offer", itemOffered: { "@type": "Service", name: "Sell jewellery in Hatton Garden", url: `${SITE_URL}/sell-jewellery-hatton-garden` } },
-        { "@type": "Offer", itemOffered: { "@type": "Service", name: "Sell gold", url: `${SITE_URL}/services/sell-gold` } },
+        { "@type": "Offer", itemOffered: { "@type": "Service", name: "Sell gold", url: `${SITE_URL}/sell-gold` } },
+        { "@type": "Offer", itemOffered: { "@type": "Service", name: "Sell gold bars", url: `${SITE_URL}/sell-gold-bars` } },
+        { "@type": "Offer", itemOffered: { "@type": "Service", name: "Sell gold coins", url: `${SITE_URL}/sell-gold-coins` } },
+        { "@type": "Offer", itemOffered: { "@type": "Service", name: "Sell inherited gold", url: `${SITE_URL}/sell-inherited-gold` } },
         { "@type": "Offer", itemOffered: { "@type": "Service", name: "Sell jewellery", url: `${SITE_URL}/services/sell-jewellery` } },
         { "@type": "Offer", itemOffered: { "@type": "Service", name: "Sell diamonds", url: `${SITE_URL}/services/sell-diamonds` } },
         { "@type": "Offer", itemOffered: { "@type": "Service", name: "Sell watches", url: `${SITE_URL}/services/sell-watches` } },

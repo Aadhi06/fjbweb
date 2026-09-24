@@ -11,7 +11,10 @@ import { TopBarTicker } from "@/components/layout/TopBarTicker";
 const services = [
   { name: "Sell Gold in London", href: "/sell-gold-london" },
   { name: "Sell Jewellery in Hatton Garden", href: "/sell-jewellery-hatton-garden" },
-  { name: "Sell Gold", href: "/services/sell-gold" },
+  { name: "Sell Gold", href: "/sell-gold" },
+  { name: "Sell Gold Bars", href: "/sell-gold-bars" },
+  { name: "Sell Gold Coins", href: "/sell-gold-coins" },
+  { name: "Sell Inherited Gold", href: "/sell-inherited-gold" },
   { name: "Sell Diamonds", href: "/services/sell-diamonds" },
   { name: "Sell Gemstones", href: "/services/sell-gemstones" },
   { name: "Sell Watches", href: "/services/sell-watches" },

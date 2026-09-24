@@ -1,6 +1,7 @@
 import { Hero } from "@/components/sections/Hero";
 import { TrustBadges } from "@/components/sections/TrustBadges";
 import { WhatWeBuy } from "@/components/sections/WhatWeBuy";
+import { HighValueGold } from "@/components/sections/HighValueGold";
 import { DesignerBrands } from "@/components/sections/DesignerBrands";
 import { HowItWorks } from "@/components/sections/HowItWorks";
 import { LiveRatesPreview } from "@/components/sections/LiveRatesPreview";
@@ -25,6 +26,7 @@ export default function Home() {
       <TrustBadges />
       <LivePriceChart />
       <WhatWeBuy />
+      <HighValueGold />
       <DesignerBrands />
       <LiveRatesPreview />
       <HowItWorks />
