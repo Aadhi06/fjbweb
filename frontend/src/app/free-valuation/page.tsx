@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { DynamicFormRenderer } from "@/components/forms/DynamicFormRenderer";
 import { Shield, Clock, Banknote, ArrowDown, Sparkles } from "lucide-react";
-import type { DynamicForm } from "@/lib/types";
+import type { DynamicForm, FormField } from "@/lib/types";
 import { useSettings } from "@/lib/useSettings";
 
 const ITEM_TYPE_OPTIONS = [
@@ -31,14 +31,14 @@ const VALUE_BAND_OPTIONS = [
 ];
 
 function withHighValueFields(form: DynamicForm): DynamicForm {
-  const fields = form.fields.map((field) => {
+  const fields: FormField[] = form.fields.map((field) => {
     if (field.name === "item_type") {
       return { ...field, options: ITEM_TYPE_OPTIONS };
     }
     if (field.name === "expected_price") {
       return {
         ...field,
-        type: "select",
+        type: "select" as const,
         label: "Expected value",
         placeholder: "Select a range",
         required: true,
@@ -50,7 +50,7 @@ function withHighValueFields(form: DynamicForm): DynamicForm {
 
   if (!fields.some((field) => field.name === "expected_price")) {
     const descriptionIndex = fields.findIndex((field) => field.name === "description");
-    const valueField = {
+    const valueField: FormField = {
       id: 9,
       name: "expected_price",
       label: "Expected value",

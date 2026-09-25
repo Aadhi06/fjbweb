@@ -82,7 +82,11 @@ export function TrustindexWidget({
       className={className}
       aria-label="Verified Google reviews"
     >
-      <div {...{ src }} />
+      <div
+        ref={(node) => {
+          if (node) node.setAttribute("src", src);
+        }}
+      />
     </div>
   );
 }
