@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, Calendar, BookOpen, Loader2 } from "lucide-react";
-import { HIGH_VALUE_BLOGS, resolveBlogImage } from "@/lib/high-value-blogs";
+import { ArrowRight, Calendar, BookOpen } from "lucide-react";
+import { frontendBlogListItems, highValueBlogSlugs, resolveBlogImage } from "@/lib/high-value-blogs";
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8002") + "/api";
 
@@ -19,60 +19,31 @@ type BlogPost = {
 };
 
 export default function BlogPage() {
-  const [posts, setPosts] = useState<BlogPost[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [posts, setPosts] = useState<BlogPost[]>(() => frontendBlogListItems());
 
   useEffect(() => {
-    async function fetchPosts() {
+    async function mergeApiPosts() {
       try {
         const res = await fetch(`${API_URL}/blog`);
-        if (res.ok) {
-          const data = await res.json();
-          const apiPosts: BlogPost[] = data.data || [];
-          const featuredSlugs = new Set(HIGH_VALUE_BLOGS.map((post) => post.slug));
-          const extras: BlogPost[] = HIGH_VALUE_BLOGS.map((post, i) => ({
-            id: -1 - i,
-            title: post.title,
-            slug: post.slug,
-            excerpt: post.excerpt,
-            image: post.image,
-            category: post.category,
-            published_at: post.published_at,
-            created_at: post.published_at,
-          }));
-          const fromApi = apiPosts.filter((post) => !featuredSlugs.has(post.slug));
-          setPosts([...fromApi, ...extras].sort((a, b) => {
+        if (!res.ok) return;
+        const data = await res.json();
+        const featured = new Set(highValueBlogSlugs());
+        const extras: BlogPost[] = (data.data || []).filter(
+          (post: BlogPost) => post.slug && !featured.has(post.slug)
+        );
+        if (extras.length === 0) return;
+        setPosts(
+          [...frontendBlogListItems(), ...extras].sort((a, b) => {
             const aDate = Date.parse(a.published_at || a.created_at);
             const bDate = Date.parse(b.published_at || b.created_at);
             return bDate - aDate;
-          }));
-        } else {
-          setPosts(HIGH_VALUE_BLOGS.map((post, i) => ({
-            id: -1 - i,
-            title: post.title,
-            slug: post.slug,
-            excerpt: post.excerpt,
-            image: post.image,
-            category: post.category,
-            published_at: post.published_at,
-            created_at: post.published_at,
-          })));
-        }
+          })
+        );
       } catch {
-        setPosts(HIGH_VALUE_BLOGS.map((post, i) => ({
-          id: -1 - i,
-          title: post.title,
-          slug: post.slug,
-          excerpt: post.excerpt,
-          image: post.image,
-          category: post.category,
-          published_at: post.published_at,
-          created_at: post.published_at,
-        })));
+        /* Frontend posts already showing */
       }
-      setLoading(false);
     }
-    fetchPosts();
+    mergeApiPosts();
   }, []);
 
   function imageUrl(path?: string | null) {
@@ -89,11 +60,7 @@ export default function BlogPage() {
       </section>
       <section className="py-16 bg-surface">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {loading ? (
-            <div className="flex items-center justify-center py-20">
-              <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
-            </div>
-          ) : posts.length === 0 ? (
+          {posts.length === 0 ? (
             <div className="text-center py-20">
               <BookOpen className="w-12 h-12 text-gray-300 mx-auto mb-4" />
               <h2 className="text-xl font-semibold text-gray-600 mb-2">No posts yet</h2>

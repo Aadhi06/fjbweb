@@ -1,3 +1,4 @@
+import { highValueBlogSlugs } from "@/lib/high-value-blogs";
 import { SITE_URL } from "@/lib/seo";
 
 /** Public IndexNow key (also served as /{key}.txt). Used so Bing — and therefore ChatGPT Search — can pick up new pages quickly. */
@@ -16,12 +17,7 @@ const PRIORITY_PATHS = [
   "/llms.txt",
   "/llms-full.txt",
   "/blog",
-  "/blog/best-place-to-sell-gold-in-london-top-price-paid",
-  "/blog/sell-gold-bars-uk-keep-the-bullion-premium",
-  "/blog/sell-inherited-gold-estate-jewellery-uk",
-  "/blog/sell-gold-sovereigns-and-krugerrands",
-  "/blog/private-gold-valuation-hatton-garden-high-value",
-  "/blog/sell-designer-gold-jewellery-not-scrap",
+  ...highValueBlogSlugs().map((slug) => `/blog/${slug}`),
 ];
 
 export function indexNowPriorityUrls(): string[] {

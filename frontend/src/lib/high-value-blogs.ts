@@ -1,3 +1,7 @@
+/**
+ * Frontend-owned blogs. Add or edit a post in this file, then git push.
+ * Vercel publishes /blog/{slug} — no Hostinger upload.
+ */
 export type HighValueBlog = {
   slug: string;
   title: string;
@@ -239,4 +243,17 @@ export function getHighValueBlog(slug: string): HighValueBlog | undefined {
 
 export function highValueBlogSlugs(): string[] {
   return HIGH_VALUE_BLOGS.map((post) => post.slug);
+}
+
+export function frontendBlogListItems() {
+  return HIGH_VALUE_BLOGS.map((post, i) => ({
+    id: -1 - i,
+    title: post.title,
+    slug: post.slug,
+    excerpt: post.excerpt,
+    image: post.image,
+    category: post.category,
+    published_at: post.published_at,
+    created_at: post.published_at,
+  }));
 }
