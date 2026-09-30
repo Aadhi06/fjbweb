@@ -49,13 +49,15 @@ export async function generateMetadata(): Promise<Metadata> {
     formatDetection: { telephone: true, email: true },
     icons: {
       icon: [
-        { url: "/favicon.ico?v=fjb2", sizes: "any" },
-        { url: "/favicon-32.png?v=fjb2", type: "image/png", sizes: "32x32" },
-        { url: "/favicon-16.png?v=fjb2", type: "image/png", sizes: "16x16" },
-        { url: "/images/logo.png", type: "image/png", sizes: "512x512" },
+        { url: "/favicon-48.png?v=fjb3", type: "image/png", sizes: "48x48" },
+        { url: "/favicon-96.png?v=fjb3", type: "image/png", sizes: "96x96" },
+        { url: "/favicon-192.png?v=fjb3", type: "image/png", sizes: "192x192" },
+        { url: "/favicon.ico?v=fjb3", sizes: "any" },
+        { url: "/favicon-32.png?v=fjb3", type: "image/png", sizes: "32x32" },
+        { url: "/favicon-16.png?v=fjb3", type: "image/png", sizes: "16x16" },
       ],
-      shortcut: "/favicon.ico?v=fjb2",
-      apple: [{ url: "/apple-icon.png?v=fjb2", sizes: "180x180", type: "image/png" }],
+      shortcut: "/favicon-48.png?v=fjb3",
+      apple: [{ url: "/apple-icon.png?v=fjb3", sizes: "180x180", type: "image/png" }],
     },
   };
 }
@@ -79,10 +81,12 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
             })(window,document,'script','dataLayer','${gtmId}');
           `}</Script>
         ) : null}
-        <link rel="icon" href="/favicon.ico?v=fjb2" sizes="any" />
-        <link rel="icon" href="/favicon-32.png?v=fjb2" type="image/png" sizes="32x32" />
-        <link rel="icon" href="/favicon-16.png?v=fjb2" type="image/png" sizes="16x16" />
-        <link rel="apple-touch-icon" href="/apple-icon.png?v=fjb2" />
+        <link rel="icon" href="/favicon-48.png?v=fjb3" type="image/png" sizes="48x48" />
+        <link rel="icon" href="/favicon-96.png?v=fjb3" type="image/png" sizes="96x96" />
+        <link rel="icon" href="/favicon-192.png?v=fjb3" type="image/png" sizes="192x192" />
+        <link rel="icon" href="/favicon.ico?v=fjb3" sizes="any" />
+        <link rel="shortcut icon" href="/favicon-48.png?v=fjb3" />
+        <link rel="apple-touch-icon" href="/apple-icon.png?v=fjb3" />
         <link rel="alternate" type="text/plain" href={`${SITE_URL}/llms.txt`} title="LLM-readable site summary" />
         <link rel="alternate" type="text/plain" href={`${SITE_URL}/llms-full.txt`} title="Full LLM-readable site summary" />
         <link rel="describedby" href={`${SITE_URL}/.well-known/llms.txt`} />
