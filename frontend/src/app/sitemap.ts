@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { HIGH_VALUE_BLOGS } from "@/lib/high-value-blogs";
 import { pingIndexNow } from "@/lib/indexnow";
 import { SITE_URL, SERVICE_SLUGS } from "@/lib/seo";
 
@@ -63,11 +64,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.9,
   }));
 
-  const blogEntries: MetadataRoute.Sitemap = blogPosts.map((post) => ({
+  const blogBySlug = new Map<string, { slug: string; updated_at?: string }>();
+  for (const post of HIGH_VALUE_BLOGS) {
+    blogBySlug.set(post.slug, { slug: post.slug, updated_at: post.published_at });
+  }
+  for (const post of blogPosts) {
+    blogBySlug.set(post.slug, post);
+  }
+
+  const blogEntries: MetadataRoute.Sitemap = [...blogBySlug.values()].map((post) => ({
     url: `${SITE_URL}/blog/${post.slug}`,
     lastModified: post.updated_at ? new Date(post.updated_at) : now,
     changeFrequency: "monthly",
-    priority: 0.6,
+    priority: 0.75,
   }));
 
   const entries = [...staticEntries, ...serviceEntries, ...blogEntries];

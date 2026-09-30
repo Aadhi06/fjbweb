@@ -15,6 +15,13 @@ const PRIORITY_PATHS = [
   "/faq",
   "/llms.txt",
   "/llms-full.txt",
+  "/blog",
+  "/blog/best-place-to-sell-gold-in-london-top-price-paid",
+  "/blog/sell-gold-bars-uk-keep-the-bullion-premium",
+  "/blog/sell-inherited-gold-estate-jewellery-uk",
+  "/blog/sell-gold-sovereigns-and-krugerrands",
+  "/blog/private-gold-valuation-hatton-garden-high-value",
+  "/blog/sell-designer-gold-jewellery-not-scrap",
 ];
 
 export function indexNowPriorityUrls(): string[] {

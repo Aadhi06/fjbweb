@@ -16,7 +16,13 @@ import {
 } from "@/lib/seo";
 import { getSettings } from "@/lib/settings";
 
-const inter = Inter({ variable: "--font-inter", subsets: ["latin"], display: "swap" });
+const inter = Inter({
+  variable: "--font-inter",
+  subsets: ["latin"],
+  display: "swap",
+  adjustFontFallback: false,
+  fallback: ["system-ui", "Segoe UI", "Roboto", "Helvetica Neue", "Arial", "sans-serif"],
+});
 const playfair = Playfair_Display({
   variable: "--font-playfair",
   subsets: ["latin"],
@@ -101,7 +107,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
           `}</Script>
         ) : null}
       </head>
-      <body className="min-h-screen flex flex-col antialiased bg-background" suppressHydrationWarning>
+      <body className={`${inter.className} min-h-screen flex flex-col antialiased bg-background`} suppressHydrationWarning>
         {/* Google Tag Manager (noscript) */}
         {gtmId ? (
           <noscript>

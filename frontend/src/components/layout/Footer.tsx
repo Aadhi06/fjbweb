@@ -4,6 +4,7 @@ import Link from "next/link";
 
 import { Phone, Mail, MapPin, Clock } from "lucide-react";
 import { useSettings } from "@/lib/useSettings";
+import { displayVisitAddress } from "@/lib/location";
 
 const footerLinks = {
   services: [
@@ -39,7 +40,7 @@ export function Footer() {
 
   const phone = s.phone;
   const email = s.email;
-  const address = s.address;
+  const address = displayVisitAddress(s.address);
   const hours = s.opening_hours;
 
   return (

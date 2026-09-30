@@ -4,6 +4,7 @@ namespace App\Mail;
 
 use App\Models\Booking;
 use App\Models\Setting;
+use App\Support\VisitDirectionsHtml;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
@@ -39,7 +40,8 @@ class CustomerBookingConfirmation extends Mailable implements ShouldQueue
         $businessName = htmlspecialchars(Setting::get('business_name', 'Fine Jewellery Buyers'));
         $phone = htmlspecialchars(Setting::get('phone', '020 3123 4567'));
         $emailAddr = htmlspecialchars(Setting::get('email', 'info@finejewellerybuyers.co.uk'));
-        $address = htmlspecialchars(Setting::get('address', '88–90 Hatton Garden, 4th Floor, Office No. 39, London EC1N 8AA'));
+        $address = htmlspecialchars(VisitDirectionsHtml::locationLine());
+        $directions = VisitDirectionsHtml::block();
 
         $name = htmlspecialchars($b->name);
         $service = htmlspecialchars($b->service_type);
@@ -63,6 +65,7 @@ class CustomerBookingConfirmation extends Mailable implements ShouldQueue
                     <p style="margin:0 0 6px;font-size:14px;color:#374151;"><strong>Time:</strong> {$time}</p>
                     <p style="margin:0;font-size:14px;color:#374151;"><strong>Location:</strong> {$address}</p>
                 </div>
+                {$directions}
 
                 <h3 style="margin:0 0 8px;font-size:14px;color:#111827;">What to Bring</h3>
                 <ul style="margin:0 0 16px;padding-left:20px;color:#374151;font-size:14px;line-height:1.8;">

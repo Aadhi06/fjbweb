@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, Calendar, BookOpen, Loader2 } from "lucide-react";
+import { HIGH_VALUE_BLOGS, resolveBlogImage } from "@/lib/high-value-blogs";
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8002") + "/api";
 
@@ -27,18 +28,55 @@ export default function BlogPage() {
         const res = await fetch(`${API_URL}/blog`);
         if (res.ok) {
           const data = await res.json();
-          if (data.data?.length) setPosts(data.data);
+          const apiPosts: BlogPost[] = data.data || [];
+          const featuredSlugs = new Set(HIGH_VALUE_BLOGS.map((post) => post.slug));
+          const extras: BlogPost[] = HIGH_VALUE_BLOGS.map((post, i) => ({
+            id: -1 - i,
+            title: post.title,
+            slug: post.slug,
+            excerpt: post.excerpt,
+            image: post.image,
+            category: post.category,
+            published_at: post.published_at,
+            created_at: post.published_at,
+          }));
+          const fromApi = apiPosts.filter((post) => !featuredSlugs.has(post.slug));
+          setPosts([...fromApi, ...extras].sort((a, b) => {
+            const aDate = Date.parse(a.published_at || a.created_at);
+            const bDate = Date.parse(b.published_at || b.created_at);
+            return bDate - aDate;
+          }));
+        } else {
+          setPosts(HIGH_VALUE_BLOGS.map((post, i) => ({
+            id: -1 - i,
+            title: post.title,
+            slug: post.slug,
+            excerpt: post.excerpt,
+            image: post.image,
+            category: post.category,
+            published_at: post.published_at,
+            created_at: post.published_at,
+          })));
         }
-      } catch {}
+      } catch {
+        setPosts(HIGH_VALUE_BLOGS.map((post, i) => ({
+          id: -1 - i,
+          title: post.title,
+          slug: post.slug,
+          excerpt: post.excerpt,
+          image: post.image,
+          category: post.category,
+          published_at: post.published_at,
+          created_at: post.published_at,
+        })));
+      }
       setLoading(false);
     }
     fetchPosts();
   }, []);
 
   function imageUrl(path?: string | null) {
-    if (!path) return null;
-    if (path.startsWith("http")) return path;
-    return `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8002"}${path}`;
+    return resolveBlogImage(path);
   }
 
   return (
@@ -46,7 +84,7 @@ export default function BlogPage() {
       <section className="bg-black py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h1 className="text-3xl md:text-5xl font-serif font-bold text-white mb-4">Gold &amp; Jewellery Blog</h1>
-          <p className="text-white/70 max-w-2xl mx-auto text-lg">Expert guides, market analysis, and tips for selling precious items.</p>
+          <p className="text-white/70 max-w-2xl mx-auto text-lg">Guides for selling gold bars, coins, inherited collections and designer jewellery — written for serious sellers, not scrap tickets.</p>
         </div>
       </section>
       <section className="py-16 bg-surface">

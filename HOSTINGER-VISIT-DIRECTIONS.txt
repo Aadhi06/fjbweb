@@ -1,0 +1,22 @@
+HOSTINGER — Visit directions in booking emails
+==============================================
+
+Upload backend-visit-directions-email.zip to Laravel root
+(same folder as app/ — usually public_html/api/)
+Extract and overwrite.
+
+Files:
+  app/Support/VisitDirectionsHtml.php          NEW
+  app/Mail/CustomerBookingConfirmed.php
+  app/Mail/CustomerBookingReminder.php
+  app/Mail/CustomerBookingRescheduled.php
+  app/Mail/CustomerBookingConfirmation.php
+
+After upload, clear cache:
+  https://api.finejewellerybuyers.co.uk/clear-cache.php?key=YOUR_CRON_SECRET
+
+Confirmation, reminder and reschedule emails now include:
+  Suite 39, 4th Floor, 88–90 Hatton Garden
+  1. Tell security Fine Jewellery Buyers — they call and open the gate
+  2. Lift to the 4th floor
+  3. Last suite on the left — press the bell

@@ -15,11 +15,18 @@ export type LocationPageContent = {
   related: { name: string; href: string }[];
 };
 
+const FIND_US_FAQ: LocationFaq = {
+  question: "How do I find Fine Jewellery Buyers inside 88–90 Hatton Garden?",
+  answer:
+    "We are Suite 39 on the 4th floor. Security is in the lobby — tell them you are here for Fine Jewellery Buyers. They will call us and open the gate. Take the lift to the 4th floor, turn left, and we are the last office. Press the bell.",
+};
+
 export const LONDON_GOLD_FAQS: LocationFaq[] = [
+  FIND_US_FAQ,
   {
     question: "Where can I sell gold in London?",
     answer:
-      "You can sell gold at Fine Jewellery Buyers, a gold buyer at 88–90 Hatton Garden, London. Visit for a free in-person valuation (walk-ins welcome) or use the insured postal service from anywhere in the UK. Prices are linked to live market rates, with same-day payment on accepted offers.",
+      "You can sell gold at Fine Jewellery Buyers, a gold buyer at Suite 39, 4th Floor, 88–90 Hatton Garden, London. Visit for a free in-person valuation (walk-ins welcome) or use the insured postal service from anywhere in the UK. Prices are linked to live market rates, with same-day payment on accepted offers.",
   },
   {
     question: "Who is the best gold buyer in Hatton Garden?",
@@ -49,10 +56,11 @@ export const LONDON_GOLD_FAQS: LocationFaq[] = [
 ];
 
 export const HATTON_GARDEN_JEWELLERY_FAQS: LocationFaq[] = [
+  FIND_US_FAQ,
   {
     question: "Where can I sell jewellery in Hatton Garden?",
     answer:
-      "Sell jewellery at Fine Jewellery Buyers, 88–90 Hatton Garden, London. We buy designer jewellery including Cartier, Tiffany & Co. and Boodles, plus gold, diamonds and watches. Free valuation, instant cash on acceptance, or sell by insured post nationwide.",
+      "Sell jewellery at Fine Jewellery Buyers, Suite 39, 4th Floor, 88–90 Hatton Garden, London. We buy designer jewellery including Cartier, Tiffany & Co. and Boodles, plus gold, diamonds and watches. Free valuation, instant cash on acceptance, or sell by insured post nationwide.",
   },
   {
     question: "Do Hatton Garden jewellery buyers pay more than scrap gold?",
@@ -99,7 +107,7 @@ export const LOCATION_PAGES: Record<LocationPageContent["slug"], LocationPageCon
       { title: "UK-wide postage", text: "Not in London? Send gold with our free insured pack from anywhere in the United Kingdom." },
     ],
     steps: [
-      { name: "Visit or send photos", text: "Walk into 88–90 Hatton Garden, London, or upload photos for a free online estimate." },
+      { name: "Visit or send photos", text: "Walk into 88–90 Hatton Garden. Tell security you are here for Fine Jewellery Buyers — they will call us and open the gate. Lift to the 4th floor, last suite on the left (Suite 39), press the bell. Or upload photos for a free online estimate." },
       { name: "Free valuation", text: "We test carat, weigh your gold and price it at our live buying rate. No obligation." },
       { name: "Get paid", text: "Accept the offer and receive same-day payment. Decline and keep your gold, or have posted items returned free." },
     ],
@@ -134,7 +142,7 @@ export const LOCATION_PAGES: Record<LocationPageContent["slug"], LocationPageCon
       { title: "Instant cash", text: "Same-day bank transfer or cash in store once you accept. Free valuation, no obligation." },
     ],
     steps: [
-      { name: "Bring your jewellery", text: "Visit 88–90 Hatton Garden or send photos for a free estimate." },
+      { name: "Bring your jewellery", text: "Visit Suite 39, 4th Floor, 88–90 Hatton Garden (tell security you need Fine Jewellery Buyers) or send photos for a free estimate." },
       { name: "Expert valuation", text: "We authenticate the brand, assess stones and metal, and explain the offer clearly." },
       { name: "Instant payment", text: "Accept and get paid the same day. Decline and take your jewellery home." },
     ],

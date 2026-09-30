@@ -4,6 +4,7 @@ namespace App\Mail;
 
 use App\Models\Booking;
 use App\Models\Setting;
+use App\Support\VisitDirectionsHtml;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
@@ -34,7 +35,8 @@ class CustomerBookingReminder extends Mailable
         $businessName = htmlspecialchars(Setting::get('business_name', 'Fine Jewellery Buyers'));
         $phone = htmlspecialchars(Setting::get('phone', '020 3411 1438'));
         $emailAddr = htmlspecialchars(Setting::get('email', 'info@finejewellerybuyers.co.uk'));
-        $address = htmlspecialchars(Setting::get('address', 'Suite 39, 88–90 Hatton Garden, London EC1N 8PN'));
+        $address = htmlspecialchars(VisitDirectionsHtml::locationLine());
+        $directions = VisitDirectionsHtml::block();
         $name = htmlspecialchars($b->name);
         $service = htmlspecialchars($b->service_type);
         $date = $b->booking_date->format('l, j F Y');
@@ -56,6 +58,7 @@ class CustomerBookingReminder extends Mailable
                     <p style="margin:0 0 6px;font-size:14px;color:#374151;"><strong>Time:</strong> {$time}</p>
                     <p style="margin:0;font-size:14px;color:#374151;"><strong>Location:</strong> {$address}</p>
                 </div>
+                {$directions}
                 <h3 style="margin:0 0 8px;font-size:14px;color:#111827;">What to Bring</h3>
                 <ul style="margin:0 0 16px;padding-left:20px;color:#374151;font-size:14px;line-height:1.8;">
                     <li>The item(s) you wish to sell or have valued</li>

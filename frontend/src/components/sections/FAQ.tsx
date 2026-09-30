@@ -18,6 +18,7 @@ const faqs = [
   { q: "What happens if I decline the offer?", a: "Your item will be securely returned to you at no extra cost via insured Royal Mail." },
   { q: "How is the value of my gold calculated?", a: "We use live market-linked rates. Value depends on weight, carat/purity, and current market price. Use our Gold Calculator for an estimate." },
   { q: "Do I need an appointment to visit?", a: "Walk-ins are welcome during opening hours. For larger collections, we recommend booking a private appointment." },
+  { q: "How do I find you inside 88–90 Hatton Garden?", a: "We are Suite 39 on the 4th floor. Security is in the lobby — tell them you need Fine Jewellery Buyers. They will call us and open the gate. Take the lift to the 4th floor, turn left, last office. Press the bell." },
 ];
 
 export function FAQ() {

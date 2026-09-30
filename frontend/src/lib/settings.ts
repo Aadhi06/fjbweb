@@ -49,7 +49,7 @@ export const defaultSettings: SiteSettings = {
   phone: "020 3123 4567",
   whatsapp: "442031234567",
   email: "info@finejewellerybuyers.co.uk",
-  address: "88–90 Hatton Garden, London EC1N 8AA",
+  address: "Suite 39, 4th Floor, 88–90 Hatton Garden, London EC1N 8AA",
   opening_hours: "Mon–Sat: 10am–6pm",
   logo_url: "",
   logo_size: 48,

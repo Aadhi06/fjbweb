@@ -4,7 +4,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { MapPin, CalendarDays, Navigation, Building2 } from "lucide-react";
 import { SectionHeading } from "@/components/ui/SectionHeading";
-import { HATTON_GARDEN_MEDIA, parseAddress } from "@/lib/location";
+import { HATTON_GARDEN_MEDIA, parseAddress, VISIT_SUITE } from "@/lib/location";
+import { VisitDirections } from "@/components/sections/VisitDirections";
 import { useSettings } from "@/lib/useSettings";
 
 export function HattonGardenLocation() {
@@ -17,7 +18,7 @@ export function HattonGardenLocation() {
         <SectionHeading
           label="Hatton Garden, London"
           title="Where to Sell Gold & Jewellery in London"
-          description="Fine Jewellery Buyers is a gold and jewellery buyer at 88–90 Hatton Garden. Walk in for a free valuation, or sell by insured post from anywhere in the UK."
+          description="Fine Jewellery Buyers is a gold and jewellery buyer at Suite 39, 4th Floor, 88–90 Hatton Garden. Walk in for a free valuation, or sell by insured post from anywhere in the UK."
         />
 
         <div className="grid lg:grid-cols-2 gap-10 items-center">
@@ -31,7 +32,8 @@ export function HattonGardenLocation() {
             />
             <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-6 pt-16">
               <p className="text-gold text-sm font-semibold uppercase tracking-wider mb-1">Our Building</p>
-              <p className="text-white font-serif text-xl font-bold">{address.building}</p>
+                  <p className="text-white font-serif text-xl font-bold">{VISIT_SUITE.building}</p>
+                  <p className="text-white/80 text-sm mt-1">{VISIT_SUITE.suite} · {VISIT_SUITE.floor}</p>
               <p className="text-white/40 text-[10px] mt-2">Photo: Roger W. Haworth / Wikimedia Commons</p>
             </div>
           </div>
@@ -45,13 +47,7 @@ export function HattonGardenLocation() {
                 <div>
                   <h3 className="text-xl font-serif font-bold text-black mb-2">{settings.business_name}</h3>
                   <p className="text-muted-foreground leading-relaxed">
-                    Based at <strong className="text-black">{address.building}</strong>
-                    {address.city ? (
-                      <>
-                        , {address.city.includes("London") ? "in London" : `in ${address.city}`}
-                      </>
-                    ) : null}
-                    . Visit us for a free valuation and instant cash on the spot.
+                    Based at <strong className="text-black">{VISIT_SUITE.line}</strong>. Visit us for a free valuation and instant cash on the spot.
                   </p>
                 </div>
               </div>
@@ -59,16 +55,19 @@ export function HattonGardenLocation() {
               <div className="flex items-start gap-3 p-4 bg-gray-50 rounded-xl border border-border mb-6">
                 <MapPin className="w-5 h-5 text-gold-dark mt-0.5 shrink-0" />
                 <address className="not-italic text-black leading-relaxed">
+                  <span className="block font-semibold">{VISIT_SUITE.suite}, {VISIT_SUITE.floor}</span>
                   {address.publicLines.map((line, i) => (
                     <span
                       key={`${line}-${i}`}
-                      className={`block ${i === 0 ? "font-semibold" : i === address.publicLines.length - 1 ? "text-muted-foreground" : ""}`}
+                      className={`block ${i === address.publicLines.length - 1 ? "text-muted-foreground" : ""}`}
                     >
                       {line}
                     </span>
                   ))}
                 </address>
               </div>
+
+              <VisitDirections className="mb-6" />
 
               <p className="text-sm text-muted-foreground leading-relaxed mb-6">
                 Walk-ins welcome during opening hours. Sell gold, Cartier, Tiffany, Boodles and designer jewellery — expert valuation while you wait, instant cash paid on acceptance.

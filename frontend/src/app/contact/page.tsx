@@ -8,7 +8,8 @@ import { DynamicFormRenderer } from "@/components/forms/DynamicFormRenderer";
 import { Phone, Mail, MapPin, Clock, Navigation, CalendarDays } from "lucide-react";
 import type { DynamicForm } from "@/lib/types";
 import { useSettings } from "@/lib/useSettings";
-import { HATTON_GARDEN_MEDIA, parseAddress } from "@/lib/location";
+import { HATTON_GARDEN_MEDIA, parseAddress, VISIT_SUITE } from "@/lib/location";
+import { VisitDirections } from "@/components/sections/VisitDirections";
 
 const fallbackForm: DynamicForm = {
   id: 2, title: "Contact Us", slug: "contact",
@@ -48,7 +49,7 @@ export default function ContactPage() {
   const contactItems = [
     { icon: Phone, title: "Phone", text: phone, href: phoneHref },
     { icon: Mail, title: "Email", text: email, href: `mailto:${email}` },
-    { icon: MapPin, title: "Address", text: settings.address },
+    { icon: MapPin, title: "Address", text: VISIT_SUITE.line },
     { icon: Clock, title: "Opening Hours", text: settings.opening_hours },
   ];
 
@@ -58,7 +59,7 @@ export default function ContactPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h1 className="text-3xl md:text-5xl font-serif font-bold text-white mb-4">Contact Our Gold Buying Experts</h1>
           <p className="text-white/70 max-w-2xl mx-auto text-lg">
-            Visit us at {address.short} — or send us a message below.
+            Visit us at {VISIT_SUITE.suite}, {VISIT_SUITE.floor}, {VISIT_SUITE.building} — or send us a message below.
           </p>
         </div>
       </section>
@@ -85,10 +86,11 @@ export default function ContactPage() {
                 <div className="p-6">
                   <p className="text-xs text-gold-dark font-semibold uppercase tracking-wider mb-2">Our Office</p>
                   <address className="not-italic text-sm text-muted-foreground leading-relaxed mb-4">
+                    <span className="block font-semibold text-black">{VISIT_SUITE.suite}, {VISIT_SUITE.floor}</span>
                     {address.publicLines.map((line, i) => (
                       <span
                         key={`${line}-${i}`}
-                        className={`block ${i === 0 ? "font-semibold text-black" : ""}`}
+                        className="block"
                       >
                         {line}
                       </span>
@@ -114,6 +116,8 @@ export default function ContactPage() {
                   </div>
                 </div>
               </div>
+
+              <VisitDirections />
 
               {contactItems.map(({ icon: Icon, title, text, href }) => (
                 <div key={title} className="bg-white p-6 rounded-2xl border border-border">

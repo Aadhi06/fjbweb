@@ -20,6 +20,7 @@ import {
 import { API_BASE_URL } from "@/lib/utils";
 import { useSettings } from "@/lib/useSettings";
 import { showBookingSuccess, showFormError, showFormWarning } from "@/lib/alerts";
+import { VisitDirections } from "@/components/sections/VisitDirections";
 
 interface TimeSlot {
   time: string;
@@ -248,9 +249,10 @@ function BookAppointmentContent() {
                   <span className="text-black">{confirmation.booking_time}</span>
                 </div>
               </div>
-              <p className="text-sm text-muted-foreground mt-6">
+              <p className="text-sm text-muted-foreground mt-6 mb-8">
                 Ref: #{confirmation.id} &middot; Status: <span className="capitalize font-medium">{confirmation.status}</span>
               </p>
+              <VisitDirections className="text-left" />
             </div>
           </div>
         </section>
@@ -269,7 +271,7 @@ function BookAppointmentContent() {
             <div className="flex-1">
               <p className="font-semibold text-black text-sm sm:text-base">Great — let&apos;s get you booked in!</p>
               <p className="text-muted-foreground text-xs sm:text-sm">
-                Visit us at {settings.address}. Choose a date and time below — free valuation, no obligation.
+                Visit us at Suite 39, 4th Floor, 88–90 Hatton Garden. Choose a date and time below — free valuation, no obligation.
               </p>
             </div>
             <ArrowDown className="w-5 h-5 text-gold-dark shrink-0 hidden sm:block animate-bounce" />
@@ -499,6 +501,8 @@ function BookAppointmentContent() {
                   </div>
                 </div>
               </div>
+
+              <VisitDirections />
 
               <div className="bg-white rounded-2xl p-6 border border-border">
                 <div className="flex items-start gap-4">

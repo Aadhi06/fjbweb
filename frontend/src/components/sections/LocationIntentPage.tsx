@@ -10,7 +10,8 @@ import {
   Navigation,
   Phone,
 } from "lucide-react";
-import { HATTON_GARDEN_MEDIA, parseAddress } from "@/lib/location";
+import { HATTON_GARDEN_MEDIA, parseAddress, VISIT_SUITE } from "@/lib/location";
+import { VisitDirections } from "@/components/sections/VisitDirections";
 import type { LocationPageContent } from "@/lib/location-pages";
 import type { SiteSettings } from "@/lib/settings";
 
@@ -103,6 +104,7 @@ export function LocationIntentPage({ content, settings }: Props) {
                   <div className="flex items-start gap-3">
                     <MapPin className="w-5 h-5 text-gold-dark mt-0.5 shrink-0" />
                     <address className="not-italic text-black leading-relaxed">
+                      <span className="block font-semibold">{VISIT_SUITE.suite}, {VISIT_SUITE.floor}</span>
                       {address.publicLines.map((line) => (
                         <span key={line} className="block">
                           {line}
@@ -119,6 +121,7 @@ export function LocationIntentPage({ content, settings }: Props) {
                     {settings.phone}
                   </a>
                 </div>
+                <VisitDirections className="mt-6" />
                 <div className="flex flex-col gap-3 mt-6">
                   <a
                     href={address.mapsUrl}

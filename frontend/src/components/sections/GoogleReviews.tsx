@@ -28,7 +28,11 @@ function GoogleIcon({ className }: { className?: string }) {
   );
 }
 
-export function GoogleReviews() {
+export function GoogleReviews({
+  compact = false,
+}: {
+  compact?: boolean;
+} = {}) {
   const settings = useSettings();
 
   const googleReviewUrl =
@@ -41,12 +45,12 @@ export function GoogleReviews() {
   const widgetId = settings.trustindex_widget_id || DEFAULT_TRUSTINDEX_WIDGET_ID;
 
   return (
-    <section id="reviews" className="py-20 bg-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section id="reviews" className={compact ? "py-10 bg-white rounded-2xl border border-border" : "py-20 bg-white"}>
+      <div className={compact ? "px-4 sm:px-6" : "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"}>
         <SectionHeading
-          label="Customer Reviews"
-          title="What Our Customers Say"
-          description="Trusted by thousands across the UK with verified Google reviews."
+          label="Google reviews"
+          title={compact ? "Check our Google reviews" : "What Our Customers Say"}
+          description="Verified Google reviews from customers who sold gold and jewellery to Fine Jewellery Buyers."
         />
 
         <div className="min-h-[320px] overflow-hidden">

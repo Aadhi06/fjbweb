@@ -4,6 +4,7 @@ namespace App\Mail;
 
 use App\Models\Booking;
 use App\Models\Setting;
+use App\Support\VisitDirectionsHtml;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
@@ -38,7 +39,8 @@ class CustomerBookingRescheduled extends Mailable
         $businessName = htmlspecialchars(Setting::get('business_name', 'Fine Jewellery Buyers'));
         $phone = htmlspecialchars(Setting::get('phone', '020 3411 1438'));
         $emailAddr = htmlspecialchars(Setting::get('email', 'info@finejewellerybuyers.co.uk'));
-        $address = htmlspecialchars(Setting::get('address', 'Suite 39, 88–90 Hatton Garden, London EC1N 8PN'));
+        $address = htmlspecialchars(VisitDirectionsHtml::locationLine());
+        $directions = VisitDirectionsHtml::block();
         $name = htmlspecialchars($b->name);
         $service = htmlspecialchars($b->service_type);
         $newDate = $b->booking_date->format('l, j F Y');
@@ -67,6 +69,7 @@ class CustomerBookingRescheduled extends Mailable
                     <p style="margin:0 0 6px;font-size:14px;color:#374151;"><strong>Time:</strong> {$newTime}</p>
                     <p style="margin:0;font-size:14px;color:#374151;"><strong>Location:</strong> {$address}</p>
                 </div>
+                {$directions}
                 <p style="margin:0 0 16px;color:#374151;font-size:14px;">
                     Questions? Call <strong>{$phone}</strong> or email <strong>{$emailAddr}</strong>
                 </p>

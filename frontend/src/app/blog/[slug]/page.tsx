@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { BlogDetailClient } from "./BlogDetailClient";
+import { getHighValueBlog, HIGH_VALUE_BLOGS } from "@/lib/high-value-blogs";
 import { buildMetadata, breadcrumbJsonLd, SITE_URL } from "@/lib/seo";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8002";
@@ -15,6 +16,9 @@ type BlogPost = {
 };
 
 async function fetchBlogPost(slug: string): Promise<BlogPost | null> {
+  const featured = getHighValueBlog(slug);
+  if (featured) return featured;
+
   try {
     const res = await fetch(`${API_URL}/api/blog/${slug}`, { next: { revalidate: 3600 } });
     if (res.status === 404) return null;
@@ -24,6 +28,10 @@ async function fetchBlogPost(slug: string): Promise<BlogPost | null> {
   } catch {
     return null;
   }
+}
+
+export function generateStaticParams() {
+  return HIGH_VALUE_BLOGS.map((post) => ({ slug: post.slug }));
 }
 
 export async function generateMetadata({
@@ -39,9 +47,11 @@ export async function generateMetadata({
   const description = post.meta_description || post.excerpt;
   const ogImage = post.image?.startsWith("http")
     ? post.image
-    : post.image
-      ? `${API_URL.replace(/\/$/, "")}${post.image}`
-      : undefined;
+    : post.image?.startsWith("/images/")
+      ? `${SITE_URL}${post.image}`
+      : post.image
+        ? `${API_URL.replace(/\/$/, "")}${post.image}`
+        : undefined;
 
   return buildMetadata({
     title,

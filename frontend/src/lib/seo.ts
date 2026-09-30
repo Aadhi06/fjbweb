@@ -165,9 +165,9 @@ export const PAGE_SEO: Record<string, PageSeo> = {
     path: "/book-appointment",
   },
   blog: {
-    title: "Blog | Gold Prices, Selling Tips & Market News",
+    title: "Blog | Sell Gold Bars, Coins & Inherited Jewellery",
     description:
-      "Expert guides on selling gold, reading live gold prices, diamond valuations and jewellery market news from Fine Jewellery Buyers.",
+      "Guides for high-value sellers — gold bars, sovereigns, inherited estates and designer jewellery. How to sell in Hatton Garden without a scrap quote.",
     path: "/blog",
   },
   privacy: {
@@ -345,7 +345,10 @@ export type OrganizationJsonLdInput = {
 };
 
 function parsePostalAddress(address?: string) {
-  const full = (address || "88–90 Hatton Garden, London EC1N 8AA").trim();
+  const raw = (address || "Suite 39, 4th Floor, 88–90 Hatton Garden, London EC1N 8AA").trim();
+  const full = /suite\s*39/i.test(raw)
+    ? raw
+    : `Suite 39, 4th Floor, ${raw}`;
   const parts = full.split(",").map((p) => p.trim()).filter(Boolean);
   const last = parts[parts.length - 1] || "";
   const postcodeMatch = last.match(/\b([A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2})\b/i);
