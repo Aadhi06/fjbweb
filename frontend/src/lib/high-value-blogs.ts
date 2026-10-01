@@ -25,6 +25,83 @@ export function resolveBlogImage(path?: string | null): string | null {
 
 export const HIGH_VALUE_BLOGS: HighValueBlog[] = [
   {
+    slug: "how-to-sell-gold-uk-best-price",
+    title: "How to Sell Gold in the UK and Get the Best Price",
+    excerpt:
+      "If you want to sell gold, price it against today’s market — not a pawn ticket. Live rates, what we buy, and how to get paid the same day.",
+    image: "/images/service-hero-sell-gold.png",
+    category: "Sell Gold",
+    published_at: "2026-10-01T11:30:00+01:00",
+    meta_title: "Sell Gold UK | How to Get the Best Price (2026)",
+    meta_description:
+      "Sell gold in the UK at live market prices. Jewellery, scrap, bars and coins — 9ct to 24ct. Free valuation, Hatton Garden or insured post, same-day payment.",
+    showReviews: true,
+    showVisitDirections: true,
+    content: `
+<p>If you want to <strong>sell gold</strong> in the United Kingdom, the price should come from today’s live gold market — weight, carat and purity — not a high-street guess or a pawnbroker’s ticket.</p>
+<p>Fine Jewellery Buyers is a gold buyer in Hatton Garden. We buy jewellery, scrap, bars and coins from 9ct to 24ct. Check <a href="/live-rates">today’s buying rates</a>, then walk in or sell by insured post from anywhere in the UK. Payment is the same day if you accept. There is no obligation to sell.</p>
+<p>This guide is for people searching <strong>sell gold</strong>, <strong>sell gold UK</strong> or <strong>how to sell gold</strong> who want a fair offer, not a scrap quote on everything.</p>
+
+<h2>What you can sell</h2>
+<p>We buy gold in any condition. Hallmarks help. They are not required.</p>
+<ul>
+  <li>Gold jewellery — chains, rings, bracelets, earrings, broken or worn pieces</li>
+  <li>Scrap gold, unmatched items and dental gold</li>
+  <li><a href="/sell-gold-bars">Gold bars</a> — PAMP, Perth Mint, Royal Mint, kilo bars and smaller investment bars</li>
+  <li><a href="/sell-gold-coins">Gold coins</a> — sovereigns, half sovereigns, Krugerrands, Britannias</li>
+  <li><a href="/sell-inherited-gold">Inherited gold</a> and mixed estate boxes</li>
+  <li>Signed designer gold — Cartier, Tiffany, Boodles and similar, priced above scrap when the piece authenticates</li>
+</ul>
+<p>The full service page is <a href="/sell-gold">sell gold in the UK</a>.</p>
+
+<h2>How the price is worked out</h2>
+<p>A serious buyer prices gold like this:</p>
+<ol>
+  <li>Test the carat (9ct, 14ct, 18ct, 22ct or 24ct).</li>
+  <li>Weigh the fine gold.</li>
+  <li>Apply the <a href="/live-rates">live buying rate</a> for that carat.</li>
+  <li>Pay more than melt when a bar, coin or designer piece deserves it.</li>
+</ol>
+<p>That is how you get the <strong>best price</strong> when you sell gold — not a slogan on the window. Use the <a href="/gold-calculator">gold calculator</a> for a first estimate before you travel.</p>
+
+<h2>How to get the best price when you sell gold</h2>
+<ul>
+  <li>Check today’s rate first. If a buyer will not show a live price, walk away.</li>
+  <li>Do not melt signed jewellery as scrap until it has been authenticated.</li>
+  <li>Keep boxes, papers and certificates for bars and coins.</li>
+  <li>Tell us if the lot is over a few thousand pounds so a senior valuer is ready.</li>
+  <li>Compare the offer to the live rate on this site. Decline if you are not happy — posted gold comes back free.</li>
+</ul>
+
+<h2>Where to sell gold in the UK</h2>
+<p>You can sell gold to Fine Jewellery Buyers in two ways:</p>
+<ul>
+  <li><strong>In person</strong> — Suite 39, 4th Floor, 88–90 Hatton Garden, London. Walk-ins welcome Monday–Saturday, 10:00–18:00. Security will call us and open the gate. <a href="/sell-gold-london">Sell gold in London</a>.</li>
+  <li><strong>By post</strong> — free insured Royal Mail Special Delivery from any UK postcode. We open items on camera, confirm the offer, and pay the same day you accept.</li>
+</ul>
+<p>High-street jewellers and cash-for-gold shops often hold a wide margin. Hatton Garden specialists compete on weight and today’s market. <a href="#reviews">Check our Google reviews</a> on this page before you decide.</p>
+
+<h2>How to sell gold today</h2>
+<ol>
+  <li>Check <a href="/live-rates">live rates</a> or the <a href="/gold-calculator">calculator</a>.</li>
+  <li>Start a <a href="/free-valuation">free valuation</a>, <a href="/book-appointment">book a visit</a>, or walk into Hatton Garden.</li>
+  <li>We test, weigh and explain the offer. Accept and get paid the same day. Decline and keep the gold.</li>
+</ol>
+<p>Bring photo ID for an in-person sale. Certificates and original boxes help on bars, coins and designer pieces.</p>
+
+<h2>Sell gold near me — do I need to come to London?</h2>
+<p>No. “Sell gold near me” usually means a local shop with a scrap ticket. You can stay at home and use our insured pack. London sellers can walk in. Both routes use the same valuers and the same live rates.</p>
+
+<h2>Common questions</h2>
+<h3>Is it safe to sell gold by post?</h3>
+<p>Yes, when the pack is fully insured and tracked. We use Royal Mail Special Delivery, open on camera, and return items free if you decline.</p>
+<h3>Do you buy broken or unhallmarked gold?</h3>
+<p>Yes. We test it. Purity and weight set the price.</p>
+<h3>How fast is payment?</h3>
+<p>Same day if you accept — bank transfer, or cash in store at Hatton Garden.</p>
+`.trim(),
+  },
+  {
     slug: "best-place-to-sell-gold-in-london-top-price-paid",
     title: "Best Place to Sell Gold in London — Top Price Paid",
     excerpt:
