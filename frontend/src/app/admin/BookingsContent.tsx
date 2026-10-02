@@ -73,14 +73,9 @@ export function BookingsContent({
   const [startingChat, setStartingChat] = useState(false);
 
   function defaultChatMessage(b: BookingRecord) {
-    const date = b.booking_date
-      ? new Date(`${b.booking_date}T12:00:00`).toLocaleDateString("en-GB", {
-          weekday: "short",
-          day: "numeric",
-          month: "short",
-        })
-      : "";
-    return `Fine Jewellery Buyers started a new conversation with you about your appointment${date ? ` on ${date}` : ""}${b.booking_time ? ` at ${b.booking_time}` : ""}${b.service_type ? ` (${b.service_type})` : ""}. Reply here if you have any questions before you visit.`;
+    const date = formatBookingDate(b.booking_date);
+    const dateText = date && date !== "—" ? date : "";
+    return `Fine Jewellery Buyers started a new conversation with you about your appointment${dateText ? ` on ${dateText}` : ""}${b.booking_time ? ` at ${b.booking_time}` : ""}${b.service_type ? ` (${b.service_type})` : ""}. Reply here if you have any questions before you visit.`;
   }
 
   function openChatComposer(b: BookingRecord) {
@@ -133,7 +128,9 @@ export function BookingsContent({
 
   function formatBookingDate(date: string) {
     if (!date) return "—";
-    return new Date(date).toLocaleDateString("en-GB", {
+    const parsed = new Date(date.includes("T") ? date : `${date.slice(0, 10)}T12:00:00`);
+    if (Number.isNaN(parsed.getTime())) return "—";
+    return parsed.toLocaleDateString("en-GB", {
       weekday: "short",
       day: "numeric",
       month: "short",

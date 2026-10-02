@@ -56,13 +56,13 @@ function timeLabel(iso?: string, fallback?: string) {
 }
 
 function formatBookingChip(booking: LinkedBooking) {
-  const date = booking.booking_date
-    ? new Date(`${booking.booking_date}T12:00:00`).toLocaleDateString("en-GB", {
-        weekday: "short",
-        day: "numeric",
-        month: "short",
-      })
-    : "";
+  const parsed = booking.booking_date
+    ? new Date(booking.booking_date.includes("T") ? booking.booking_date : `${booking.booking_date.slice(0, 10)}T12:00:00`)
+    : null;
+  const date =
+    parsed && !Number.isNaN(parsed.getTime())
+      ? parsed.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })
+      : "";
   return [booking.service_type, date, booking.booking_time].filter(Boolean).join(" · ");
 }
 

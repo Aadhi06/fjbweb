@@ -113,13 +113,17 @@ export function MessagesContent({
     setName(booking.name || "");
     setEmail(booking.email || "");
     if (compose === "chat" && !message.trim()) {
-      const date = booking.booking_date
-        ? new Date(`${booking.booking_date}T12:00:00`).toLocaleDateString("en-GB", {
-            weekday: "short",
-            day: "numeric",
-            month: "short",
-          })
-        : "";
+      const parsed = booking.booking_date
+        ? new Date(booking.booking_date.includes("T") ? booking.booking_date : `${booking.booking_date.slice(0, 10)}T12:00:00`)
+        : null;
+      const date =
+        parsed && !Number.isNaN(parsed.getTime())
+          ? parsed.toLocaleDateString("en-GB", {
+              weekday: "short",
+              day: "numeric",
+              month: "short",
+            })
+          : "";
       setMessage(
         `Fine Jewellery Buyers started a new conversation with you about your appointment${date ? ` on ${date}` : ""}${booking.booking_time ? ` at ${booking.booking_time}` : ""}${booking.service_type ? ` (${booking.service_type})` : ""}. Reply here if you have any questions before you visit.`
       );

@@ -49,7 +49,11 @@ export function TrustindexWidget({
     let cancelled = false;
 
     const existing = document.querySelector<HTMLScriptElement>('script[data-trustindex-loader="1"]');
-    if (!existing) {
+    if (existing && !existing.src.includes(id)) {
+      existing.remove();
+    }
+    const loader = document.querySelector<HTMLScriptElement>('script[data-trustindex-loader="1"]');
+    if (!loader) {
       const script = document.createElement("script");
       script.src = src;
       script.async = true;
@@ -73,7 +77,7 @@ export function TrustindexWidget({
       observer.disconnect();
       timers.forEach((timer) => window.clearTimeout(timer));
     };
-  }, [src, hostDomId]);
+  }, [src, hostDomId, id]);
 
   return (
     <div

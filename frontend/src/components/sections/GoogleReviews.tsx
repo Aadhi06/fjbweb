@@ -42,7 +42,7 @@ export function GoogleReviews({
       : "");
   const trustpilotUrl = settings.trustpilot_url || "";
   const showReviewButtons = Boolean(googleReviewUrl || trustpilotUrl);
-  const widgetId = settings.trustindex_widget_id || DEFAULT_TRUSTINDEX_WIDGET_ID;
+  const widgetId = DEFAULT_TRUSTINDEX_WIDGET_ID;
 
   return (
     <section id="reviews" className={compact ? "py-10 bg-white rounded-2xl border border-border" : "py-20 bg-white"}>
