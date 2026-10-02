@@ -1,21 +1,17 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import { ExternalLink, Star } from "lucide-react";
 import { SectionHeading } from "@/components/ui/SectionHeading";
-import { ExternalLink } from "lucide-react";
 import { useSettings } from "@/lib/useSettings";
+import { API_SETTINGS_URL } from "@/lib/settings";
+import type { GoogleReview, GoogleReviewsData } from "@/lib/types";
 import {
   DEFAULT_TRUSTINDEX_WIDGET_ID,
   TrustindexWidget,
 } from "@/components/reviews/TrustindexWidget";
 
-function TrustpilotIcon({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
-      <path fill="#00B67A" d="M12 17.5l-3.09 1.82 0.83-3.51L7 13.5l3.6-0.31L12 9.5l1.4 3.69 3.6 0.31-2.74 2.31 0.83 3.51z" />
-      <path fill="#005128" d="M12 2L14.9 9.5H22.5L16.3 14.2L18.5 22L12 17.5L5.5 22L7.7 14.2L1.5 9.5H9.1L12 2Z" opacity="0.15" />
-    </svg>
-  );
-}
+const REVIEWS_URL = API_SETTINGS_URL.replace(/\/settings$/, "/google-reviews");
 
 function GoogleIcon({ className }: { className?: string }) {
   return (
@@ -28,21 +24,72 @@ function GoogleIcon({ className }: { className?: string }) {
   );
 }
 
+function Stars({ rating }: { rating: number }) {
+  return (
+    <div className="flex items-center gap-0.5" aria-label={`${rating} out of 5 stars`}>
+      {Array.from({ length: 5 }).map((_, i) => (
+        <Star
+          key={i}
+          className={`w-4 h-4 ${i < rating ? "text-[#F4B400] fill-[#F4B400]" : "text-gray-200 fill-gray-200"}`}
+        />
+      ))}
+    </div>
+  );
+}
+
+function ReviewCard({ review }: { review: GoogleReview }) {
+  return (
+    <article className="h-full rounded-2xl border border-border bg-white p-5 shadow-sm">
+      <div className="flex items-center gap-3 mb-3">
+        {review.profile_photo_url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={review.profile_photo_url} alt="" className="w-11 h-11 rounded-full object-cover bg-gray-100" />
+        ) : (
+          <div className="w-11 h-11 rounded-full bg-black text-white font-bold flex items-center justify-center">
+            {(review.author_name || "G").charAt(0).toUpperCase()}
+          </div>
+        )}
+        <div className="min-w-0">
+          <p className="font-semibold text-black truncate">{review.author_name}</p>
+          <p className="text-xs text-muted-foreground">{review.relative_time_description}</p>
+        </div>
+      </div>
+      <Stars rating={review.rating} />
+      <p className="mt-3 text-sm text-black/80 leading-relaxed line-clamp-6">{review.text}</p>
+    </article>
+  );
+}
+
 export function GoogleReviews({
   compact = false,
 }: {
   compact?: boolean;
 } = {}) {
   const settings = useSettings();
+  const [data, setData] = useState<GoogleReviewsData | null>(null);
+  const [trustindexOk, setTrustindexOk] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch(REVIEWS_URL)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((json) => {
+        if (!cancelled && json?.data) setData(json.data);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const googleReviewUrl =
     settings.google_review_url ||
     (settings.google_place_id
       ? `https://search.google.com/local/writereview?placeid=${settings.google_place_id}`
       : "");
-  const trustpilotUrl = settings.trustpilot_url || "";
-  const showReviewButtons = Boolean(googleReviewUrl || trustpilotUrl);
-  const widgetId = DEFAULT_TRUSTINDEX_WIDGET_ID;
+  const reviews = (data?.reviews || []).filter((r) => (r.rating || 0) >= 5).slice(0, 6);
+  const rating = data?.rating || settings.google_rating || 4.8;
+  const total = data?.total_reviews || settings.total_reviews || 0;
 
   return (
     <section id="reviews" className={compact ? "py-10 bg-white rounded-2xl border border-border" : "py-20 bg-white"}>
@@ -53,36 +100,43 @@ export function GoogleReviews({
           description="Verified Google reviews from customers who sold gold and jewellery to Fine Jewellery Buyers."
         />
 
-        <div className="min-h-[320px] overflow-hidden">
-          <TrustindexWidget widgetId={widgetId} />
+        <div className="min-h-[280px] overflow-hidden mb-4">
+          <TrustindexWidget
+            widgetId={DEFAULT_TRUSTINDEX_WIDGET_ID}
+            onStatus={(ok) => setTrustindexOk(ok)}
+          />
         </div>
 
-        {showReviewButtons && (
-          <div className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-4">
-            {googleReviewUrl && (
-              <a
-                href={googleReviewUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-3 px-6 py-3.5 bg-white border-2 border-border rounded-full font-semibold text-black hover:border-gold-dark hover:shadow-lg transition-all cursor-pointer"
-              >
-                <GoogleIcon className="w-5 h-5" />
-                Review Us on Google
-                <ExternalLink className="w-4 h-4 text-muted-foreground" />
-              </a>
+        {trustindexOk === false && (
+          <>
+            <div className="flex flex-wrap items-center justify-center gap-2 mb-8 text-sm text-black">
+              <GoogleIcon className="w-5 h-5" />
+              <span className="font-semibold">{Number(rating).toFixed(1)}</span>
+              <Stars rating={Math.round(Number(rating))} />
+              {total > 0 && <span className="text-muted-foreground">from {total} Google reviews</span>}
+            </div>
+            {reviews.length > 0 && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {reviews.map((review, index) => (
+                  <ReviewCard key={`${review.author_name}-${index}`} review={review} />
+                ))}
+              </div>
             )}
-            {trustpilotUrl && (
-              <a
-                href={trustpilotUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-3 px-6 py-3.5 bg-[#00B67A] text-white rounded-full font-semibold hover:bg-[#009e6a] hover:shadow-lg transition-all cursor-pointer"
-              >
-                <TrustpilotIcon className="w-5 h-5" />
-                Review Us on Trustpilot
-                <ExternalLink className="w-4 h-4 text-white/80" />
-              </a>
-            )}
+          </>
+        )}
+
+        {googleReviewUrl && (
+          <div className="mt-12 flex justify-center">
+            <a
+              href={googleReviewUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-3 px-6 py-3.5 bg-white border-2 border-border rounded-full font-semibold text-black hover:border-gold-dark hover:shadow-lg transition-all"
+            >
+              <GoogleIcon className="w-5 h-5" />
+              Review Us on Google
+              <ExternalLink className="w-4 h-4 text-muted-foreground" />
+            </a>
           </div>
         )}
       </div>

@@ -32,7 +32,7 @@ class SettingController extends Controller
                 'google_place_id' => Setting::get('google_place_id', ''),
                 'google_review_url' => Setting::get('google_review_url', ''),
                 'trustpilot_url' => Setting::get('trustpilot_url', ''),
-                'trustindex_widget_id' => Setting::get('trustindex_widget_id', 'bbaf65d82db81281c8362394a13'),
+                'trustindex_widget_id' => Setting::get('trustindex_widget_id', 'afd8ae0821ce80637d262599f2e'),
                 'trustindex_inbox_url' => Setting::get('trustindex_inbox_url', 'https://admin.trustindex.io/'),
                 'google_rating' => Setting::get('google_rating', 4.9),
                 'total_reviews' => Setting::get('total_reviews', 1000),
