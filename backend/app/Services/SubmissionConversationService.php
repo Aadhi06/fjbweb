@@ -24,12 +24,43 @@ class SubmissionConversationService
         return $submission->reply_token;
     }
 
+    public function publicFrontendUrl(): string
+    {
+        $url = Setting::get('frontend_url');
+        if (!is_string($url) || trim($url) === '') {
+            $url = (string) config('app.frontend_url', 'https://www.finejewellerybuyers.co.uk');
+        }
+        $url = rtrim(trim($url), '/');
+        if (!str_starts_with($url, 'http')) {
+            $url = 'https://www.finejewellerybuyers.co.uk';
+        }
+        if ($url === 'https://finejewellerybuyers.co.uk') {
+            $url = 'https://www.finejewellerybuyers.co.uk';
+        }
+
+        return $url;
+    }
+
     public function conversationUrl(FormSubmission $submission): string
     {
-        $frontend = rtrim(Setting::get('frontend_url', config('app.frontend_url', 'https://finejewellerybuyers.co.uk')), '/');
-        $token = $this->ensureReplyToken($submission);
+        return $this->publicFrontendUrl() . '/enquiry/' . $this->ensureReplyToken($submission);
+    }
 
-        return "{$frontend}/enquiry/{$token}";
+    public function findSubmissionByPublicToken(string $token): ?FormSubmission
+    {
+        $token = trim($token);
+        if ($token === '') {
+            return null;
+        }
+
+        $byReply = FormSubmission::where('reply_token', $token)->first();
+        if ($byReply) {
+            return $byReply;
+        }
+
+        $message = FormSubmissionMessage::where('open_token', $token)->first();
+
+        return $message?->submission;
     }
 
     public function sendAdminReply(FormSubmission $submission, string $message, ?User $admin = null): FormSubmissionMessage

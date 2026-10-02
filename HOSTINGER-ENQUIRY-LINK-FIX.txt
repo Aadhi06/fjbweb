@@ -1,0 +1,6 @@
+Upload backend-enquiry-link-fix.zip into the Laravel API folder on Hostinger
+(same place as the other backend zips).
+
+This stops enquiry / reply-from-email links from dying as “invalid or expired”
+when the stored frontend URL is empty, or when the email used the click-tracking
+token instead of the chat token.

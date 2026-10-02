@@ -4,7 +4,11 @@ import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, Loader2, MessageSquare, Send } from "lucide-react";
 import Link from "next/link";
 
-const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8002") + "/api";
+const API_URL =
+  (process.env.NEXT_PUBLIC_API_URL ||
+    (typeof window !== "undefined" && !window.location.hostname.includes("localhost")
+      ? "https://api.finejewellerybuyers.co.uk"
+      : "http://localhost:8002")) + "/api";
 
 type ChatMessage = {
   id: number;
@@ -27,7 +31,13 @@ export default function EnquiryPage({ params }: { params: Promise<{ token: strin
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
-    params.then((p) => setToken(p.token));
+    params.then((p) => {
+      try {
+        setToken(decodeURIComponent(p.token || "").trim());
+      } catch {
+        setToken((p.token || "").trim());
+      }
+    });
   }, [params]);
 
   useEffect(() => {

@@ -223,10 +223,12 @@ class FormController extends Controller
 
     public function conversationShow(string $token): JsonResponse
     {
-        $submission = FormSubmission::where('reply_token', $token)
-            ->with('form')
-            ->firstOrFail();
+        $submission = $this->conversationService->findSubmissionByPublicToken($token);
+        if (!$submission) {
+            return response()->json(['message' => 'This enquiry link is invalid.'], 404);
+        }
 
+        $submission->load('form');
         $this->conversationService->markAdminMessagesViewed($submission);
 
         return response()->json([
@@ -241,7 +243,10 @@ class FormController extends Controller
 
     public function conversationReply(Request $request, string $token): JsonResponse
     {
-        $submission = FormSubmission::where('reply_token', $token)->firstOrFail();
+        $submission = $this->conversationService->findSubmissionByPublicToken($token);
+        if (!$submission) {
+            return response()->json(['message' => 'This enquiry link is invalid.'], 404);
+        }
 
         $validated = $request->validate([
             'message' => 'required|string|min:1|max:5000',
@@ -274,12 +279,18 @@ class FormController extends Controller
 
     public function mailClick(string $token)
     {
-        $message = $this->conversationService->markMessageClickedByToken($token);
-        $url = $message
-            ? $this->conversationService->conversationUrl($message->submission)
-            : rtrim(\App\Models\Setting::get('frontend_url', 'https://www.finejewellerybuyers.co.uk'), '/');
+        try {
+            $message = $this->conversationService->markMessageClickedByToken($token);
+            $submission = $message?->submission
+                ?? $this->conversationService->findSubmissionByPublicToken($token);
+            $url = $submission
+                ? $this->conversationService->conversationUrl($submission)
+                : $this->conversationService->publicFrontendUrl();
 
-        return redirect()->away($url);
+            return redirect()->away($url);
+        } catch (\Throwable $e) {
+            return redirect()->away('https://www.finejewellerybuyers.co.uk');
+        }
     }
 
     private function formatSubmissionDetail(FormSubmission $submission): array
