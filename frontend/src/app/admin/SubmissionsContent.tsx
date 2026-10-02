@@ -179,33 +179,43 @@ export function SubmissionsContent({
         </div>
       ) : (
         <>
-          <div className="md:hidden bg-white border-y border-gray-100">
+          <div className="md:hidden px-3 space-y-2">
             {filtered.map((s) => {
               const name = customerName(s.data);
               const email = customerEmail(s.data);
               const photos = s.files?.length || 0;
+              const preview = s.data?.item_type || s.data?.description || s.data?.message || s.data?.subject || "";
+              const photo = s.files?.find((f) => f.is_image);
               return (
                 <button
                   key={s.id}
                   type="button"
                   onClick={() => setSelectedId(s.id)}
-                  className="w-full flex items-center gap-3 px-3 py-3 border-b border-gray-100 text-left active:bg-gray-50"
+                  className="w-full flex items-center gap-3 bg-white rounded-2xl border border-gray-200 p-3.5 text-left shadow-sm active:scale-[0.99]"
                 >
-                  <div className={`w-12 h-12 rounded-full flex items-center justify-center text-white font-bold shrink-0 ${s.status === "new" ? "bg-[#D97706]" : "bg-black"}`}>
-                    {name.charAt(0).toUpperCase()}
-                  </div>
+                  {photo ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={photo.url} alt="" className="w-14 h-14 rounded-2xl object-cover bg-gray-100 shrink-0" />
+                  ) : (
+                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-white text-lg font-bold shrink-0 ${s.status === "new" ? "bg-[#D97706]" : "bg-black"}`}>
+                      {name.charAt(0).toUpperCase()}
+                    </div>
+                  )}
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between gap-2">
-                      <p className="font-semibold text-[15px] text-black truncate">{name}</p>
-                      <span className="text-[11px] text-gray-400 shrink-0">{s.created_at_human}</span>
+                      <p className="font-semibold text-base text-black truncate">{name}</p>
+                      <span className="text-xs text-gray-400 shrink-0">{s.created_at_human}</span>
                     </div>
-                    <p className="text-xs text-gray-500 truncate">{s.form_name}{email ? ` · ${email}` : ""}</p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className={`text-[10px] px-2 py-0.5 rounded-full capitalize ${statusClass(s.status)}`}>
-                        {s.status}
+                    <p className="text-sm text-gray-600 truncate">{s.form_name}</p>
+                    {preview && <p className="text-sm text-gray-500 truncate mt-0.5">{preview}</p>}
+                    <div className="flex items-center gap-2 mt-1.5">
+                      <span className={`text-xs font-semibold px-2.5 py-1 rounded-full capitalize ${statusClass(s.status)}`}>
+                        {s.status === "new" ? "New" : s.status}
                       </span>
-                      {photos > 0 && <span className="text-[11px] text-amber-700">{photos} photo{photos === 1 ? "" : "s"}</span>}
+                      {photos > 0 && <span className="text-xs text-amber-800">{photos} photo{photos === 1 ? "" : "s"}</span>}
+                      <span className="ml-auto text-xs font-semibold text-[#D97706]">Chat</span>
                     </div>
+                    {email && <p className="sr-only">{email}</p>}
                   </div>
                 </button>
               );

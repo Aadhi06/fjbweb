@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ArrowLeft, CalendarDays, ChevronDown, ChevronUp, Loader2, MessageSquare, Send } from "lucide-react";
+import { ArrowLeft, CalendarDays, Loader2, MessageSquare, Send } from "lucide-react";
 import { useSettings } from "@/lib/useSettings";
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8002") + "/api";
@@ -228,6 +228,30 @@ function combineSuggestedTexts(presets: SuggestedReply[], selectedIds: string[],
   return `${greeting}${sentences.join(" ")}`;
 }
 
+function useKeyboardInset() {
+  const [inset, setInset] = useState(0);
+
+  useEffect(() => {
+    const viewport = window.visualViewport;
+    if (!viewport) return;
+
+    const update = () => {
+      const gap = Math.max(0, window.innerHeight - viewport.height - viewport.offsetTop);
+      setInset(gap > 40 ? gap : 0);
+    };
+
+    viewport.addEventListener("resize", update);
+    viewport.addEventListener("scroll", update);
+    update();
+    return () => {
+      viewport.removeEventListener("resize", update);
+      viewport.removeEventListener("scroll", update);
+    };
+  }, []);
+
+  return inset;
+}
+
 function formatFields(data: Record<string, string>) {
   const entries: [string, string][] = [];
   const handled = new Set<string>();
@@ -307,9 +331,11 @@ export function SubmissionChatPanel({
   const [reply, setReply] = useState("");
   const [selectedReplyIds, setSelectedReplyIds] = useState<string[]>([]);
   const [sending, setSending] = useState(false);
-  const [showDetails, setShowDetails] = useState(!compact && !onClose);
-  const [showSuggested, setShowSuggested] = useState(!onClose);
+  const [showDetails, setShowDetails] = useState(false);
+  const [showSuggested, setShowSuggested] = useState(false);
+  const [composerFocused, setComposerFocused] = useState(false);
   const settings = useSettings();
+  const keyboardInset = useKeyboardInset();
   const chatEndRef = useRef<HTMLDivElement>(null);
   const replyRef = useRef<HTMLTextAreaElement>(null);
   const onReadRef = useRef(onRead);
@@ -410,13 +436,24 @@ export function SubmissionChatPanel({
     ? greetingFor(firstName(fieldValue(detail.data || {}, "name", "full_name")))
     : "Hi, ";
 
+  function resizeComposer() {
+    const el = replyRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.min(Math.max(el.scrollHeight, 52), 140)}px`;
+  }
+
   function toggleSuggestedReply(id: string) {
     const nextIds = selectedReplyIds.includes(id)
       ? selectedReplyIds.filter((item) => item !== id)
       : [...selectedReplyIds, id];
     setSelectedReplyIds(nextIds);
     setReply(combineSuggestedTexts(presets, nextIds, greeting));
-    requestAnimationFrame(() => replyRef.current?.focus());
+    setShowSuggested(false);
+    requestAnimationFrame(() => {
+      resizeComposer();
+      replyRef.current?.focus();
+    });
   }
 
   if (loading) {
@@ -430,12 +467,15 @@ export function SubmissionChatPanel({
   if (!detail) return null;
 
   const appChat = Boolean(onClose);
+  const photoCount = detail.files?.length ?? 0;
+  const itemPreview = fieldValue(detail.data || {}, "item_type", "description", "message", "subject");
+  const hideExtras = composerFocused || keyboardInset > 40;
 
   return (
-    <div className="flex flex-col h-full min-h-0">
-      <div className={`flex items-center gap-2 p-3 sm:p-4 border-b shrink-0 ${appChat ? "bg-[#111111] text-white border-white/10 safe-top" : "bg-white border-gray-200"}`}>
+    <div className="relative flex flex-col h-full min-h-0 bg-white">
+      <div className={`flex items-center gap-2 px-2 sm:px-4 py-2.5 border-b shrink-0 ${appChat ? "bg-[#111111] text-white border-white/10 safe-top" : "bg-white border-gray-200"}`}>
         {onClose && (
-          <button type="button" onClick={onClose} className="min-h-11 min-w-11 flex items-center justify-center text-white/80 hover:text-white shrink-0" aria-label="Back to enquiries">
+          <button type="button" onClick={onClose} className="min-h-12 min-w-12 flex items-center justify-center text-white/80 hover:text-white shrink-0" aria-label="Back to enquiries">
             <ArrowLeft className="w-5 h-5" />
           </button>
         )}
@@ -448,28 +488,149 @@ export function SubmissionChatPanel({
           </h3>
           <p className={`text-xs truncate ${appChat ? "text-white/60" : "text-gray-500"}`}>
             {detail.form_name}
-            {detail.customer_email ? ` · ${detail.customer_email}` : ""}
           </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => {
+            setShowDetails(true);
+            setShowSuggested(false);
+          }}
+          className={`shrink-0 min-h-11 px-3 rounded-full text-sm font-semibold ${
+            appChat ? "bg-white/15 text-white" : "bg-gray-100 text-black"
+          }`}
+        >
+          Details
+        </button>
+      </div>
+
+      {!hideExtras && photoCount > 0 && (
+        <div className="shrink-0 flex gap-2 overflow-x-auto px-3 py-2 bg-white border-b border-gray-100">
+          {detail.files!.slice(0, 6).map((file) => (
+            <a key={file.id} href={file.url} target="_blank" rel="noopener noreferrer" className="shrink-0">
+              {file.is_image ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={file.url} alt={file.original_name} className="w-16 h-16 rounded-xl object-cover bg-gray-100" />
+              ) : (
+                <span className="w-16 h-16 rounded-xl bg-gray-100 flex items-center justify-center text-[10px] text-gray-500 p-1">{file.original_name}</span>
+              )}
+            </a>
+          ))}
+        </div>
+      )}
+
+      <div className={`flex-1 overflow-y-auto min-h-0 ${appChat ? "chat-wallpaper" : "bg-white"}`}>
+        {!hideExtras && itemPreview && (
+          <p className="px-4 py-2 text-xs text-black/60 line-clamp-2">{itemPreview}</p>
+        )}
+        <div className="p-3 sm:p-4 space-y-3">
+          {!compact && !appChat && (
+            <p className="text-xs font-semibold text-gray-500 uppercase flex items-center gap-1.5">
+              <MessageSquare className="w-4 h-4" /> Conversation
+            </p>
+          )}
+          {detail.messages.length === 0 && (
+            <p className="text-sm text-black/50 text-center py-10 px-6">
+              No messages yet. Write below — they get an email and can reply in this chat.
+            </p>
+          )}
+          {detail.messages.map((msg) => (
+            <ChatBubble key={msg.id} msg={msg} />
+          ))}
+          <div ref={chatEndRef} />
         </div>
       </div>
 
-      <div className={`flex-1 overflow-y-auto min-h-0 ${appChat ? "chat-wallpaper" : ""}`}>
-        {(compact || appChat) && (
-          <button
-            type="button"
-            onClick={() => setShowDetails((v) => !v)}
-            className="w-full flex items-center justify-between px-4 py-2.5 text-xs font-medium text-gray-600 bg-gray-50 border-b border-gray-100"
-          >
-            Enquiry details
-            {showDetails ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-          </button>
+      <form
+        onSubmit={sendReply}
+        className={`border-t shrink-0 ${appChat ? "bg-[#1a1a1a] border-white/10" : "border-gray-200 bg-white"}`}
+        style={{ paddingBottom: keyboardInset > 0 ? keyboardInset + 8 : undefined }}
+      >
+        {!hideExtras && (
+          <div className="px-3 pt-2">
+            <button
+              type="button"
+              onClick={() => setShowSuggested((v) => !v)}
+              className={`min-h-10 px-3 rounded-full text-sm font-semibold ${
+                appChat ? "bg-white/10 text-white" : "bg-gray-100 text-black"
+              }`}
+            >
+              {showSuggested ? "Hide quick replies" : "Quick replies"}
+            </button>
+          </div>
         )}
+        {showSuggested && !hideExtras && (
+          <div className="flex gap-2 overflow-x-auto px-3 py-2">
+            {presets.map((preset) => {
+              const selected = selectedReplyIds.includes(preset.id);
+              return (
+                <button
+                  key={preset.id}
+                  type="button"
+                  onClick={() => toggleSuggestedReply(preset.id)}
+                  className={`shrink-0 min-h-11 px-4 rounded-full text-sm font-semibold whitespace-nowrap ${
+                    selected
+                      ? "bg-[#D97706] text-black"
+                      : "bg-white text-black border border-gray-200"
+                  }`}
+                >
+                  {preset.label}
+                </button>
+              );
+            })}
+          </div>
+        )}
+        <div className="flex gap-2 items-end px-3 py-2.5">
+          <label className="sr-only" htmlFor={`reply-${submissionId}`}>Message</label>
+          <textarea
+            id={`reply-${submissionId}`}
+            ref={replyRef}
+            value={reply}
+            onFocus={() => {
+              setComposerFocused(true);
+              setShowSuggested(false);
+              setShowDetails(false);
+            }}
+            onBlur={() => setComposerFocused(false)}
+            onChange={(e) => {
+              const value = e.target.value;
+              setReply(value);
+              if (value !== combineSuggestedTexts(presets, selectedReplyIds, greeting)) {
+                setSelectedReplyIds([]);
+              }
+              resizeComposer();
+            }}
+            placeholder="Type your message here"
+            rows={2}
+            className="flex-1 rounded-2xl px-4 py-3 text-[16px] leading-6 text-black bg-white border border-gray-300 resize-none focus:outline-none focus:ring-2 focus:ring-[#D97706] min-h-[52px] max-h-[140px]"
+          />
+          <button
+            type="submit"
+            disabled={sending || !reply.trim()}
+            className="h-[52px] w-[52px] flex items-center justify-center bg-[#D97706] text-black rounded-2xl disabled:opacity-40 shrink-0"
+            aria-label="Send message"
+          >
+            {sending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
+          </button>
+        </div>
+      </form>
 
-        {showDetails && (
-          <div className="p-4 space-y-4 border-b border-gray-100 bg-white">
+      {showDetails && (
+        <div className="absolute inset-0 z-20 bg-white flex flex-col">
+          <div className="flex items-center justify-between px-4 py-3 border-b safe-top">
+            <p className="font-semibold text-black">Enquiry details</p>
+            <button
+              type="button"
+              onClick={() => setShowDetails(false)}
+              className="min-h-11 px-4 rounded-full bg-black text-white text-sm font-semibold"
+            >
+              Back to chat
+            </button>
+          </div>
+          <div className="flex-1 overflow-y-auto p-4 space-y-4">
             {detail.booking && (
               <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5">
-                <p className="text-[11px] font-semibold text-amber-800 uppercase inline-flex items-center gap-1.5">
+                <p className="text-xs font-semibold text-amber-800 inline-flex items-center gap-1.5">
                   <CalendarDays className="w-3.5 h-3.5" /> Linked appointment
                 </p>
                 <p className="text-sm text-black mt-1">
@@ -479,25 +640,25 @@ export function SubmissionChatPanel({
                 </p>
               </div>
             )}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 gap-2">
               {fields.map(([key, value]) => (
-                <div key={key} className="bg-gray-50 rounded-lg px-3 py-2 border border-gray-100">
-                  <p className="text-[10px] font-semibold text-gray-400 uppercase">{key.replace(/_/g, " ")}</p>
-                  <p className="text-sm text-black mt-0.5 break-words">{String(value)}</p>
+                <div key={key} className="bg-gray-50 rounded-xl px-4 py-3">
+                  <p className="text-xs font-semibold text-gray-500 mb-1">{key.replace(/_/g, " ")}</p>
+                  <p className="text-base text-black break-words leading-relaxed">{String(value)}</p>
                 </div>
               ))}
             </div>
             {detail.files && detail.files.length > 0 && (
               <div>
-                <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Photos</p>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                <p className="text-sm font-semibold text-black mb-2">Photos</p>
+                <div className="grid grid-cols-2 gap-2">
                   {detail.files.map((file) => (
-                    <a key={file.id} href={file.url} target="_blank" rel="noopener noreferrer" className="block rounded-lg border overflow-hidden hover:border-amber-400">
+                    <a key={file.id} href={file.url} target="_blank" rel="noopener noreferrer" className="block rounded-xl overflow-hidden border">
                       {file.is_image ? (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={file.url} alt={file.original_name} className="w-full h-24 sm:h-28 object-cover bg-gray-100" />
+                        <img src={file.url} alt={file.original_name} className="w-full h-36 object-cover bg-gray-100" />
                       ) : (
-                        <div className="h-24 flex items-center justify-center text-xs text-gray-500 p-2 text-center">{file.original_name}</div>
+                        <div className="h-36 flex items-center justify-center text-xs text-gray-500 p-2 text-center">{file.original_name}</div>
                       )}
                     </a>
                   ))}
@@ -505,88 +666,8 @@ export function SubmissionChatPanel({
               </div>
             )}
           </div>
-        )}
-
-        <div className="p-3 sm:p-4 space-y-3">
-          {!compact && !appChat && (
-            <p className="text-xs font-semibold text-gray-500 uppercase flex items-center gap-1.5">
-              <MessageSquare className="w-4 h-4" /> Conversation
-            </p>
-          )}
-          {detail.messages.length === 0 && (
-            <p className="text-sm text-gray-400 text-center py-8">No messages yet. Type below to email the customer.</p>
-          )}
-          {detail.messages.map((msg) => (
-            <ChatBubble key={msg.id} msg={msg} />
-          ))}
-          <div ref={chatEndRef} />
         </div>
-      </div>
-
-      <form onSubmit={sendReply} className={`border-t p-2.5 sm:p-4 shrink-0 safe-bottom ${appChat ? "bg-[#111111] border-white/10" : "border-gray-200 bg-gray-50"}`}>
-        {appChat ? (
-          <button
-            type="button"
-            onClick={() => setShowSuggested((v) => !v)}
-            className="text-[11px] text-white/70 px-2 mb-1.5"
-          >
-            {showSuggested ? "Hide suggested replies" : "Show suggested replies"}
-          </button>
-        ) : (
-          <p className="text-[11px] text-gray-500 mb-2">
-            Suggested from this enquiry — tap one or more to combine. You can still edit before sending.
-          </p>
-        )}
-        {showSuggested && (
-          <div className="flex flex-wrap gap-1.5 mb-2 px-1">
-            {presets.map((preset) => {
-              const selected = selectedReplyIds.includes(preset.id);
-              return (
-                <button
-                  key={preset.id}
-                  type="button"
-                  onClick={() => toggleSuggestedReply(preset.id)}
-                  className={`px-2.5 py-1 text-[11px] font-medium rounded-full border transition-colors ${
-                    selected
-                      ? "bg-amber-500 text-white border-amber-500"
-                      : appChat
-                        ? "bg-white/10 text-white border-white/20"
-                        : "bg-white text-gray-700 border-gray-200 hover:border-amber-400 hover:bg-amber-50/50"
-                  }`}
-                >
-                  {preset.label}
-                </button>
-              );
-            })}
-          </div>
-        )}
-        <div className="flex gap-2 items-end">
-          <textarea
-            ref={replyRef}
-            value={reply}
-            onChange={(e) => {
-              const value = e.target.value;
-              setReply(value);
-              if (value !== combineSuggestedTexts(presets, selectedReplyIds, greeting)) {
-                setSelectedReplyIds([]);
-              }
-            }}
-            placeholder="Type a message"
-            rows={appChat ? 1 : 3}
-            className={`flex-1 border rounded-3xl px-4 py-2.5 text-base sm:text-sm resize-none focus:outline-none focus:ring-2 focus:ring-amber-500/30 min-h-11 max-h-32 ${
-              appChat ? "bg-white text-black border-transparent" : "border-gray-200"
-            }`}
-          />
-          <button
-            type="submit"
-            disabled={sending || !reply.trim()}
-            className="h-11 w-11 flex items-center justify-center bg-[#D97706] text-black rounded-full disabled:opacity-50 shrink-0"
-            aria-label="Send message"
-          >
-            {sending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
-          </button>
-        </div>
-      </form>
+      )}
     </div>
   );
 }
