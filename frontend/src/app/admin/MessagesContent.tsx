@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { ArrowLeft, Loader2, MessageSquare, RefreshCw } from "lucide-react";
+import { ArrowLeft, Loader2, Mail, MessageSquare, Plus, RefreshCw, Send, X } from "lucide-react";
 import { getAuthHeaders, SubmissionChatPanel } from "./SubmissionChatPanel";
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8002") + "/api";
@@ -22,6 +22,8 @@ type ConversationItem = {
   created_at_human: string;
 };
 
+type ComposeMode = "email" | "chat" | null;
+
 export function MessagesContent({
   showToast,
   onUnreadChange,
@@ -34,6 +36,12 @@ export function MessagesContent({
   const [conversations, setConversations] = useState<ConversationItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedId, setSelectedId] = useState<number | null>(initialSelectedId ?? null);
+  const [compose, setCompose] = useState<ComposeMode>(null);
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [subject, setSubject] = useState("");
+  const [message, setMessage] = useState("");
+  const [sending, setSending] = useState(false);
 
   const fetchMessages = useCallback(async () => {
     try {
@@ -69,6 +77,44 @@ export function MessagesContent({
     fetchMessages();
   }, [onUnreadChange, fetchMessages]);
 
+  function resetCompose() {
+    setCompose(null);
+    setName("");
+    setEmail("");
+    setSubject("");
+    setMessage("");
+  }
+
+  async function handleComposeSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!compose) return;
+    setSending(true);
+    try {
+      const path = compose === "email" ? "/admin/messages/email" : "/admin/messages/start";
+      const body =
+        compose === "email"
+          ? { email, name, subject, message }
+          : { email, name, message };
+      const res = await fetch(`${API_URL}${path}`, {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify(body),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json.message || "Send failed");
+      showToast(json.message || "Sent", "success");
+      if (compose === "chat" && json.data?.id) {
+        setSelectedId(json.data.id);
+        fetchMessages();
+      }
+      resetCompose();
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "Send failed", "error");
+    } finally {
+      setSending(false);
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -79,27 +125,43 @@ export function MessagesContent({
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-4 sm:mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 sm:mb-6">
         <div>
           <h2 className="text-xl sm:text-2xl font-bold text-black mb-1">Messages</h2>
-          <p className="text-sm text-gray-500">Chat with customers who replied to enquiries</p>
+          <p className="text-sm text-gray-500">Email anyone, or start a chat from admin</p>
         </div>
-        <button
-          onClick={() => { setLoading(true); fetchMessages(); onUnreadChange?.(); }}
-          className="flex items-center gap-2 text-sm text-gray-600 hover:text-black"
-        >
-          <RefreshCw className="w-4 h-4" /> Refresh
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setCompose("email")}
+            className="inline-flex items-center gap-2 px-3.5 py-2 bg-black text-white text-sm font-semibold rounded-lg hover:bg-gray-800"
+          >
+            <Mail className="w-4 h-4" /> Send email
+          </button>
+          <button
+            type="button"
+            onClick={() => setCompose("chat")}
+            className="inline-flex items-center gap-2 px-3.5 py-2 bg-[#D97706] text-white text-sm font-semibold rounded-lg hover:bg-[#b45309]"
+          >
+            <Plus className="w-4 h-4" /> Start chat
+          </button>
+          <button
+            type="button"
+            onClick={() => { setLoading(true); fetchMessages(); onUnreadChange?.(); }}
+            className="flex items-center gap-2 text-sm text-gray-600 hover:text-black px-2 py-2"
+          >
+            <RefreshCw className="w-4 h-4" /> Refresh
+          </button>
+        </div>
       </div>
 
-      {conversations.length === 0 ? (
+      {conversations.length === 0 && !selectedId ? (
         <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
           <MessageSquare className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-          <p className="text-gray-500">No conversations yet. Messages appear when you or a customer reply to an enquiry.</p>
+          <p className="text-gray-500">No conversations yet. Send an email or start a chat with any customer.</p>
         </div>
       ) : (
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden h-[calc(100dvh-10rem)] sm:h-[calc(100vh-12rem)] min-h-[420px] flex">
-          {/* Conversation list */}
           <div
             className={`${
               selectedId ? "hidden md:flex" : "flex"
@@ -124,7 +186,7 @@ export function MessagesContent({
                         <p className="font-semibold text-sm text-black truncate">{c.customer_name}</p>
                         {c.unread && <span className="w-2.5 h-2.5 rounded-full bg-red-500 shrink-0 animate-pulse" />}
                       </div>
-                      <p className="text-xs text-gray-500 truncate">{c.form_name}</p>
+                      <p className="text-xs text-gray-500 truncate">{c.customer_email || c.form_name}</p>
                       {c.last_message && (
                         <p className="text-xs text-gray-400 truncate mt-1">
                           {c.last_message.sender === "admin" ? "You: " : ""}
@@ -139,7 +201,6 @@ export function MessagesContent({
             </div>
           </div>
 
-          {/* Chat panel */}
           <div className={`${selectedId ? "flex" : "hidden md:flex"} flex-1 flex-col min-w-0 min-h-0`}>
             {selectedId ? (
               <>
@@ -163,11 +224,88 @@ export function MessagesContent({
               <div className="hidden md:flex flex-1 items-center justify-center text-gray-400 text-sm p-8 text-center">
                 <div>
                   <MessageSquare className="w-12 h-12 mx-auto mb-3 opacity-30" />
-                  Select a conversation to view and reply
+                  Select a conversation, or start a new chat
                 </div>
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {compose && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <form
+            onSubmit={handleComposeSubmit}
+            className="bg-white rounded-2xl max-w-lg w-full shadow-2xl max-h-[90vh] overflow-y-auto"
+          >
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+              <h3 className="font-bold text-black">
+                {compose === "email" ? "Send email" : "Start chat"}
+              </h3>
+              <button type="button" onClick={resetCompose} className="text-gray-400 hover:text-black">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="text-xs font-semibold text-gray-500 uppercase block mb-1">To email</label>
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="customer@email.com"
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-gray-500 uppercase block mb-1">Name (optional)</label>
+                <input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Customer name"
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm"
+                />
+              </div>
+              {compose === "email" && (
+                <div>
+                  <label className="text-xs font-semibold text-gray-500 uppercase block mb-1">Subject</label>
+                  <input
+                    required
+                    value={subject}
+                    onChange={(e) => setSubject(e.target.value)}
+                    placeholder="Your valuation"
+                    className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm"
+                  />
+                </div>
+              )}
+              <div>
+                <label className="text-xs font-semibold text-gray-500 uppercase block mb-1">
+                  {compose === "email" ? "Message" : "First message"}
+                </label>
+                <textarea
+                  required
+                  rows={6}
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  placeholder={
+                    compose === "email"
+                      ? "Write the email…"
+                      : "This starts a chat. They get an email with a reply link."
+                  }
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm resize-y"
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={sending}
+                className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 bg-black text-white text-sm font-semibold rounded-lg hover:bg-gray-800 disabled:opacity-50"
+              >
+                {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                {compose === "email" ? "Send email" : "Start chat & email them"}
+              </button>
+            </div>
+          </form>
         </div>
       )}
     </div>

@@ -108,6 +108,8 @@ Route::middleware('auth:sanctum')->prefix('admin')->group(function () {
 
     Route::get('/messages/unread-count', [FormController::class, 'adminMessagesUnreadCount']);
     Route::get('/messages', [FormController::class, 'adminMessages']);
+    Route::post('/messages/email', [FormController::class, 'adminSendEmail']);
+    Route::post('/messages/start', [FormController::class, 'adminStartChat']);
 
     Route::get('/contacts/stats', [MarketingContactController::class, 'stats']);
     Route::post('/contacts/sync', [MarketingContactController::class, 'sync']);

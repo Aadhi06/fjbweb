@@ -1,0 +1,15 @@
+HOSTINGER — Admin send email + start chat
+=========================================
+
+Upload backend-admin-email-chat.zip to Laravel root
+(public_html/api/) and extract / overwrite.
+
+Files:
+  app/Mail/AdminComposeEmail.php                 NEW
+  app/Http/Controllers/Api/FormController.php
+  routes/api.php
+
+Then clear cache:
+  https://api.finejewellerybuyers.co.uk/clear-cache.php?key=YOUR_CRON_SECRET
+
+Frontend: git push so Vercel updates Admin → Messages.

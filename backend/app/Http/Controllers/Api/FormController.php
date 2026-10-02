@@ -3,14 +3,17 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Mail\AdminComposeEmail;
 use App\Models\Form;
 use App\Models\FormField;
 use App\Models\FormSubmission;
 use App\Models\FormSubmissionFile;
 use App\Services\FormSubmissionService;
+use App\Services\MailConfigService;
 use App\Services\SubmissionConversationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Mail;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class FormController extends Controller
@@ -107,6 +110,80 @@ class FormController extends Controller
     {
         return response()->json([
             'count' => $this->conversationService->unreadCount(),
+        ]);
+    }
+
+    public function adminSendEmail(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'email' => 'required|email',
+            'name' => 'nullable|string|max:120',
+            'subject' => 'required|string|max:180',
+            'message' => 'required|string|min:1|max:8000',
+        ]);
+
+        $mailConfig = app(MailConfigService::class);
+        if (!$mailConfig->isConfigured()) {
+            return response()->json(['message' => 'SMTP is not configured. Add it in Settings first.'], 422);
+        }
+
+        $mailConfig->applyFromSettings();
+        Mail::to($validated['email'])->send(new AdminComposeEmail(
+            $validated['name'] ?? '',
+            $validated['subject'],
+            $validated['message'],
+        ));
+
+        return response()->json(['message' => 'Email sent.']);
+    }
+
+    public function adminStartChat(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'email' => 'required|email',
+            'name' => 'nullable|string|max:120',
+            'message' => 'required|string|min:1|max:5000',
+        ]);
+
+        $email = strtolower($validated['email']);
+        $name = trim((string) ($validated['name'] ?? '')) ?: 'Customer';
+
+        $submission = FormSubmission::query()
+            ->where('data->email', $email)
+            ->latest()
+            ->first();
+
+        if (!$submission) {
+            $form = Form::where('slug', 'contact')->first()
+                ?? Form::where('is_active', true)->first()
+                ?? Form::create([
+                    'title' => 'Admin message',
+                    'slug' => 'admin-message',
+                    'description' => 'Started from admin',
+                    'success_message' => 'Message sent.',
+                    'is_active' => true,
+                ]);
+
+            $submission = FormSubmission::create([
+                'form_id' => $form->id,
+                'data' => ['name' => $name, 'email' => $email],
+                'status' => 'replied',
+                'ip_address' => $request->ip(),
+                'user_agent' => 'admin',
+            ]);
+        }
+
+        $this->conversationService->sendAdminReply(
+            $submission,
+            $validated['message'],
+            $request->user(),
+        );
+
+        $submission->refresh()->load('form');
+
+        return response()->json([
+            'message' => 'Chat started. The customer has been emailed a reply link.',
+            'data' => $this->conversationService->formatConversationSummary($submission),
         ]);
     }
 
