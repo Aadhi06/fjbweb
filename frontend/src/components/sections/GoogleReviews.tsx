@@ -100,14 +100,14 @@ export function GoogleReviews({
           description="Verified Google reviews from customers who sold gold and jewellery to Fine Jewellery Buyers."
         />
 
-        <div className="min-h-[280px] overflow-hidden mb-4">
+        <div className="mb-4">
           <TrustindexWidget
             widgetId={DEFAULT_TRUSTINDEX_WIDGET_ID}
             onStatus={(ok) => setTrustindexOk(ok)}
           />
         </div>
 
-        {trustindexOk === false && (
+        {trustindexOk !== true && (
           <>
             <div className="flex flex-wrap items-center justify-center gap-2 mb-8 text-sm text-black">
               <GoogleIcon className="w-5 h-5" />

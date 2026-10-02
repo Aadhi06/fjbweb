@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef } from "react";
 
 export const DEFAULT_TRUSTINDEX_WIDGET_ID = "afd8ae0821ce80637d262599f2e";
 export const DEFAULT_TRUSTINDEX_INBOX_URL = "https://admin.trustindex.io/";
@@ -12,33 +12,31 @@ export function trustindexLoaderSrc(widgetId: string) {
 declare global {
   interface Window {
     renderTrustindexWidgets?: () => void;
+    TrustindexWidget?: new (widgets: unknown, placeholder?: Element) => unknown;
+    tiElementToWaitForActivity?: Element[];
+    tiElementToWaitForVisibility?: Element[];
   }
 }
 
-function isTrialExpiredBanner(node: Element) {
-  const text = (node.textContent || "").toLowerCase();
-  return text.includes("trial period has expired") || text.includes("subscription plans");
+function hasTrustindexReviews(root: ParentNode) {
+  return Boolean(root.querySelector(".ti-review-item, .ti-widget-container, .ti-widget"));
 }
 
-function confineTrustindex(host: HTMLElement) {
-  const widgets = Array.from(host.querySelectorAll(".ti-widget, [class*='ti-widget']"));
-  widgets.slice(1).forEach((extra) => extra.remove());
-
-  Array.from(host.querySelectorAll("*")).forEach((node) => {
-    if (isTrialExpiredBanner(node) && node instanceof HTMLElement) {
-      node.style.display = "none";
-    }
-  });
-
-  Array.from(document.body.children).forEach((child) => {
-    if (!(child instanceof HTMLElement)) return;
-    if (child.tagName === "SCRIPT" || child.tagName === "STYLE") return;
-    if (host.contains(child)) return;
-    const className = child.className?.toString?.() || "";
-    if (className.includes("ti-widget") || isTrialExpiredBanner(child)) {
-      child.remove();
-    }
-  });
+function paintPendingTrustindex() {
+  const flush = (list?: Element[]) => {
+    if (!list?.length || !window.TrustindexWidget) return;
+    list.splice(0).forEach((el) => {
+      try {
+        new window.TrustindexWidget!(null, el);
+      } catch {
+        /* Trustindex may already own this node */
+      }
+    });
+  };
+  flush(window.tiElementToWaitForActivity);
+  flush(window.tiElementToWaitForVisibility);
+  window.renderTrustindexWidgets?.();
+  window.dispatchEvent(new MouseEvent("mousemove"));
 }
 
 export function TrustindexWidget({
@@ -54,7 +52,8 @@ export function TrustindexWidget({
   const src = trustindexLoaderSrc(id);
   const reactId = useId().replace(/:/g, "");
   const hostDomId = `trustindex-host-${reactId}`;
-  const [failed, setFailed] = useState(false);
+  const onStatusRef = useRef(onStatus);
+  onStatusRef.current = onStatus;
 
   useEffect(() => {
     const host = document.getElementById(hostDomId);
@@ -66,44 +65,49 @@ export function TrustindexWidget({
       if (!script.src.includes(id)) script.remove();
     });
 
+    if (!host.querySelector(`[src*="${id}"]`) && !hasTrustindexReviews(host)) {
+      const placeholder = document.createElement("div");
+      placeholder.setAttribute("src", src);
+      host.appendChild(placeholder);
+    }
+
     if (!document.querySelector('script[data-trustindex-loader="1"]')) {
       const script = document.createElement("script");
       script.src = src;
       script.async = true;
-      script.defer = true;
       script.dataset.trustindexLoader = "1";
-      host.appendChild(script);
+      script.dataset.skipInit = "1";
+      script.onload = () => paintPendingTrustindex();
+      document.head.appendChild(script);
     } else {
-      window.renderTrustindexWidgets?.();
+      paintPendingTrustindex();
     }
 
     const check = () => {
       if (cancelled) return;
-      confineTrustindex(host);
-      const expired = isTrialExpiredBanner(host) || Array.from(document.body.children).some(isTrialExpiredBanner);
-      const hasReviews = Boolean(host.querySelector(".ti-review-item, .ti-widget-container, [class*='ti-review']"));
-      if (expired && !hasReviews) {
-        setFailed(true);
-        onStatus?.(false);
-        host.replaceChildren();
-      } else if (hasReviews) {
-        setFailed(false);
-        onStatus?.(true);
+      if (hasTrustindexReviews(host) || hasTrustindexReviews(document)) {
+        onStatusRef.current?.(true);
+        return;
       }
+      paintPendingTrustindex();
     };
 
     const observer = new MutationObserver(check);
     observer.observe(document.body, { childList: true, subtree: true });
-    const timers = [600, 1600, 3500, 7000].map((ms) => window.setTimeout(check, ms));
+    const timers = [400, 1000, 2000, 4000].map((ms) => window.setTimeout(check, ms));
+    const failTimer = window.setTimeout(() => {
+      if (!cancelled && !hasTrustindexReviews(host) && !hasTrustindexReviews(document)) {
+        onStatusRef.current?.(false);
+      }
+    }, 7000);
 
     return () => {
       cancelled = true;
       observer.disconnect();
       timers.forEach((timer) => window.clearTimeout(timer));
+      window.clearTimeout(failTimer);
     };
-  }, [src, hostDomId, id, onStatus]);
-
-  if (failed) return null;
+  }, [src, hostDomId, id]);
 
   return (
     <div
@@ -111,12 +115,6 @@ export function TrustindexWidget({
       data-trustindex-host=""
       className={className}
       aria-label="Verified Google reviews"
-    >
-      <div
-        ref={(node) => {
-          if (node) node.setAttribute("src", src);
-        }}
-      />
-    </div>
+    />
   );
 }
