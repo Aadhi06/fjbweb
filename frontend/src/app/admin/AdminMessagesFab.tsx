@@ -43,7 +43,7 @@ export function AdminMessagesFab({
       type="button"
       onClick={onClick}
       aria-label={`Messages${count > 0 ? `, ${count} unread` : ""}`}
-      className="fixed bottom-6 right-6 z-[80] w-14 h-14 bg-[#D97706] text-white rounded-full shadow-lg hover:bg-[#b45309] transition-all flex items-center justify-center hover:scale-105 active:scale-95"
+      className="fixed bottom-[calc(1.25rem+env(safe-area-inset-bottom))] right-4 sm:right-6 z-[80] w-14 h-14 bg-[#D97706] text-white rounded-full shadow-lg hover:bg-[#b45309] transition-all flex items-center justify-center active:scale-95"
     >
       <MessageSquare className="w-6 h-6" />
       {count > 0 && (

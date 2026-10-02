@@ -1,8 +1,9 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter, Playfair_Display } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
 import { ClientLayout } from "@/components/layout/ClientLayout";
+import { PwaRegister } from "@/components/PwaRegister";
 import {
   buildMetadata,
   DEFAULT_OG_IMAGE,
@@ -15,6 +16,13 @@ import {
   websiteJsonLd,
 } from "@/lib/seo";
 import { getSettings } from "@/lib/settings";
+
+export const viewport: Viewport = {
+  themeColor: "#D97706",
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+};
 
 const inter = Inter({
   variable: "--font-inter",
@@ -58,6 +66,14 @@ export async function generateMetadata(): Promise<Metadata> {
       ],
       shortcut: "/favicon-48.png?v=fjb3",
       apple: [{ url: "/apple-icon.png?v=fjb3", sizes: "180x180", type: "image/png" }],
+    },
+    appleWebApp: {
+      capable: true,
+      title: SITE_NAME,
+      statusBarStyle: "black-translucent",
+    },
+    other: {
+      "mobile-web-app-capable": "yes",
     },
   };
 }
@@ -143,6 +159,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(siteNavigationJsonLd()) }}
         />
+        <PwaRegister />
         <ClientLayout initialSettings={settings}>{children}</ClientLayout>
       </body>
     </html>

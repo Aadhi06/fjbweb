@@ -29,6 +29,7 @@ export function ClientLayout({
 }) {
   const pathname = usePathname();
   const isAdmin = pathname.startsWith("/admin");
+  const isEnquiry = pathname.startsWith("/enquiry");
   const [settings, setSettings] = useState<SiteSettings>(() => {
     const seed = initialSettings ?? defaultSettings;
     if (typeof window !== "undefined") {
@@ -54,7 +55,7 @@ export function ClientLayout({
     };
   }, []);
 
-  if (isAdmin) {
+  if (isAdmin || isEnquiry) {
     return <>{children}</>;
   }
 

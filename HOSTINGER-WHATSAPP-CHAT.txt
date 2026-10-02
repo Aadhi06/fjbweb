@@ -1,0 +1,6 @@
+Upload backend-whatsapp-chat.zip into the Laravel API folder on Hostinger.
+
+This is required for:
+- live message loading on the customer chat
+- “Fine Jewellery Buyers started a new conversation with you” emails
+- Start chat from Bookings, including linking the appointment

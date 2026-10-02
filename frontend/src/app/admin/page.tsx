@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   LayoutDashboard,
+  Home,
   Settings,
   CalendarDays,
   FileText,
@@ -14,7 +15,6 @@ import {
   Users,
   TrendingUp,
   Package,
-  Menu,
   X,
   Eye,
   EyeOff,
@@ -48,6 +48,7 @@ import {
   HardHat,
   MessageSquare,
   ExternalLink,
+  MoreHorizontal,
 } from "lucide-react";
 import {
   DEFAULT_TRUSTINDEX_INBOX_URL,
@@ -103,7 +104,7 @@ function Toast({ message, type, onClose }: { message: string; type: ToastType; o
 
   return (
     <div
-      className={`fixed top-6 right-6 z-[100] flex items-center gap-3 px-5 py-3 rounded-xl shadow-lg border text-sm font-medium animate-in slide-in-from-top-2 ${
+      className={`fixed top-4 left-4 right-4 sm:left-auto sm:right-6 sm:top-6 z-[100] flex items-center gap-3 px-4 sm:px-5 py-3 rounded-xl shadow-lg border text-sm font-medium ${
         type === "success"
           ? "bg-green-50 border-green-200 text-green-800"
           : "bg-red-50 border-red-200 text-red-800"
@@ -2502,7 +2503,15 @@ export default function AdminDashboardPage() {
       case "reviews":
         return <ReviewsContent />;
       case "bookings":
-        return <BookingsContent showToast={showToast} />;
+        return (
+          <BookingsContent
+            showToast={showToast}
+            onOpenChat={(id) => {
+              setMessagesSelectedId(id);
+              setActiveTab("messages");
+            }}
+          />
+        );
       case "forms":
         return <FormsContent showToast={showToast} />;
       case "submissions":
@@ -2527,18 +2536,18 @@ export default function AdminDashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f5f5f5] flex">
+    <div className="min-h-dvh bg-[#f5f5f5] flex overflow-x-hidden">
       {toast && <Toast message={toast.message} type={toast.type} onClose={clearToast} />}
       {sidebarOpen && (
         <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />
       )}
 
       <aside
-        className={`fixed lg:static inset-y-0 left-0 z-50 w-64 bg-black text-white flex flex-col transition-transform lg:translate-x-0 ${
+        className={`fixed lg:static inset-y-0 left-0 z-50 w-[min(18rem,88vw)] bg-black text-white flex flex-col transition-transform lg:translate-x-0 pt-[env(safe-area-inset-top)] ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <div className="flex items-center gap-3 px-6 py-5 border-b border-white/10">
+        <div className="flex items-center gap-3 px-5 py-4 border-b border-white/10">
           <div className="w-9 h-9 bg-[#D97706] rounded-lg flex items-center justify-center flex-shrink-0">
             <Gem className="w-5 h-5 text-white" />
           </div>
@@ -2546,12 +2555,12 @@ export default function AdminDashboardPage() {
             <p className="text-sm font-semibold truncate">FJB Admin</p>
             <p className="text-xs text-gray-400 truncate">{user?.email}</p>
           </div>
-          <button className="lg:hidden ml-auto text-gray-400 hover:text-white" onClick={() => setSidebarOpen(false)}>
+          <button className="lg:hidden ml-auto min-h-11 min-w-11 text-gray-400 hover:text-white" onClick={() => setSidebarOpen(false)} aria-label="Close menu">
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <nav className="flex-1 px-3 py-4 space-y-1">
+        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
           {navItems.map((item) => {
             const isActive = activeTab === item.id;
             const badge = item.id === "messages" && unreadCount > 0 ? unreadCount : 0;
@@ -2563,7 +2572,7 @@ export default function AdminDashboardPage() {
                   setSidebarOpen(false);
                   if (item.id === "messages") refreshUnread();
                 }}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium min-h-11 transition-colors ${
                   isActive
                     ? "bg-[#D97706] text-white"
                     : "text-gray-400 hover:text-white hover:bg-white/5"
@@ -2595,13 +2604,18 @@ export default function AdminDashboardPage() {
       </aside>
 
       <div className="flex-1 min-w-0">
-        <header className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between sticky top-0 z-30">
-          <div className="flex items-center gap-3">
-            <button className="lg:hidden text-gray-600 hover:text-black" onClick={() => setSidebarOpen(true)}>
-              <Menu className="w-6 h-6" />
-            </button>
-            <h1 className="text-lg font-semibold text-black font-sans">
-              {navItems.find((i) => i.id === activeTab)?.label}
+        <header className="bg-white border-b border-gray-200 px-3 sm:px-6 py-3 sm:py-4 flex items-center justify-between sticky top-0 z-30 safe-top">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/apple-icon.png" alt="Fine Jewellery Buyers" className="w-8 h-8 rounded-lg lg:hidden" />
+            <h1 className="text-lg font-semibold text-black font-sans truncate">
+              {activeTab === "dashboard"
+                ? "Home"
+                : activeTab === "submissions"
+                  ? "Enquiries"
+                  : activeTab === "bookings"
+                    ? "Appointments"
+                    : navItems.find((i) => i.id === activeTab)?.label}
             </h1>
           </div>
           <div className="flex items-center gap-3">
@@ -2611,16 +2625,71 @@ export default function AdminDashboardPage() {
           </div>
         </header>
 
-        <main className="p-4 sm:p-6">{renderContent()}</main>
+        <main
+          className={`${
+            activeTab === "messages" || activeTab === "submissions" ? "p-0 sm:p-4" : "p-3 sm:p-6"
+          } pb-[calc(5.5rem+env(safe-area-inset-bottom))] lg:pb-8`}
+        >
+          {renderContent()}
+        </main>
       </div>
 
-      <AdminMessagesFab
-        count={unreadCount}
-        onClick={() => {
-          setActiveTab("messages");
-          refreshUnread();
-        }}
-      />
+      <nav className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-white border-t border-gray-200 safe-bottom">
+        <div className="grid grid-cols-4">
+          {(
+            [
+              { id: "dashboard" as ActiveTab, label: "Home", icon: Home },
+              { id: "submissions" as ActiveTab, label: "Enquiries", icon: MessageSquare, badge: unreadCount },
+              { id: "bookings" as ActiveTab, label: "Appointments", icon: CalendarDays },
+            ] as const
+          ).map((item) => {
+            const isActive = activeTab === item.id;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => {
+                  setActiveTab(item.id);
+                  if (item.id === "submissions") refreshUnread();
+                }}
+                className={`flex flex-col items-center justify-center gap-0.5 min-h-14 py-2 ${
+                  isActive ? "text-[#D97706]" : "text-gray-500"
+                }`}
+              >
+                <span className="relative">
+                  <item.icon className="w-5 h-5" />
+                  {"badge" in item && item.badge > 0 && (
+                    <span className="absolute -top-1.5 -right-2 min-w-4 h-4 px-1 rounded-full bg-red-500 text-white text-[10px] font-bold leading-4">
+                      {item.badge > 99 ? "99+" : item.badge}
+                    </span>
+                  )}
+                </span>
+                <span className="text-[11px] font-medium">{item.label}</span>
+              </button>
+            );
+          })}
+          <button
+            type="button"
+            onClick={() => setSidebarOpen(true)}
+            className="flex flex-col items-center justify-center gap-0.5 min-h-14 py-2 text-gray-500"
+          >
+            <MoreHorizontal className="w-5 h-5" />
+            <span className="text-[11px] font-medium">More</span>
+          </button>
+        </div>
+      </nav>
+
+      {activeTab !== "messages" && activeTab !== "submissions" && (
+        <div className="hidden lg:block">
+          <AdminMessagesFab
+            count={unreadCount}
+            onClick={() => {
+              setActiveTab("messages");
+              refreshUnread();
+            }}
+          />
+        </div>
+      )}
     </div>
   );
 }

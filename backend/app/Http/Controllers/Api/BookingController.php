@@ -141,7 +141,9 @@ class BookingController extends Controller
             $query->where('status', $request->status);
         }
 
-        return response()->json($query->paginate(20));
+        $perPage = min(100, max(10, (int) $request->input('per_page', 20)));
+
+        return response()->json($query->paginate($perPage));
     }
 
     public function update(Request $request, Booking $booking): JsonResponse

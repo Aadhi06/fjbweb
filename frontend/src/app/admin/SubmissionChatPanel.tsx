@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ChevronDown, ChevronUp, Loader2, MessageSquare, Send, X } from "lucide-react";
+import { ArrowLeft, CalendarDays, ChevronDown, ChevronUp, Loader2, MessageSquare, Send } from "lucide-react";
 import { useSettings } from "@/lib/useSettings";
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8002") + "/api";
@@ -35,6 +35,15 @@ export type SubmissionFile = {
   is_image: boolean;
 };
 
+export type LinkedBooking = {
+  id: number;
+  name?: string | null;
+  service_type?: string | null;
+  booking_date?: string | null;
+  booking_time?: string | null;
+  status?: string | null;
+};
+
 export type SubmissionDetail = {
   id: number;
   form_name: string;
@@ -42,6 +51,7 @@ export type SubmissionDetail = {
   data: Record<string, string>;
   files?: SubmissionFile[];
   messages: ChatMessage[];
+  booking?: LinkedBooking | null;
   customer_email?: string | null;
   created_at_human: string;
 };
@@ -297,7 +307,8 @@ export function SubmissionChatPanel({
   const [reply, setReply] = useState("");
   const [selectedReplyIds, setSelectedReplyIds] = useState<string[]>([]);
   const [sending, setSending] = useState(false);
-  const [showDetails, setShowDetails] = useState(!compact);
+  const [showDetails, setShowDetails] = useState(!compact && !onClose);
+  const [showSuggested, setShowSuggested] = useState(!onClose);
   const settings = useSettings();
   const chatEndRef = useRef<HTMLDivElement>(null);
   const replyRef = useRef<HTMLTextAreaElement>(null);
@@ -418,24 +429,32 @@ export function SubmissionChatPanel({
 
   if (!detail) return null;
 
+  const appChat = Boolean(onClose);
+
   return (
     <div className="flex flex-col h-full min-h-0">
-      <div className="flex items-center justify-between p-4 border-b border-gray-200 shrink-0 bg-white">
-        <div className="min-w-0 flex-1">
-          <h3 className="text-base sm:text-lg font-semibold text-black truncate">{detail.form_name}</h3>
-          <p className="text-xs sm:text-sm text-gray-500 truncate">
-            {detail.customer_email || "No email"} · {detail.created_at_human}
-          </p>
-        </div>
+      <div className={`flex items-center gap-2 p-3 sm:p-4 border-b shrink-0 ${appChat ? "bg-[#111111] text-white border-white/10 safe-top" : "bg-white border-gray-200"}`}>
         {onClose && (
-          <button onClick={onClose} className="ml-2 p-2 text-gray-400 hover:text-black shrink-0">
-            <X className="w-5 h-5" />
+          <button type="button" onClick={onClose} className="min-h-11 min-w-11 flex items-center justify-center text-white/80 hover:text-white shrink-0" aria-label="Back to enquiries">
+            <ArrowLeft className="w-5 h-5" />
           </button>
         )}
+        <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold shrink-0 ${appChat ? "bg-[#D97706] text-black" : "bg-black text-white"}`}>
+          {(fieldValue(detail.data || {}, "name", "full_name") || "C").charAt(0).toUpperCase()}
+        </div>
+        <div className="min-w-0 flex-1">
+          <h3 className={`text-base font-semibold truncate ${appChat ? "text-white" : "text-black"}`}>
+            {fieldValue(detail.data || {}, "name", "full_name") || detail.form_name}
+          </h3>
+          <p className={`text-xs truncate ${appChat ? "text-white/60" : "text-gray-500"}`}>
+            {detail.form_name}
+            {detail.customer_email ? ` · ${detail.customer_email}` : ""}
+          </p>
+        </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto min-h-0">
-        {compact && (
+      <div className={`flex-1 overflow-y-auto min-h-0 ${appChat ? "chat-wallpaper" : ""}`}>
+        {(compact || appChat) && (
           <button
             type="button"
             onClick={() => setShowDetails((v) => !v)}
@@ -448,6 +467,18 @@ export function SubmissionChatPanel({
 
         {showDetails && (
           <div className="p-4 space-y-4 border-b border-gray-100 bg-white">
+            {detail.booking && (
+              <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5">
+                <p className="text-[11px] font-semibold text-amber-800 uppercase inline-flex items-center gap-1.5">
+                  <CalendarDays className="w-3.5 h-3.5" /> Linked appointment
+                </p>
+                <p className="text-sm text-black mt-1">
+                  {[detail.booking.service_type, detail.booking.booking_date, detail.booking.booking_time]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </p>
+              </div>
+            )}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {fields.map(([key, value]) => (
                 <div key={key} className="bg-gray-50 rounded-lg px-3 py-2 border border-gray-100">
@@ -476,8 +507,8 @@ export function SubmissionChatPanel({
           </div>
         )}
 
-        <div className="p-4 space-y-3">
-          {!compact && (
+        <div className="p-3 sm:p-4 space-y-3">
+          {!compact && !appChat && (
             <p className="text-xs font-semibold text-gray-500 uppercase flex items-center gap-1.5">
               <MessageSquare className="w-4 h-4" /> Conversation
             </p>
@@ -492,29 +523,43 @@ export function SubmissionChatPanel({
         </div>
       </div>
 
-      <form onSubmit={sendReply} className="border-t border-gray-200 p-3 sm:p-4 bg-gray-50 shrink-0 safe-bottom">
-        <p className="text-[11px] text-gray-500 mb-2">
-          Suggested from this enquiry — tap one or more to combine. You can still edit before sending.
-        </p>
-        <div className="flex flex-wrap gap-1.5 mb-2">
-          {presets.map((preset) => {
-            const selected = selectedReplyIds.includes(preset.id);
-            return (
-              <button
-                key={preset.id}
-                type="button"
-                onClick={() => toggleSuggestedReply(preset.id)}
-                className={`px-2.5 py-1 text-[11px] font-medium rounded-full border transition-colors ${
-                  selected
-                    ? "bg-amber-500 text-white border-amber-500"
-                    : "bg-white text-gray-700 border-gray-200 hover:border-amber-400 hover:bg-amber-50/50"
-                }`}
-              >
-                {preset.label}
-              </button>
-            );
-          })}
-        </div>
+      <form onSubmit={sendReply} className={`border-t p-2.5 sm:p-4 shrink-0 safe-bottom ${appChat ? "bg-[#111111] border-white/10" : "border-gray-200 bg-gray-50"}`}>
+        {appChat ? (
+          <button
+            type="button"
+            onClick={() => setShowSuggested((v) => !v)}
+            className="text-[11px] text-white/70 px-2 mb-1.5"
+          >
+            {showSuggested ? "Hide suggested replies" : "Show suggested replies"}
+          </button>
+        ) : (
+          <p className="text-[11px] text-gray-500 mb-2">
+            Suggested from this enquiry — tap one or more to combine. You can still edit before sending.
+          </p>
+        )}
+        {showSuggested && (
+          <div className="flex flex-wrap gap-1.5 mb-2 px-1">
+            {presets.map((preset) => {
+              const selected = selectedReplyIds.includes(preset.id);
+              return (
+                <button
+                  key={preset.id}
+                  type="button"
+                  onClick={() => toggleSuggestedReply(preset.id)}
+                  className={`px-2.5 py-1 text-[11px] font-medium rounded-full border transition-colors ${
+                    selected
+                      ? "bg-amber-500 text-white border-amber-500"
+                      : appChat
+                        ? "bg-white/10 text-white border-white/20"
+                        : "bg-white text-gray-700 border-gray-200 hover:border-amber-400 hover:bg-amber-50/50"
+                  }`}
+                >
+                  {preset.label}
+                </button>
+              );
+            })}
+          </div>
+        )}
         <div className="flex gap-2 items-end">
           <textarea
             ref={replyRef}
@@ -526,14 +571,17 @@ export function SubmissionChatPanel({
                 setSelectedReplyIds([]);
               }
             }}
-            placeholder="Tap suggested replies above, or type your own..."
-            rows={3}
-            className="flex-1 border border-gray-200 rounded-xl px-3 py-2.5 sm:px-4 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-amber-500/30 min-h-[44px]"
+            placeholder="Type a message"
+            rows={appChat ? 1 : 3}
+            className={`flex-1 border rounded-3xl px-4 py-2.5 text-base sm:text-sm resize-none focus:outline-none focus:ring-2 focus:ring-amber-500/30 min-h-11 max-h-32 ${
+              appChat ? "bg-white text-black border-transparent" : "border-gray-200"
+            }`}
           />
           <button
             type="submit"
             disabled={sending || !reply.trim()}
-            className="h-11 w-11 sm:px-4 sm:w-auto flex items-center justify-center bg-black text-white rounded-xl hover:bg-black/80 disabled:opacity-50 shrink-0"
+            className="h-11 w-11 flex items-center justify-center bg-[#D97706] text-black rounded-full disabled:opacity-50 shrink-0"
+            aria-label="Send message"
           >
             {sending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
           </button>
@@ -557,7 +605,7 @@ export function SubmissionChatModal({
   return (
     <div className="fixed inset-0 z-[90] flex items-center justify-center p-0 sm:p-4">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative bg-white sm:rounded-2xl shadow-xl w-full sm:max-w-3xl h-full sm:h-auto sm:max-h-[90vh] flex flex-col overflow-hidden">
+      <div className="relative bg-white sm:rounded-2xl shadow-xl w-full sm:max-w-3xl h-dvh sm:h-auto sm:max-h-[90vh] flex flex-col overflow-hidden">
         <SubmissionChatPanel
           submissionId={submissionId}
           showToast={showToast}

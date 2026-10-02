@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { CalendarDays, ChevronDown, Loader2, Mail, RefreshCw, X, Bell } from "lucide-react";
+import { CalendarDays, ChevronDown, Loader2, Mail, MessageSquare, RefreshCw, X, Bell } from "lucide-react";
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8002") + "/api";
 
@@ -51,8 +51,10 @@ function StatusBadge({ status }: { status: string }) {
 
 export function BookingsContent({
   showToast,
+  onOpenChat,
 }: {
   showToast: (msg: string, type: "success" | "error") => void;
+  onOpenChat?: (submissionId: number) => void;
 }) {
   const [bookings, setBookings] = useState<BookingRecord[]>([]);
   const [templates, setTemplates] = useState<EmailTemplate[]>([]);
@@ -66,6 +68,53 @@ export function BookingsContent({
   const [cancelReason, setCancelReason] = useState("");
   const [editForm, setEditForm] = useState({ name: "", email: "", phone: "", notes: "" });
   const [savingDetails, setSavingDetails] = useState(false);
+  const [chatBooking, setChatBooking] = useState<BookingRecord | null>(null);
+  const [chatMessage, setChatMessage] = useState("");
+  const [startingChat, setStartingChat] = useState(false);
+
+  function defaultChatMessage(b: BookingRecord) {
+    const date = b.booking_date
+      ? new Date(`${b.booking_date}T12:00:00`).toLocaleDateString("en-GB", {
+          weekday: "short",
+          day: "numeric",
+          month: "short",
+        })
+      : "";
+    return `Fine Jewellery Buyers started a new conversation with you about your appointment${date ? ` on ${date}` : ""}${b.booking_time ? ` at ${b.booking_time}` : ""}${b.service_type ? ` (${b.service_type})` : ""}. Reply here if you have any questions before you visit.`;
+  }
+
+  function openChatComposer(b: BookingRecord) {
+    setChatBooking(b);
+    setChatMessage(defaultChatMessage(b));
+  }
+
+  async function startChatFromBooking(e: React.FormEvent) {
+    e.preventDefault();
+    if (!chatBooking || !chatMessage.trim()) return;
+    setStartingChat(true);
+    try {
+      const res = await fetch(`${API_URL}/admin/messages/start`, {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          booking_id: chatBooking.id,
+          email: chatBooking.email,
+          name: chatBooking.name,
+          message: chatMessage.trim(),
+        }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json.message || "Failed to start chat");
+      showToast(json.message || "Chat started", "success");
+      const submissionId = json.data?.id;
+      setChatBooking(null);
+      if (submissionId) onOpenChat?.(submissionId);
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "Failed to start chat", "error");
+    } finally {
+      setStartingChat(false);
+    }
+  }
 
   function openDetail(b: BookingRecord) {
     setDetailBooking(b);
@@ -230,12 +279,12 @@ export function BookingsContent({
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
         <div>
-          <h2 className="text-2xl font-bold text-black mb-1">Bookings</h2>
-          <p className="text-gray-500">Confirm, remind, or reschedule — customers are emailed automatically. Admin gets today &amp; tomorrow each morning at 8am.</p>
+          <h2 className="text-xl sm:text-2xl font-bold text-black mb-1">Bookings</h2>
+          <p className="text-sm text-gray-500">Confirm, remind, chat, or reschedule. Customers are emailed automatically.</p>
         </div>
-        <button onClick={() => { setLoading(true); fetchBookings(); }} className="flex items-center gap-2 text-sm text-gray-600 hover:text-black">
+        <button onClick={() => { setLoading(true); fetchBookings(); }} className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-black min-h-11">
           <RefreshCw className="w-4 h-4" /> Refresh
         </button>
       </div>
@@ -276,7 +325,43 @@ export function BookingsContent({
           <p className="text-gray-500 text-sm">Bookings appear here when customers book on the website.</p>
         </div>
       ) : (
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <>
+        <div className="space-y-3 md:hidden">
+          {bookings.map((b) => (
+            <div
+              key={b.id}
+              className="w-full text-left bg-white rounded-xl border border-gray-200 p-4"
+            >
+              <button type="button" onClick={() => openDetail(b)} className="w-full text-left">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="font-semibold text-black truncate">{b.name}</p>
+                  <p className="text-xs text-gray-500 truncate">{b.email}</p>
+                  <p className="text-sm text-gray-700 mt-1">
+                    {formatBookingDate(b.booking_date)} · {b.booking_time}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-0.5">{b.service_type}</p>
+                </div>
+                <StatusBadge status={b.status} />
+              </div>
+              </button>
+              <div className="flex flex-wrap gap-2 mt-3">
+                <button
+                  type="button"
+                  onClick={() => openChatComposer(b)}
+                  className="min-h-10 px-3 text-xs font-semibold rounded-lg bg-[#D97706] text-white"
+                >
+                  Start chat
+                </button>
+                {b.status === "pending" && (
+                  <button type="button" onClick={() => updateStatus(b.id, "confirmed")} className="min-h-10 px-3 text-xs font-medium rounded-lg bg-green-50 text-green-700 border border-green-200">Confirm</button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="hidden md:block bg-white rounded-xl border border-gray-200 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
@@ -311,6 +396,13 @@ export function BookingsContent({
                     <td className="px-4 py-3"><StatusBadge status={b.status} /></td>
                     <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                       <div className="flex flex-wrap gap-1">
+                        <button
+                          type="button"
+                          onClick={() => openChatComposer(b)}
+                          className="px-2 py-1 text-xs font-medium rounded bg-amber-50 text-amber-800 border border-amber-200 inline-flex items-center gap-1"
+                        >
+                          <MessageSquare className="w-3 h-3" /> Chat
+                        </button>
                         {b.status === "pending" && (
                           <button onClick={() => updateStatus(b.id, "confirmed")} disabled={updatingId === b.id} className="px-2 py-1 text-xs font-medium rounded bg-green-50 text-green-700 border border-green-200 disabled:opacity-50">Confirm</button>
                         )}
@@ -360,6 +452,7 @@ export function BookingsContent({
             </table>
           </div>
         </div>
+        </>
       )}
 
       {detailBooking && (
@@ -442,6 +535,16 @@ export function BookingsContent({
             </div>
 
             <div className="border-t p-4 flex flex-wrap gap-2 bg-white">
+              <button
+                type="button"
+                onClick={() => {
+                  openChatComposer(detailBooking);
+                  setDetailBooking(null);
+                }}
+                className="px-3 py-2 text-xs font-semibold rounded-lg bg-[#D97706] text-white inline-flex items-center gap-1 min-h-11"
+              >
+                <MessageSquare className="w-3.5 h-3.5" /> Start chat
+              </button>
               {detailBooking.status === "pending" && (
                 <button
                   type="button"
@@ -544,6 +647,39 @@ export function BookingsContent({
             </div>
             <div className="overflow-y-auto p-4 bg-gray-50 flex-1" dangerouslySetInnerHTML={{ __html: selectedTemplate.html }} />
           </div>
+        </div>
+      )}
+
+      {chatBooking && (
+        <div className="fixed inset-0 z-[90] flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setChatBooking(null)} />
+          <form onSubmit={startChatFromBooking} className="relative bg-white rounded-t-2xl sm:rounded-2xl shadow-xl max-w-md w-full p-5 sm:p-6 space-y-4 max-h-[92dvh] overflow-y-auto">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h3 className="font-semibold text-black">Start chat</h3>
+                <p className="text-xs text-gray-500 mt-1">
+                  {chatBooking.name} · {formatBookingDate(chatBooking.booking_date)} {chatBooking.booking_time}
+                </p>
+              </div>
+              <button type="button" onClick={() => setChatBooking(null)} className="p-2 text-gray-400" aria-label="Close">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">First message</label>
+              <textarea
+                required
+                rows={5}
+                value={chatMessage}
+                onChange={(e) => setChatMessage(e.target.value)}
+                className="w-full border border-gray-200 rounded-lg px-3 py-3 text-base sm:text-sm"
+              />
+              <p className="text-[11px] text-gray-400 mt-1">They get an email: Fine Jewellery Buyers started a new conversation with you.</p>
+            </div>
+            <button type="submit" disabled={startingChat} className="w-full min-h-11 py-2.5 bg-black text-white font-medium rounded-lg disabled:opacity-50">
+              {startingChat ? "Starting…" : "Start chat & email them"}
+            </button>
+          </form>
         </div>
       )}
 

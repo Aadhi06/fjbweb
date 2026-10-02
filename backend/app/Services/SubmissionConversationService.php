@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Mail\AdminCustomerReplyNotification;
 use App\Mail\CustomerSubmissionReply;
+use App\Models\Booking;
 use App\Models\FormSubmission;
 use App\Models\FormSubmissionMessage;
 use App\Models\Setting;
@@ -63,9 +64,10 @@ class SubmissionConversationService
         return $message?->submission;
     }
 
-    public function sendAdminReply(FormSubmission $submission, string $message, ?User $admin = null): FormSubmissionMessage
+    public function sendAdminReply(FormSubmission $submission, string $message, ?User $admin = null, bool $isNewConversation = false): FormSubmissionMessage
     {
         $submission->load('form');
+        $isNewConversation = $isNewConversation || $submission->messages()->count() === 0;
 
         $record = FormSubmissionMessage::create([
             'form_submission_id' => $submission->id,
@@ -76,7 +78,7 @@ class SubmissionConversationService
 
         $submission->update(['status' => 'replied']);
 
-        $this->emailCustomer($submission, $record, $admin?->name);
+        $this->emailCustomer($submission, $record, $admin?->name, $isNewConversation);
 
         return $record;
     }
@@ -98,7 +100,7 @@ class SubmissionConversationService
         return $record;
     }
 
-    private function emailCustomer(FormSubmission $submission, FormSubmissionMessage $message, ?string $adminName): void
+    private function emailCustomer(FormSubmission $submission, FormSubmissionMessage $message, ?string $adminName, bool $isNewConversation = false): void
     {
         $mailConfig = app(MailConfigService::class);
         if (!$mailConfig->isConfigured()) {
@@ -119,6 +121,7 @@ class SubmissionConversationService
                 $message,
                 $this->conversationUrl($submission),
                 $adminName,
+                $isNewConversation,
             ));
         } catch (\Exception $e) {
             Log::error("Failed to send submission reply to customer: {$e->getMessage()}");
@@ -222,6 +225,7 @@ class SubmissionConversationService
             'customer_email' => $email,
             'status' => $submission->status,
             'unread' => $this->isUnread($submission),
+            'booking' => $this->linkedBooking($submission),
             'last_message' => $latest ? [
                 'sender' => $latest->sender,
                 'body' => $latest->body,
@@ -229,6 +233,53 @@ class SubmissionConversationService
             ] : null,
             'message_count' => $submission->messages_count ?? $submission->messages()->count(),
             'created_at_human' => $submission->created_at->diffForHumans(),
+        ];
+    }
+
+    public function attachBooking(FormSubmission $submission, Booking $booking): void
+    {
+        $data = $submission->data ?? [];
+        $data['_booking_id'] = $booking->id;
+        $data['_booking_date'] = $booking->booking_date?->toDateString();
+        $data['_booking_time'] = $booking->booking_time;
+        $data['_booking_service'] = $booking->service_type;
+        if (empty($data['name'])) {
+            $data['name'] = $booking->name;
+        }
+        if (empty($data['email'])) {
+            $data['email'] = $booking->email;
+        }
+        if (empty($data['phone'])) {
+            $data['phone'] = $booking->phone;
+        }
+        $submission->update(['data' => $data]);
+    }
+
+    public function linkedBooking(FormSubmission $submission): ?array
+    {
+        $id = $submission->data['_booking_id'] ?? null;
+        if (!$id) {
+            return null;
+        }
+
+        $booking = Booking::find($id);
+        if ($booking) {
+            return [
+                'id' => $booking->id,
+                'name' => $booking->name,
+                'service_type' => $booking->service_type,
+                'booking_date' => $booking->booking_date?->toDateString(),
+                'booking_time' => $booking->booking_time,
+                'status' => $booking->status,
+            ];
+        }
+
+        return [
+            'id' => (int) $id,
+            'service_type' => $submission->data['_booking_service'] ?? null,
+            'booking_date' => $submission->data['_booking_date'] ?? null,
+            'booking_time' => $submission->data['_booking_time'] ?? null,
+            'status' => null,
         ];
     }
 

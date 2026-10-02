@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Mail\AdminComposeEmail;
+use App\Models\Booking;
 use App\Models\Form;
 use App\Models\FormField;
 use App\Models\FormSubmission;
@@ -140,25 +141,36 @@ class FormController extends Controller
     public function adminStartChat(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'email' => 'required|email',
+            'email' => 'required_without:booking_id|nullable|email',
             'name' => 'nullable|string|max:120',
             'message' => 'required|string|min:1|max:5000',
+            'booking_id' => 'nullable|integer|exists:bookings,id',
         ]);
 
-        $email = strtolower($validated['email']);
-        $name = trim((string) ($validated['name'] ?? '')) ?: 'Customer';
+        $booking = !empty($validated['booking_id'])
+            ? Booking::find($validated['booking_id'])
+            : null;
+
+        $email = strtolower((string) ($booking?->email ?: $validated['email'] ?? ''));
+        $name = trim((string) ($booking?->name ?: $validated['name'] ?? '')) ?: 'Customer';
+
+        if ($email === '') {
+            return response()->json(['message' => 'A customer email is required.'], 422);
+        }
 
         $submission = FormSubmission::query()
             ->where('data->email', $email)
             ->latest()
             ->first();
 
+        $isNewConversation = !$submission || $submission->messages()->count() === 0;
+
         if (!$submission) {
-            $form = Form::where('slug', 'contact')->first()
+            $form = Form::where('slug', $booking ? 'book-appointment' : 'contact')->first()
                 ?? Form::where('is_active', true)->first()
                 ?? Form::create([
-                    'title' => 'Admin message',
-                    'slug' => 'admin-message',
+                    'title' => $booking ? 'Appointment chat' : 'Admin message',
+                    'slug' => $booking ? 'appointment-chat' : 'admin-message',
                     'description' => 'Started from admin',
                     'success_message' => 'Message sent.',
                     'is_active' => true,
@@ -166,23 +178,31 @@ class FormController extends Controller
 
             $submission = FormSubmission::create([
                 'form_id' => $form->id,
-                'data' => ['name' => $name, 'email' => $email],
+                'data' => ['name' => $name, 'email' => $email, 'phone' => $booking?->phone],
                 'status' => 'replied',
                 'ip_address' => $request->ip(),
                 'user_agent' => 'admin',
             ]);
         }
 
+        if ($booking) {
+            $this->conversationService->attachBooking($submission, $booking);
+            $submission->refresh();
+        }
+
         $this->conversationService->sendAdminReply(
             $submission,
             $validated['message'],
             $request->user(),
+            $isNewConversation,
         );
 
         $submission->refresh()->load('form');
 
         return response()->json([
-            'message' => 'Chat started. The customer has been emailed a reply link.',
+            'message' => $isNewConversation
+                ? 'New conversation started. The customer has been emailed.'
+                : 'Message added to their existing chat. The customer has been emailed.',
             'data' => $this->conversationService->formatConversationSummary($submission),
         ]);
     }
@@ -235,6 +255,7 @@ class FormController extends Controller
             'data' => [
                 'form_name' => $submission->form?->title ?? 'Your enquiry',
                 'customer_name' => $this->conversationService->customerName($submission),
+                'booking' => $this->conversationService->linkedBooking($submission),
                 'messages' => $this->conversationService->formatMessages($submission->fresh()),
                 'created_at_human' => $submission->created_at->diffForHumans(),
             ],
@@ -257,6 +278,9 @@ class FormController extends Controller
         return response()->json([
             'message' => 'Your message has been sent. We will reply shortly.',
             'data' => [
+                'form_name' => $submission->form?->title ?? 'Your enquiry',
+                'customer_name' => $this->conversationService->customerName($submission),
+                'booking' => $this->conversationService->linkedBooking($submission),
                 'messages' => $this->conversationService->formatMessages($submission->fresh()),
             ],
         ]);
@@ -310,6 +334,7 @@ class FormController extends Controller
             ]),
             'messages' => $this->conversationService->formatMessages($submission),
             'conversation_url' => $this->conversationService->conversationUrl($submission),
+            'booking' => $this->conversationService->linkedBooking($submission),
             'customer_email' => $this->conversationService->customerEmail($submission),
             'status' => $submission->status,
             'ip_address' => $submission->ip_address,

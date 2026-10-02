@@ -13,6 +13,7 @@ type ConversationItem = {
   customer_email?: string | null;
   status: string;
   unread: boolean;
+  booking?: { id: number; service_type?: string | null; booking_date?: string | null; booking_time?: string | null } | null;
   last_message?: {
     sender: string;
     body: string;
@@ -20,6 +21,16 @@ type ConversationItem = {
   } | null;
   message_count: number;
   created_at_human: string;
+};
+
+type BookingOption = {
+  id: number;
+  name: string;
+  email: string;
+  service_type: string;
+  booking_date: string;
+  booking_time: string;
+  status: string;
 };
 
 type ComposeMode = "email" | "chat" | null;
@@ -41,6 +52,8 @@ export function MessagesContent({
   const [email, setEmail] = useState("");
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
+  const [bookingId, setBookingId] = useState("");
+  const [bookings, setBookings] = useState<BookingOption[]>([]);
   const [sending, setSending] = useState(false);
 
   const fetchMessages = useCallback(async () => {
@@ -57,9 +70,16 @@ export function MessagesContent({
 
   useEffect(() => {
     fetchMessages();
-    const interval = setInterval(fetchMessages, 12000);
+    const interval = setInterval(fetchMessages, 8000);
     return () => clearInterval(interval);
   }, [fetchMessages]);
+
+  useEffect(() => {
+    fetch(`${API_URL}/admin/bookings?per_page=100`, { headers: getAuthHeaders() })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((json) => setBookings(json?.data || []))
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (initialSelectedId) setSelectedId(initialSelectedId);
@@ -83,6 +103,27 @@ export function MessagesContent({
     setEmail("");
     setSubject("");
     setMessage("");
+    setBookingId("");
+  }
+
+  function selectBooking(id: string) {
+    setBookingId(id);
+    const booking = bookings.find((b) => String(b.id) === id);
+    if (!booking) return;
+    setName(booking.name || "");
+    setEmail(booking.email || "");
+    if (compose === "chat" && !message.trim()) {
+      const date = booking.booking_date
+        ? new Date(`${booking.booking_date}T12:00:00`).toLocaleDateString("en-GB", {
+            weekday: "short",
+            day: "numeric",
+            month: "short",
+          })
+        : "";
+      setMessage(
+        `Fine Jewellery Buyers started a new conversation with you about your appointment${date ? ` on ${date}` : ""}${booking.booking_time ? ` at ${booking.booking_time}` : ""}${booking.service_type ? ` (${booking.service_type})` : ""}. Reply here if you have any questions before you visit.`
+      );
+    }
   }
 
   async function handleComposeSubmit(e: React.FormEvent) {
@@ -94,7 +135,7 @@ export function MessagesContent({
       const body =
         compose === "email"
           ? { email, name, subject, message }
-          : { email, name, message };
+          : { email, name, message, booking_id: bookingId ? Number(bookingId) : undefined };
       const res = await fetch(`${API_URL}${path}`, {
         method: "POST",
         headers: getAuthHeaders(),
@@ -125,7 +166,7 @@ export function MessagesContent({
 
   return (
     <div>
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 sm:mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 sm:mb-6 px-3 pt-3 sm:px-0 sm:pt-0">
         <div>
           <h2 className="text-xl sm:text-2xl font-bold text-black mb-1">Messages</h2>
           <p className="text-sm text-gray-500">Email anyone, or start a chat from admin</p>
@@ -161,7 +202,7 @@ export function MessagesContent({
           <p className="text-gray-500">No conversations yet. Send an email or start a chat with any customer.</p>
         </div>
       ) : (
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden h-[calc(100dvh-10rem)] sm:h-[calc(100vh-12rem)] min-h-[420px] flex">
+        <div className="bg-white rounded-none sm:rounded-xl border-0 sm:border border-gray-200 overflow-hidden h-[calc(100dvh-7.5rem)] sm:h-[calc(100dvh-12rem)] min-h-[360px] flex">
           <div
             className={`${
               selectedId ? "hidden md:flex" : "flex"
@@ -186,7 +227,11 @@ export function MessagesContent({
                         <p className="font-semibold text-sm text-black truncate">{c.customer_name}</p>
                         {c.unread && <span className="w-2.5 h-2.5 rounded-full bg-red-500 shrink-0 animate-pulse" />}
                       </div>
-                      <p className="text-xs text-gray-500 truncate">{c.customer_email || c.form_name}</p>
+                      <p className="text-xs text-gray-500 truncate">
+                        {c.booking
+                          ? `${c.booking.service_type || "Appointment"} · ${c.booking.booking_date || ""}`
+                          : c.customer_email || c.form_name}
+                      </p>
                       {c.last_message && (
                         <p className="text-xs text-gray-400 truncate mt-1">
                           {c.last_message.sender === "admin" ? "You: " : ""}
@@ -233,10 +278,10 @@ export function MessagesContent({
       )}
 
       {compose && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
           <form
             onSubmit={handleComposeSubmit}
-            className="bg-white rounded-2xl max-w-lg w-full shadow-2xl max-h-[90vh] overflow-y-auto"
+            className="bg-white rounded-t-2xl sm:rounded-2xl max-w-lg w-full shadow-2xl max-h-[92dvh] overflow-y-auto"
           >
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
               <h3 className="font-bold text-black">
@@ -246,16 +291,33 @@ export function MessagesContent({
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <div className="p-6 space-y-4">
+            <div className="p-5 sm:p-6 space-y-4">
+              {compose === "chat" && bookings.length > 0 && (
+                <div>
+                  <label className="text-xs font-semibold text-gray-500 uppercase block mb-1">Link appointment (optional)</label>
+                  <select
+                    value={bookingId}
+                    onChange={(e) => selectBooking(e.target.value)}
+                    className="w-full px-3 py-3 border border-gray-200 rounded-lg text-base sm:text-sm min-h-11"
+                  >
+                    <option value="">No appointment</option>
+                    {bookings.map((b) => (
+                      <option key={b.id} value={b.id}>
+                        {b.name} · {b.service_type} · {b.booking_date} {b.booking_time}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
               <div>
                 <label className="text-xs font-semibold text-gray-500 uppercase block mb-1">To email</label>
                 <input
                   type="email"
-                  required
+                  required={!bookingId}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="customer@email.com"
-                  className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm"
+                  className="w-full px-3 py-3 border border-gray-200 rounded-lg text-base sm:text-sm min-h-11"
                 />
               </div>
               <div>
@@ -264,7 +326,7 @@ export function MessagesContent({
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Customer name"
-                  className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm"
+                  className="w-full px-3 py-3 border border-gray-200 rounded-lg text-base sm:text-sm min-h-11"
                 />
               </div>
               {compose === "email" && (
@@ -275,7 +337,7 @@ export function MessagesContent({
                     value={subject}
                     onChange={(e) => setSubject(e.target.value)}
                     placeholder="Your valuation"
-                    className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm"
+                    className="w-full px-3 py-3 border border-gray-200 rounded-lg text-base sm:text-sm min-h-11"
                   />
                 </div>
               )}
@@ -293,7 +355,7 @@ export function MessagesContent({
                       ? "Write the email…"
                       : "This starts a chat. They get an email with a reply link."
                   }
-                  className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm resize-y"
+                  className="w-full px-3 py-3 border border-gray-200 rounded-lg text-base sm:text-sm resize-y min-h-[120px]"
                 />
               </div>
               <button

@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { ChevronLeft, ChevronRight, Loader2, MessageSquare, RefreshCw } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { ChevronLeft, ChevronRight, Loader2, MessageSquare, RefreshCw, Search } from "lucide-react";
 import { getAuthHeaders, SubmissionChatModal } from "./SubmissionChatPanel";
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8002") + "/api";
@@ -26,6 +26,14 @@ type PaginationMeta = {
   to: number | null;
 };
 
+function customerName(data: Record<string, string>) {
+  return data?.name || data?.full_name || data?.first_name || "Customer";
+}
+
+function customerEmail(data: Record<string, string>) {
+  return data?.email || "";
+}
+
 export function SubmissionsContent({
   showToast,
   onUnreadChange,
@@ -45,6 +53,7 @@ export function SubmissionsContent({
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [query, setQuery] = useState("");
 
   const fetchSubmissions = useCallback(async (pageNum: number) => {
     setLoading(true);
@@ -80,6 +89,16 @@ export function SubmissionsContent({
     setPage(next);
   }
 
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return submissions;
+    return submissions.filter((s) => {
+      const name = customerName(s.data).toLowerCase();
+      const email = customerEmail(s.data).toLowerCase();
+      return name.includes(q) || email.includes(q) || s.form_name.toLowerCase().includes(q);
+    });
+  }, [submissions, query]);
+
   const pageNumbers = (() => {
     const last = meta.last_page;
     const current = meta.current_page;
@@ -90,21 +109,50 @@ export function SubmissionsContent({
       .sort((a, b) => a - b);
   })();
 
+  function statusClass(status: string) {
+    if (status === "new") return "bg-amber-50 text-amber-700";
+    if (status === "replied") return "bg-green-50 text-green-700";
+    return "bg-gray-50 text-gray-600";
+  }
+
   return (
     <div>
-      <div className="flex items-center justify-between mb-8">
+      <div className="hidden sm:flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-2xl font-bold text-black mb-1">Form Submissions</h2>
+          <h2 className="text-2xl font-bold text-black mb-1">Enquiries</h2>
           <p className="text-gray-500">
-            View enquiries, photos, and chat with customers by email
+            Open a chat like WhatsApp — photos, replies and the same thread
             {meta.total > 0 ? ` · ${meta.total} total` : ""}
           </p>
         </div>
         <button
+          type="button"
           onClick={() => fetchSubmissions(page)}
-          className="flex items-center gap-2 text-sm text-gray-600 hover:text-black"
+          className="flex items-center gap-2 text-sm text-gray-600 hover:text-black min-h-11"
         >
           <RefreshCw className="w-4 h-4" /> Refresh
+        </button>
+      </div>
+
+      <div className="px-3 sm:px-0 mb-3 flex items-center gap-2">
+        <label className="sr-only" htmlFor="enquiry-search">Search enquiries</label>
+        <div className="relative flex-1">
+          <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          <input
+            id="enquiry-search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search name, email or form"
+            className="w-full min-h-11 rounded-full border border-gray-200 bg-white pl-10 pr-4 text-base sm:text-sm"
+          />
+        </div>
+        <button
+          type="button"
+          onClick={() => fetchSubmissions(page)}
+          className="sm:hidden min-h-11 min-w-11 rounded-full border border-gray-200 bg-white text-gray-600"
+          aria-label="Refresh enquiries"
+        >
+          <RefreshCw className="w-4 h-4 mx-auto" />
         </button>
       </div>
 
@@ -125,11 +173,46 @@ export function SubmissionsContent({
         <div className="flex items-center justify-center py-20">
           <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
         </div>
-      ) : submissions.length === 0 ? (
-        <div className="bg-white rounded-xl border border-gray-200 p-12 text-center text-gray-500">No submissions yet</div>
+      ) : filtered.length === 0 ? (
+        <div className="bg-white rounded-xl border border-gray-200 p-12 text-center text-gray-500 mx-3 sm:mx-0">
+          No enquiries yet
+        </div>
       ) : (
         <>
-          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden overflow-x-auto">
+          <div className="md:hidden bg-white border-y border-gray-100">
+            {filtered.map((s) => {
+              const name = customerName(s.data);
+              const email = customerEmail(s.data);
+              const photos = s.files?.length || 0;
+              return (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => setSelectedId(s.id)}
+                  className="w-full flex items-center gap-3 px-3 py-3 border-b border-gray-100 text-left active:bg-gray-50"
+                >
+                  <div className={`w-12 h-12 rounded-full flex items-center justify-center text-white font-bold shrink-0 ${s.status === "new" ? "bg-[#D97706]" : "bg-black"}`}>
+                    {name.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="font-semibold text-[15px] text-black truncate">{name}</p>
+                      <span className="text-[11px] text-gray-400 shrink-0">{s.created_at_human}</span>
+                    </div>
+                    <p className="text-xs text-gray-500 truncate">{s.form_name}{email ? ` · ${email}` : ""}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full capitalize ${statusClass(s.status)}`}>
+                        {s.status}
+                      </span>
+                      {photos > 0 && <span className="text-[11px] text-amber-700">{photos} photo{photos === 1 ? "" : "s"}</span>}
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="hidden md:block bg-white rounded-xl border border-gray-200 overflow-hidden overflow-x-auto">
             <table className="w-full text-sm min-w-[640px]">
               <thead>
                 <tr className="border-b bg-gray-50/50">
@@ -142,9 +225,9 @@ export function SubmissionsContent({
                 </tr>
               </thead>
               <tbody>
-                {submissions.map((s) => {
-                  const name = s.data?.name || s.data?.full_name || "";
-                  const email = s.data?.email || "";
+                {filtered.map((s) => {
+                  const name = customerName(s.data);
+                  const email = customerEmail(s.data);
                   const hasPhotos = (s.files?.length || 0) > 0;
                   return (
                     <tr key={s.id} className="border-b border-gray-100 hover:bg-gray-50/50">
@@ -153,26 +236,19 @@ export function SubmissionsContent({
                       <td className="px-4 py-3 text-gray-600">
                         {name && <div>{name}</div>}
                         <div className="text-xs">{email}</div>
-                        {hasPhotos && <span className="text-xs text-amber-600">📷 {s.files!.length} photo(s)</span>}
+                        {hasPhotos && <span className="text-xs text-amber-600">{s.files!.length} photo(s)</span>}
                       </td>
                       <td className="px-4 py-3">
-                        <span
-                          className={`text-xs px-2 py-0.5 rounded-full capitalize ${
-                            s.status === "new"
-                              ? "bg-amber-50 text-amber-700"
-                              : s.status === "replied"
-                                ? "bg-green-50 text-green-700"
-                                : "bg-gray-50 text-gray-600"
-                          }`}
-                        >
+                        <span className={`text-xs px-2 py-0.5 rounded-full capitalize ${statusClass(s.status)}`}>
                           {s.status}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-gray-500">{s.created_at_human}</td>
                       <td className="px-4 py-3">
                         <button
+                          type="button"
                           onClick={() => setSelectedId(s.id)}
-                          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-black text-white rounded-lg hover:bg-black/80"
+                          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-black text-white rounded-lg hover:bg-black/80 min-h-9"
                         >
                           <MessageSquare className="w-3.5 h-3.5" /> Chat
                         </button>
@@ -185,7 +261,7 @@ export function SubmissionsContent({
           </div>
 
           {meta.last_page > 1 && (
-            <div className="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="mt-4 px-3 sm:px-0 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-4">
               <p className="text-sm text-gray-500">
                 Showing {meta.from ?? 0}–{meta.to ?? 0} of {meta.total}
               </p>
@@ -194,7 +270,7 @@ export function SubmissionsContent({
                   type="button"
                   onClick={() => goToPage(page - 1)}
                   disabled={page <= 1}
-                  className="inline-flex items-center gap-1 px-3 py-1.5 text-sm rounded-lg border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-default"
+                  className="inline-flex items-center gap-1 px-3 min-h-11 text-sm rounded-lg border border-gray-200 bg-white text-gray-700 disabled:opacity-40"
                 >
                   <ChevronLeft className="w-4 h-4" /> Prev
                 </button>
@@ -207,10 +283,10 @@ export function SubmissionsContent({
                       <button
                         type="button"
                         onClick={() => goToPage(n)}
-                        className={`min-w-9 h-9 px-2 text-sm rounded-lg border ${
+                        className={`min-w-11 h-11 px-2 text-sm rounded-lg border ${
                           n === page
                             ? "bg-black text-white border-black"
-                            : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50"
+                            : "bg-white text-gray-700 border-gray-200"
                         }`}
                       >
                         {n}
@@ -222,7 +298,7 @@ export function SubmissionsContent({
                   type="button"
                   onClick={() => goToPage(page + 1)}
                   disabled={page >= meta.last_page}
-                  className="inline-flex items-center gap-1 px-3 py-1.5 text-sm rounded-lg border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-default"
+                  className="inline-flex items-center gap-1 px-3 min-h-11 text-sm rounded-lg border border-gray-200 bg-white text-gray-700 disabled:opacity-40"
                 >
                   Next <ChevronRight className="w-4 h-4" />
                 </button>
