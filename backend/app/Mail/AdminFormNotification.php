@@ -74,6 +74,7 @@ class AdminFormNotification extends Mailable
         $formTitle = htmlspecialchars($this->form->title);
         $timestamp = $this->submission->created_at->format('d M Y \a\t H:i');
         $ip = htmlspecialchars($this->submission->ip_address ?? 'N/A');
+        $adminUrl = htmlspecialchars(app(\App\Services\SubmissionConversationService::class)->adminAppUrl('messages', $this->submission->id));
 
         return <<<HTML
         <!DOCTYPE html>
@@ -102,7 +103,10 @@ class AdminFormNotification extends Mailable
                             {$photos}
                             <tr>
                                 <td style="padding:14px 16px;">
-                                    <p style="margin:0;font-size:13px;line-height:1.5;color:#6b7280;">Photos are also attached to this email so you can open them full size.</p>
+                                    <p style="margin:0 0 14px;">
+                                        <a href="{$adminUrl}" style="display:inline-block;background:#D97706;color:#ffffff;padding:12px 24px;border-radius:999px;text-decoration:none;font-weight:700;font-size:14px;">Open in FJB Admin</a>
+                                    </p>
+                                    <p style="margin:0;font-size:13px;line-height:1.5;color:#6b7280;">If FJB Admin is on your Home Screen, this opens the app. Otherwise it opens the admin website. Photos are also attached so you can open them full size.</p>
                                 </td>
                             </tr>
                         </table>

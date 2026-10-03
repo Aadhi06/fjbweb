@@ -6,6 +6,10 @@
   "start_url": "/admin",
   "scope": "/admin",
   "display": "standalone",
+  "handle_links": "preferred",
+  "launch_handler": {
+    "client_mode": ["navigate-existing", "auto"]
+  },
   "orientation": "portrait",
   "background_color": "#000000",
   "theme_color": "#111111",

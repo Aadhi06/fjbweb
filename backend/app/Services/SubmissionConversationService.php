@@ -48,6 +48,16 @@ class SubmissionConversationService
         return $this->publicFrontendUrl() . '/enquiry/' . $this->ensureReplyToken($submission);
     }
 
+    public function adminAppUrl(string $tab = 'messages', ?int $submissionId = null): string
+    {
+        $url = $this->publicFrontendUrl() . '/admin?tab=' . rawurlencode($tab);
+        if ($submissionId) {
+            $url .= '&submission=' . $submissionId;
+        }
+
+        return $url;
+    }
+
     public function findSubmissionByPublicToken(string $token): ?FormSubmission
     {
         $token = trim($token);

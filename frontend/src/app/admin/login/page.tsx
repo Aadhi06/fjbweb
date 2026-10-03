@@ -51,7 +51,8 @@ export default function AdminLoginPage() {
       const data = await res.json();
       localStorage.setItem("admin_token", data.token);
       localStorage.setItem("admin_user", JSON.stringify(data.user));
-      router.push("/admin");
+      const next = new URLSearchParams(window.location.search).get("next") || "/admin";
+      router.push(next.startsWith("/admin") ? next : "/admin");
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Unknown error";
       setError(`Unable to connect: ${message} (URL: ${url})`);

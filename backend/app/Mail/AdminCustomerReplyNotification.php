@@ -3,7 +3,6 @@
 namespace App\Mail;
 
 use App\Models\FormSubmission;
-use App\Models\Setting;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
@@ -42,7 +41,7 @@ class AdminCustomerReplyNotification extends Mailable
         $email = htmlspecialchars($service->customerEmail($this->submission) ?? 'N/A');
         $formTitle = htmlspecialchars($this->submission->form?->title ?? 'Form submission');
         $message = nl2br(htmlspecialchars($this->message));
-        $adminUrl = htmlspecialchars(rtrim(Setting::get('frontend_url', 'https://finejewellerybuyers.co.uk'), '/') . '/admin?tab=messages');
+        $adminUrl = htmlspecialchars($service->adminAppUrl('messages', $this->submission->id));
 
         return <<<HTML
         <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:600px;margin:0 auto;padding:20px;">
@@ -55,9 +54,9 @@ class AdminCustomerReplyNotification extends Mailable
                     <p style="margin:0;font-size:14px;color:#111827;line-height:1.6;">{$message}</p>
                 </div>
                 <p style="margin:0 0 16px;font-size:14px;color:#374151;">
-                    <a href="{$adminUrl}" style="display:inline-block;background:#D97706;color:#fff;padding:12px 24px;border-radius:999px;text-decoration:none;font-weight:600;">Open Messages in Admin</a>
+                    <a href="{$adminUrl}" style="display:inline-block;background:#D97706;color:#fff;padding:12px 24px;border-radius:999px;text-decoration:none;font-weight:600;">Open in FJB Admin</a>
                 </p>
-                <p style="margin:0;font-size:13px;color:#9ca3af;">You will also see a notification badge in the admin panel.</p>
+                <p style="margin:0;font-size:13px;color:#9ca3af;">If FJB Admin is on your Home Screen, this opens the app. Otherwise it opens the admin website.</p>
             </div>
         </div>
         HTML;

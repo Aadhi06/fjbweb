@@ -42,6 +42,7 @@ class AdminBookingNotification extends Mailable
         $date = $b->booking_date->format('l, j F Y');
         $time = htmlspecialchars($b->booking_time);
         $notes = htmlspecialchars($b->notes ?? 'None');
+        $adminUrl = htmlspecialchars(app(\App\Services\SubmissionConversationService::class)->adminAppUrl('bookings'));
 
         return <<<HTML
         <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:600px;margin:0 auto;padding:20px;">
@@ -58,7 +59,10 @@ class AdminBookingNotification extends Mailable
                     <tr><td style="padding:8px 12px;border:1px solid #e5e7eb;font-weight:600;color:#374151;">Time</td><td style="padding:8px 12px;border:1px solid #e5e7eb;color:#111827;">{$time}</td></tr>
                     <tr><td style="padding:8px 12px;border:1px solid #e5e7eb;font-weight:600;color:#374151;">Notes</td><td style="padding:8px 12px;border:1px solid #e5e7eb;color:#111827;">{$notes}</td></tr>
                 </table>
-                <p style="margin:20px 0 0;font-size:13px;color:#9ca3af;">This is an automated notification from Fine Jewellery Buyers.</p>
+                <p style="margin:20px 0 0;text-align:center;">
+                    <a href="{$adminUrl}" style="display:inline-block;background:#D97706;color:#ffffff;padding:12px 24px;border-radius:999px;text-decoration:none;font-weight:700;font-size:14px;">Open in FJB Admin</a>
+                </p>
+                <p style="margin:12px 0 0;font-size:13px;color:#9ca3af;">If FJB Admin is on your Home Screen, this opens the app. Otherwise it opens the admin website.</p>
             </div>
         </div>
         HTML;

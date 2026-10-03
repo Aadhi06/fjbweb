@@ -2462,7 +2462,8 @@ export default function AdminDashboardPage() {
     const token = localStorage.getItem("admin_token");
 
     if (!token) {
-      router.replace("/admin/login");
+      const next = `${window.location.pathname}${window.location.search}`;
+      router.replace(`/admin/login?next=${encodeURIComponent(next || "/admin")}`);
       return;
     }
 
