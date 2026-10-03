@@ -188,18 +188,30 @@ export function AdminPushNotifications({
   }
 
   return (
-    <button
-      type="button"
-      onClick={() => subscribe()}
-      disabled={busy}
-      className={
-        compact
-          ? "inline-flex items-center justify-center w-9 h-9 rounded-full bg-amber-50 text-[#D97706] border border-amber-200"
-          : "inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-[#D97706] text-white text-sm font-semibold"
-      }
-    >
-      <Bell className="w-4 h-4" />
-      {!compact && (busy ? "Turning on…" : "Turn on alerts")}
-    </button>
+    <div className={showTest ? "flex flex-wrap items-center gap-3" : undefined}>
+      <button
+        type="button"
+        onClick={() => subscribe()}
+        disabled={busy}
+        className={
+          compact
+            ? "inline-flex items-center justify-center w-9 h-9 rounded-full bg-amber-50 text-[#D97706] border border-amber-200"
+            : "inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-[#D97706] text-white text-sm font-semibold"
+        }
+      >
+        <Bell className="w-4 h-4" />
+        {!compact && (busy ? "Turning on…" : "Turn on alerts")}
+      </button>
+      {showTest && (
+        <button
+          type="button"
+          onClick={sendTest}
+          disabled={busy}
+          className="px-3 py-2 rounded-lg border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50"
+        >
+          Send test alert
+        </button>
+      )}
+    </div>
   );
 }

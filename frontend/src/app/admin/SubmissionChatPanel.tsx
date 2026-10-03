@@ -53,6 +53,7 @@ export type SubmissionDetail = {
   messages: ChatMessage[];
   booking?: LinkedBooking | null;
   customer_email?: string | null;
+  customer_typing?: boolean;
   created_at_human: string;
 };
 
@@ -278,7 +279,7 @@ function ReceiptTicks({ status }: { status?: ChatMessage["delivery_status"] }) {
     <span
       title={label}
       aria-label={label}
-      className={`inline-flex ${read ? "text-[#53bdeb]" : "text-white/70"}`}
+      className={`inline-flex ${read ? "text-[#53bdeb]" : "text-[#667781]"}`}
     >
       <Icon className="w-3.5 h-3.5" strokeWidth={2.4} />
     </span>
@@ -291,15 +292,15 @@ function ChatBubble({ msg }: { msg: ChatMessage }) {
   return (
     <div className={`flex ${isAdmin ? "justify-end" : "justify-start"}`}>
       <div
-        className={`max-w-[88%] sm:max-w-[75%] rounded-2xl px-3.5 py-2.5 sm:px-4 ${
-          isAdmin ? "bg-black text-white rounded-br-md" : "bg-gray-100 text-black rounded-bl-md"
+        className={`max-w-[88%] sm:max-w-[75%] rounded-2xl px-3.5 py-2 shadow-sm ${
+          isAdmin ? "bg-[#d9fdd3] text-[#111b21] rounded-br-sm" : "bg-white text-[#111b21] rounded-bl-sm"
         }`}
       >
-        <p className="text-[10px] font-semibold opacity-70 mb-1">
+        <p className="text-[10px] font-semibold text-[#008069] mb-0.5">
           {isAdmin ? (msg.admin_name || "You") : "Customer"}
         </p>
-        <p className="text-sm whitespace-pre-wrap break-words">{msg.body}</p>
-        <div className={`mt-1 flex items-center gap-1.5 text-[10px] ${isAdmin ? "justify-end text-white/70" : "opacity-60"}`}>
+        <p className="text-[15px] whitespace-pre-wrap break-words leading-relaxed">{msg.body}</p>
+        <div className={`mt-1 flex items-center gap-1.5 text-[10px] text-[#667781] ${isAdmin ? "justify-end" : ""}`}>
           <span>{msg.created_at_human}</span>
           {isAdmin ? <ReceiptTicks status={msg.delivery_status} /> : null}
         </div>
@@ -338,8 +339,18 @@ export function SubmissionChatPanel({
   const onReadRef = useRef(onRead);
   const onNewCustomerMessageRef = useRef(onNewCustomerMessage);
   const messageIdsRef = useRef<string>("");
+  const typingTimer = useRef<number | null>(null);
+  const lastTypingPing = useRef(0);
   onReadRef.current = onRead;
   onNewCustomerMessageRef.current = onNewCustomerMessage;
+
+  const pingTyping = useCallback((typing: boolean) => {
+    fetch(`${API_URL}/admin/submissions/${submissionId}/typing`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ typing }),
+    }).catch(() => {});
+  }, [submissionId]);
 
   const loadDetail = useCallback(async (options?: { markRead?: boolean; silent?: boolean }) => {
     const markRead = options?.markRead ?? false;
@@ -395,7 +406,7 @@ export function SubmissionChatPanel({
 
     const interval = setInterval(() => {
       loadDetail({ markRead: false, silent: true });
-    }, 4000);
+    }, 2000);
 
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -403,7 +414,14 @@ export function SubmissionChatPanel({
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [detail?.messages]);
+  }, [detail?.messages, detail?.customer_typing]);
+
+  useEffect(() => {
+    return () => {
+      if (typingTimer.current) window.clearTimeout(typingTimer.current);
+      pingTyping(false);
+    };
+  }, [pingTyping]);
 
   async function sendReply(e: React.FormEvent) {
     e.preventDefault();
@@ -418,6 +436,7 @@ export function SubmissionChatPanel({
       if (!res.ok) throw new Error();
       setReply("");
       setSelectedReplyIds([]);
+      pingTyping(false);
       await loadDetail({ markRead: false });
       showToast("Reply sent to customer email", "success");
     } catch {
@@ -468,23 +487,25 @@ export function SubmissionChatPanel({
   const itemPreview = fieldValue(detail.data || {}, "item_type", "description", "message", "subject");
   const hideExtras = composerFocused || keyboardInset > 40;
 
+  const customerTyping = Boolean(detail.customer_typing);
+
   return (
-    <div className="relative flex flex-col h-full min-h-0 bg-white">
-      <div className={`flex items-center gap-2 px-2 sm:px-4 py-2.5 border-b shrink-0 ${appChat ? "bg-[#111111] text-white border-white/10 safe-top" : "bg-white border-gray-200"}`}>
+    <div className="relative flex flex-col h-full min-h-0 bg-[#efeae2]">
+      <div className={`flex items-center gap-2 px-2 sm:px-4 py-2.5 border-b border-black/5 shrink-0 bg-[#008069] text-white ${appChat ? "safe-top" : ""}`}>
         {onClose && (
-          <button type="button" onClick={onClose} className="min-h-12 min-w-12 flex items-center justify-center text-white/80 hover:text-white shrink-0" aria-label="Back to enquiries">
+          <button type="button" onClick={onClose} className="min-h-12 min-w-12 flex items-center justify-center text-white/90 hover:text-white shrink-0" aria-label="Back to enquiries">
             <ArrowLeft className="w-5 h-5" />
           </button>
         )}
-        <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold shrink-0 ${appChat ? "bg-[#D97706] text-black" : "bg-black text-white"}`}>
+        <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold shrink-0 bg-white text-[#008069]">
           {(fieldValue(detail.data || {}, "name", "full_name") || "C").charAt(0).toUpperCase()}
         </div>
         <div className="min-w-0 flex-1">
-          <h3 className={`text-base font-semibold truncate ${appChat ? "text-white" : "text-black"}`}>
+          <h3 className="text-base font-semibold truncate text-white">
             {fieldValue(detail.data || {}, "name", "full_name") || detail.form_name}
           </h3>
-          <p className={`text-xs truncate ${appChat ? "text-white/60" : "text-gray-500"}`}>
-            {detail.form_name}
+          <p className="text-xs truncate text-white/85">
+            {customerTyping ? "typing..." : detail.form_name}
           </p>
         </div>
         <button
@@ -493,16 +514,14 @@ export function SubmissionChatPanel({
             setShowDetails(true);
             setShowSuggested(false);
           }}
-          className={`shrink-0 min-h-11 px-3 rounded-full text-sm font-semibold ${
-            appChat ? "bg-white/15 text-white" : "bg-gray-100 text-black"
-          }`}
+          className="shrink-0 min-h-11 px-3 rounded-full text-sm font-semibold bg-white/15 text-white"
         >
           Details
         </button>
       </div>
 
       {!hideExtras && photoCount > 0 && (
-        <div className="shrink-0 flex gap-2 overflow-x-auto px-3 py-2 bg-white border-b border-gray-100">
+        <div className="shrink-0 flex gap-2 overflow-x-auto px-3 py-2 bg-[#f0f2f5] border-b border-black/5">
           {detail.files!.slice(0, 6).map((file) => (
             <a key={file.id} href={file.url} target="_blank" rel="noopener noreferrer" className="shrink-0">
               {file.is_image ? (
@@ -516,7 +535,7 @@ export function SubmissionChatPanel({
         </div>
       )}
 
-      <div className={`flex-1 overflow-y-auto min-h-0 ${appChat ? "chat-wallpaper" : "bg-white"}`}>
+      <div className="flex-1 overflow-y-auto min-h-0 chat-wallpaper">
         {!hideExtras && itemPreview && (
           <p className="px-4 py-2 text-xs text-black/60 line-clamp-2">{itemPreview}</p>
         )}
@@ -534,13 +553,22 @@ export function SubmissionChatPanel({
           {detail.messages.map((msg) => (
             <ChatBubble key={msg.id} msg={msg} />
           ))}
+          {customerTyping && (
+            <div className="flex justify-start">
+              <div className="bg-white rounded-2xl rounded-bl-sm px-3 py-2.5 shadow-sm">
+                <span className="wa-typing" aria-label="Customer is typing">
+                  <i /><i /><i />
+                </span>
+              </div>
+            </div>
+          )}
           <div ref={chatEndRef} />
         </div>
       </div>
 
       <form
         onSubmit={sendReply}
-        className={`border-t shrink-0 ${appChat ? "bg-[#1a1a1a] border-white/10" : "border-gray-200 bg-white"}`}
+        className="border-t border-black/5 shrink-0 bg-[#f0f2f5]"
         style={{ paddingBottom: keyboardInset > 0 ? keyboardInset + 8 : undefined }}
       >
         {!hideExtras && (
@@ -548,9 +576,7 @@ export function SubmissionChatPanel({
             <button
               type="button"
               onClick={() => setShowSuggested((v) => !v)}
-              className={`min-h-10 px-3 rounded-full text-sm font-semibold ${
-                appChat ? "bg-white/10 text-white" : "bg-gray-100 text-black"
-              }`}
+              className="min-h-10 px-3 rounded-full text-sm font-semibold bg-white text-[#111b21] border border-black/10"
             >
               {showSuggested ? "Hide quick replies" : "Quick replies"}
             </button>
@@ -596,15 +622,22 @@ export function SubmissionChatPanel({
                 setSelectedReplyIds([]);
               }
               resizeComposer();
+              const now = Date.now();
+              if (value.trim() && now - lastTypingPing.current > 1500) {
+                lastTypingPing.current = now;
+                pingTyping(true);
+              }
+              if (typingTimer.current) window.clearTimeout(typingTimer.current);
+              typingTimer.current = window.setTimeout(() => pingTyping(false), 2500);
             }}
-            placeholder="Type your message here"
+            placeholder="Type a message"
             rows={2}
-            className="flex-1 rounded-2xl px-4 py-3 text-[16px] leading-6 text-black bg-white border border-gray-300 resize-none focus:outline-none focus:ring-2 focus:ring-[#D97706] min-h-[52px] max-h-[140px]"
+            className="flex-1 rounded-3xl px-4 py-3 text-[16px] leading-6 text-[#111b21] bg-white border-0 shadow-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#008069]/30 min-h-[52px] max-h-[140px]"
           />
           <button
             type="submit"
             disabled={sending || !reply.trim()}
-            className="h-[52px] w-[52px] flex items-center justify-center bg-[#D97706] text-black rounded-2xl disabled:opacity-40 shrink-0"
+            className="h-[52px] w-[52px] flex items-center justify-center bg-[#008069] text-white rounded-full disabled:opacity-40 shrink-0"
             aria-label="Send message"
           >
             {sending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}

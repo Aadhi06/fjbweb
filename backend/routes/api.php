@@ -33,6 +33,7 @@ Route::get('/submission-files/{formSubmissionFile}', [FormController::class, 'se
 Route::get('/enquiry/{token}', [FormController::class, 'conversationShow']);
 Route::post('/enquiry/{token}/messages', [FormController::class, 'conversationReply'])
     ->middleware(\App\Http\Middleware\AntiSpam::class);
+Route::post('/enquiry/{token}/typing', [FormController::class, 'conversationTyping']);
 Route::get('/mail/open/{token}', [FormController::class, 'mailOpen']);
 Route::get('/mail/click/{token?}', [FormController::class, 'mailClick']);
 
@@ -109,6 +110,7 @@ Route::middleware('auth:sanctum')->prefix('admin')->group(function () {
     Route::get('/submissions', [FormController::class, 'adminIndex']);
     Route::get('/submissions/{submission}', [FormController::class, 'adminShow']);
     Route::post('/submissions/{submission}/messages', [FormController::class, 'adminReply']);
+    Route::post('/submissions/{submission}/typing', [FormController::class, 'adminTyping']);
     Route::post('/submissions/{submission}/mark-read', [FormController::class, 'markSubmissionRead']);
 
     Route::get('/messages/unread-count', [FormController::class, 'adminMessagesUnreadCount']);

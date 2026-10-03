@@ -214,6 +214,17 @@ class FormController extends Controller
         return response()->json(['message' => 'Marked as read.']);
     }
 
+    public function adminTyping(Request $request, FormSubmission $submission): JsonResponse
+    {
+        $this->conversationService->setTyping(
+            $submission->id,
+            'admin',
+            $request->boolean('typing', true)
+        );
+
+        return response()->json(['ok' => true]);
+    }
+
     public function adminReply(Request $request, FormSubmission $submission): JsonResponse
     {
         $validated = $request->validate([
@@ -257,9 +268,26 @@ class FormController extends Controller
                 'customer_name' => $this->conversationService->customerName($submission),
                 'booking' => $this->conversationService->linkedBooking($submission),
                 'messages' => $this->conversationService->formatMessages($submission->fresh()),
+                'admin_typing' => $this->conversationService->isTyping($submission->id, 'admin'),
                 'created_at_human' => $submission->created_at->diffForHumans(),
             ],
         ]);
+    }
+
+    public function conversationTyping(Request $request, string $token): JsonResponse
+    {
+        $submission = $this->conversationService->findSubmissionByPublicToken($token);
+        if (!$submission) {
+            return response()->json(['message' => 'This enquiry link is invalid.'], 404);
+        }
+
+        $this->conversationService->setTyping(
+            $submission->id,
+            'customer',
+            $request->boolean('typing', true)
+        );
+
+        return response()->json(['ok' => true]);
     }
 
     public function conversationReply(Request $request, string $token): JsonResponse
@@ -282,6 +310,7 @@ class FormController extends Controller
                 'customer_name' => $this->conversationService->customerName($submission),
                 'booking' => $this->conversationService->linkedBooking($submission),
                 'messages' => $this->conversationService->formatMessages($submission->fresh()),
+                'admin_typing' => false,
             ],
         ]);
     }
@@ -334,6 +363,8 @@ class FormController extends Controller
                 'is_image' => $f->isImage(),
             ]),
             'messages' => $this->conversationService->formatMessages($submission),
+            'customer_typing' => $this->conversationService->isTyping($submission->id, 'customer'),
+            'admin_typing' => $this->conversationService->isTyping($submission->id, 'admin'),
             'conversation_url' => $this->conversationService->conversationUrl($submission),
             'booking' => $this->conversationService->linkedBooking($submission),
             'customer_email' => $this->conversationService->customerEmail($submission),

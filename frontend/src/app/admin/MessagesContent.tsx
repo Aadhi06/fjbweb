@@ -13,6 +13,7 @@ type ConversationItem = {
   customer_email?: string | null;
   status: string;
   unread: boolean;
+  customer_typing?: boolean;
   booking?: { id: number; service_type?: string | null; booking_date?: string | null; booking_time?: string | null } | null;
   last_message?: {
     sender: string;
@@ -70,7 +71,7 @@ export function MessagesContent({
 
   useEffect(() => {
     fetchMessages();
-    const interval = setInterval(fetchMessages, 8000);
+    const interval = setInterval(fetchMessages, 3000);
     return () => clearInterval(interval);
   }, [fetchMessages]);
 
@@ -236,12 +237,14 @@ export function MessagesContent({
                           ? `${c.booking.service_type || "Appointment"} · ${c.booking.booking_date || ""}`
                           : c.customer_email || c.form_name}
                       </p>
-                      {c.last_message && (
+                      {c.customer_typing ? (
+                        <p className="text-xs text-[#008069] font-medium truncate mt-1">typing...</p>
+                      ) : c.last_message ? (
                         <p className="text-xs text-gray-400 truncate mt-1">
                           {c.last_message.sender === "admin" ? "You: " : ""}
                           {c.last_message.body}
                         </p>
-                      )}
+                      ) : null}
                       <p className="text-[10px] text-gray-400 mt-1">{c.last_message?.created_at_human || c.created_at_human}</p>
                     </div>
                   </div>

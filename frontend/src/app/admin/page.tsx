@@ -579,9 +579,10 @@ function SettingsContent() {
 
       <div className="space-y-4">
         <CollapsibleSection title="Phone alerts" icon={Bell} defaultOpen>
-          <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4">
-            <p className="text-sm text-gray-700 mb-3">
-              Get a lock-screen alert on this phone or computer when a booking, enquiry or customer reply comes in. On iPhone, add FJB Admin to the Home Screen first, then tap Turn on alerts.
+          <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 space-y-3">
+            <p className="text-sm font-semibold text-gray-900">Enable push notifications</p>
+            <p className="text-sm text-gray-700">
+              Turn this on for the phone or computer you are using. You will get a lock-screen alert for new bookings, enquiries and customer replies. On iPhone, add FJB Admin to the Home Screen first.
             </p>
             <AdminPushNotifications showTest />
           </div>

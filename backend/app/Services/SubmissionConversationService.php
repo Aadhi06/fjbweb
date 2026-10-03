@@ -9,6 +9,7 @@ use App\Models\FormSubmission;
 use App\Models\FormSubmissionMessage;
 use App\Models\Setting;
 use App\Models\User;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
@@ -78,6 +79,7 @@ class SubmissionConversationService
 
         $submission->update(['status' => 'replied']);
 
+        $this->setTyping($submission->id, 'admin', false);
         $this->emailCustomer($submission, $record, $admin?->name, $isNewConversation);
 
         return $record;
@@ -95,6 +97,7 @@ class SubmissionConversationService
 
         $submission->update(['status' => 'new']);
         $this->markAdminMessagesViewed($submission);
+        $this->setTyping($submission->id, 'customer', false);
 
         $this->emailAdmin($submission, $message);
         $this->pushAdmin($submission, $message);
@@ -154,6 +157,25 @@ class SubmissionConversationService
         }
 
         return $url;
+    }
+
+    public function setTyping(int $submissionId, string $side, bool $typing): void
+    {
+        $side = $side === 'admin' ? 'admin' : 'customer';
+        $key = "chat_typing.{$submissionId}.{$side}";
+        if ($typing) {
+            Cache::put($key, now()->timestamp, 8);
+            return;
+        }
+
+        Cache::forget($key);
+    }
+
+    public function isTyping(int $submissionId, string $side): bool
+    {
+        $side = $side === 'admin' ? 'admin' : 'customer';
+
+        return Cache::has("chat_typing.{$submissionId}.{$side}");
     }
 
     public function markAdminMessagesViewed(FormSubmission $submission): void
@@ -233,6 +255,7 @@ class SubmissionConversationService
             'customer_email' => $email,
             'status' => $submission->status,
             'unread' => $this->isUnread($submission),
+            'customer_typing' => $this->isTyping($submission->id, 'customer'),
             'booking' => $this->linkedBooking($submission),
             'last_message' => $latest ? [
                 'sender' => $latest->sender,

@@ -77,11 +77,14 @@ export default function EnquiryPage({ params }: { params: Promise<{ token: strin
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
   const [newIncoming, setNewIncoming] = useState(false);
+  const [adminTyping, setAdminTyping] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const scrollerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const nearBottomRef = useRef(true);
   const lastIdsRef = useRef("");
+  const typingTimer = useRef<number | null>(null);
+  const lastTypingPing = useRef(0);
 
   useEffect(() => {
     document.body.classList.add("overflow-hidden");
@@ -98,7 +101,7 @@ export default function EnquiryPage({ params }: { params: Promise<{ token: strin
     });
   }, [params]);
 
-  const applyPayload = useCallback((json: { data?: { form_name?: string; customer_name?: string; messages?: ChatMessage[]; booking?: LinkedBooking | null } }, silent = false) => {
+  const applyPayload = useCallback((json: { data?: { form_name?: string; customer_name?: string; messages?: ChatMessage[]; booking?: LinkedBooking | null; admin_typing?: boolean } }, silent = false) => {
     const next = json.data?.messages || [];
     const nextIds = next.map((m) => m.id).join(",");
     const prevIds = lastIdsRef.current;
@@ -110,6 +113,7 @@ export default function EnquiryPage({ params }: { params: Promise<{ token: strin
     if (json.data?.form_name) setFormName(json.data.form_name);
     if (json.data?.customer_name) setCustomerName(json.data.customer_name);
     if (json.data?.booking) setBooking(json.data.booking);
+    setAdminTyping(Boolean(json.data?.admin_typing));
     setMessages(next);
 
     if (hasNewAdmin) {
@@ -139,8 +143,16 @@ export default function EnquiryPage({ params }: { params: Promise<{ token: strin
   useEffect(() => {
     if (!token) return;
     loadConversation(false);
-    const interval = setInterval(() => loadConversation(true), 4000);
-    return () => clearInterval(interval);
+    const interval = setInterval(() => loadConversation(true), 2000);
+    return () => {
+      clearInterval(interval);
+      if (typingTimer.current) window.clearTimeout(typingTimer.current);
+      fetch(`${API_URL}/enquiry/${token}/typing`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({ typing: false }),
+      }).catch(() => {});
+    };
   }, [token, loadConversation]);
 
   useEffect(() => {
@@ -169,6 +181,15 @@ export default function EnquiryPage({ params }: { params: Promise<{ token: strin
     nearBottomRef.current = true;
   }
 
+  function pingTyping(typing: boolean) {
+    if (!token) return;
+    fetch(`${API_URL}/enquiry/${token}/typing`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({ typing }),
+    }).catch(() => {});
+  }
+
   function resizeComposer() {
     const el = textareaRef.current;
     if (!el) return;
@@ -183,6 +204,7 @@ export default function EnquiryPage({ params }: { params: Promise<{ token: strin
     setSending(true);
     setError("");
     setReply("");
+    pingTyping(false);
     requestAnimationFrame(resizeComposer);
     try {
       const res = await fetch(`${API_URL}/enquiry/${token}/messages`, {
@@ -206,8 +228,8 @@ export default function EnquiryPage({ params }: { params: Promise<{ token: strin
 
   if (loading) {
     return (
-      <div className="h-dvh flex items-center justify-center bg-[#0b0b0b]">
-        <Loader2 className="w-8 h-8 animate-spin text-amber-400" />
+      <div className="h-dvh flex items-center justify-center bg-[#efeae2]">
+        <Loader2 className="w-8 h-8 animate-spin text-[#008069]" />
       </div>
     );
   }
@@ -226,23 +248,23 @@ export default function EnquiryPage({ params }: { params: Promise<{ token: strin
   }
 
   return (
-    <div className="h-dvh flex flex-col bg-[#0b0b0b] overflow-hidden">
-      <header className="shrink-0 bg-[#111111] text-white safe-top border-b border-white/10">
+    <div className="h-dvh flex flex-col bg-[#efeae2] overflow-hidden">
+      <header className="shrink-0 bg-[#008069] text-white safe-top">
         <div className="flex items-center gap-2 px-2 sm:px-3 py-2">
           <Link
             href="/"
-            className="flex items-center justify-center min-h-11 min-w-11 text-white/80 hover:text-white"
+            className="flex items-center justify-center min-h-11 min-w-11 text-white/90 hover:text-white"
             aria-label="Back to home"
           >
             <ArrowLeft className="w-5 h-5" />
           </Link>
-          <div className="w-10 h-10 rounded-full bg-[#D97706] text-black font-bold flex items-center justify-center shrink-0">
+          <div className="w-10 h-10 rounded-full bg-white text-[#008069] font-bold flex items-center justify-center shrink-0">
             F
           </div>
           <div className="min-w-0 flex-1">
             <h1 className="text-[15px] font-semibold truncate">Fine Jewellery Buyers</h1>
-            <p className="text-[11px] text-white/60 truncate">
-              {formName ? `${formName} · ` : ""}Typically replies in minutes
+            <p className="text-[11px] text-white/85 truncate">
+              {adminTyping ? "typing..." : formName ? `${formName} · typically replies in minutes` : "Typically replies in minutes"}
             </p>
           </div>
         </div>
@@ -291,17 +313,17 @@ export default function EnquiryPage({ params }: { params: Promise<{ token: strin
                     <div
                       className={`max-w-[86%] rounded-2xl px-3 py-2 shadow-sm ${
                         mine
-                          ? "bg-[#D97706] text-black rounded-br-sm"
-                          : "bg-white text-black rounded-bl-sm"
+                          ? "bg-[#d9fdd3] text-[#111b21] rounded-br-sm"
+                          : "bg-white text-[#111b21] rounded-bl-sm"
                       }`}
                     >
                       {!mine && (
-                        <p className="text-[10px] font-semibold text-amber-800 mb-0.5">
+                        <p className="text-[10px] font-semibold text-[#008069] mb-0.5">
                           {msg.admin_name || "Fine Jewellery Buyers"}
                         </p>
                       )}
                       <p className="text-[15px] whitespace-pre-wrap break-words leading-relaxed">{msg.body}</p>
-                      <p className={`mt-1 flex items-center gap-1 text-[10px] ${mine ? "justify-end text-black/60" : "text-black/45"}`}>
+                      <p className={`mt-1 flex items-center gap-1 text-[10px] text-[#667781] ${mine ? "justify-end" : ""}`}>
                         <span>{timeLabel(msg.created_at, msg.created_at_human)}</span>
                         {mine && <CheckCheck className="w-3.5 h-3.5" aria-hidden />}
                       </p>
@@ -310,6 +332,15 @@ export default function EnquiryPage({ params }: { params: Promise<{ token: strin
                 </div>
               );
             })}
+            {adminTyping && (
+              <div className="flex justify-start">
+                <div className="bg-white rounded-2xl rounded-bl-sm px-3 py-2.5 shadow-sm">
+                  <span className="wa-typing" aria-label="Fine Jewellery Buyers is typing">
+                    <i /><i /><i />
+                  </span>
+                </div>
+              </div>
+            )}
             <div ref={chatEndRef} />
           </div>
         </div>
@@ -325,9 +356,9 @@ export default function EnquiryPage({ params }: { params: Promise<{ token: strin
         )}
       </div>
 
-      <div className="shrink-0 bg-[#111111] safe-bottom">
+      <div className="shrink-0 bg-[#f0f2f5] safe-bottom">
         <form onSubmit={handleSend} className="max-w-2xl mx-auto px-2.5 sm:px-3 py-2">
-          {error && <p className="text-xs text-red-300 px-2 mb-1.5">{error}</p>}
+          {error && <p className="text-xs text-red-600 px-2 mb-1.5">{error}</p>}
           <div className="flex items-end gap-2">
             <label className="sr-only" htmlFor="enquiry-message">
               Your message
@@ -339,6 +370,13 @@ export default function EnquiryPage({ params }: { params: Promise<{ token: strin
               onChange={(e) => {
                 setReply(e.target.value);
                 resizeComposer();
+                const now = Date.now();
+                if (e.target.value.trim() && now - lastTypingPing.current > 1500) {
+                  lastTypingPing.current = now;
+                  pingTyping(true);
+                }
+                if (typingTimer.current) window.clearTimeout(typingTimer.current);
+                typingTimer.current = window.setTimeout(() => pingTyping(false), 2500);
               }}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
@@ -348,12 +386,12 @@ export default function EnquiryPage({ params }: { params: Promise<{ token: strin
               }}
               placeholder="Type a message"
               rows={1}
-              className="flex-1 bg-white text-black rounded-3xl px-4 py-2.5 text-base resize-none focus:outline-none focus:ring-2 focus:ring-[#D97706]/40 min-h-11 max-h-32 leading-relaxed"
+              className="flex-1 bg-white text-[#111b21] rounded-3xl px-4 py-2.5 text-base resize-none shadow-sm focus:outline-none focus:ring-2 focus:ring-[#008069]/30 min-h-11 max-h-32 leading-relaxed"
             />
             <button
               type="submit"
               disabled={sending || !reply.trim()}
-              className="h-11 w-11 flex items-center justify-center bg-[#D97706] text-black rounded-full disabled:opacity-40 shrink-0 active:scale-95 transition-transform"
+              className="h-11 w-11 flex items-center justify-center bg-[#008069] text-white rounded-full disabled:opacity-40 shrink-0 active:scale-95 transition-transform"
               aria-label="Send message"
             >
               {sending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
