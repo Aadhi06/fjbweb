@@ -49,6 +49,7 @@ import {
   MessageSquare,
   ExternalLink,
   MoreHorizontal,
+  Bell,
 } from "lucide-react";
 import {
   DEFAULT_TRUSTINDEX_INBOX_URL,
@@ -62,6 +63,7 @@ import { UsersContent } from "./UsersContent";
 import { SubmissionsContent } from "./SubmissionsContent";
 import { MessagesContent } from "./MessagesContent";
 import { AdminMessagesFab, useAdminUnreadCount } from "./AdminMessagesFab";
+import { AdminPushNotifications } from "./AdminPushNotifications";
 import { MetalBuyingRates } from "./MetalBuyingRates";
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8002") + "/api";
@@ -576,6 +578,15 @@ function SettingsContent() {
       <p className="text-gray-500 mb-8">Manage site settings, API keys, and configuration</p>
 
       <div className="space-y-4">
+        <CollapsibleSection title="Phone alerts" icon={Bell} defaultOpen>
+          <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4">
+            <p className="text-sm text-gray-700 mb-3">
+              Get a lock-screen alert on this phone or computer when a booking, enquiry or customer reply comes in. On iPhone, add FJB Admin to the Home Screen first, then tap Turn on alerts.
+            </p>
+            <AdminPushNotifications showTest />
+          </div>
+        </CollapsibleSection>
+
         <CollapsibleSection title="Maintenance Mode" icon={HardHat} defaultOpen>
           <div
             className={`mt-4 rounded-xl border p-5 ${
@@ -2619,6 +2630,7 @@ export default function AdminDashboardPage() {
             </h1>
           </div>
           <div className="flex items-center gap-3">
+            <AdminPushNotifications compact />
             <div className="w-8 h-8 bg-black rounded-full flex items-center justify-center">
               <span className="text-white text-xs font-bold">{user?.name?.charAt(0) || "A"}</span>
             </div>

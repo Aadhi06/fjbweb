@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\TeamMemberController;
 use App\Http\Controllers\Api\MarketingContactController;
 use App\Http\Controllers\Api\MarketingCampaignController;
 use App\Http\Controllers\Api\NewsletterController;
+use App\Http\Controllers\Api\PushNotificationController;
 use App\Http\Controllers\Api\CronController;
 use App\Http\Controllers\Admin\DashboardController;
 
@@ -75,6 +76,10 @@ Route::post('/admin/login', [AuthController::class, 'login']);
 Route::middleware('auth:sanctum')->prefix('admin')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me', [AuthController::class, 'me']);
+    Route::get('/push/vapid-key', [PushNotificationController::class, 'vapidKey']);
+    Route::post('/push/subscribe', [PushNotificationController::class, 'subscribe']);
+    Route::delete('/push/subscribe', [PushNotificationController::class, 'unsubscribe']);
+    Route::post('/push/test', [PushNotificationController::class, 'test']);
 
     Route::get('/dashboard', [DashboardController::class, 'index']);
     Route::get('/settings', [SettingController::class, 'all']);

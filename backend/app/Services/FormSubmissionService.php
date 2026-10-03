@@ -82,6 +82,7 @@ class FormSubmissionService
         $submission->load('files');
         $form->load('fields');
         $this->sendNotification($form, $submission);
+        $this->sendPushAlert($form, $submission);
 
         try {
             app(MarketingContactService::class)->upsertFromFormSubmission($submission, $form);
@@ -156,6 +157,22 @@ class FormSubmissionService
             }
         } catch (\Exception $e) {
             Log::error("Failed to send customer form confirmation: {$e->getMessage()}");
+        }
+    }
+
+    private function sendPushAlert(Form $form, FormSubmission $submission): void
+    {
+        try {
+            $name = app(SubmissionConversationService::class)->customerName($submission);
+            $formName = $form->title ?: $form->slug ?: 'Enquiry';
+            app(WebPushService::class)->notifyAdmins(
+                'New enquiry',
+                trim($name.' sent a '.$formName),
+                '/admin?tab=messages&submission='.$submission->id,
+                'enquiry-'.$submission->id
+            );
+        } catch (\Throwable $e) {
+            Log::error('Failed to send enquiry push: '.$e->getMessage());
         }
     }
 }

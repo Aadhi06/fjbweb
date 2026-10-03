@@ -115,6 +115,17 @@ class BookingController extends Controller
         $this->mailService->sendAdminNotification($booking);
         $this->mailService->sendReceived($booking);
 
+        try {
+            app(\App\Services\WebPushService::class)->notifyAdmins(
+                'New booking',
+                trim($booking->name.' booked '.$booking->service_type.' — '.$date->format('D j M').' '.$booking->booking_time),
+                '/admin?tab=bookings',
+                'booking-'.$booking->id
+            );
+        } catch (\Throwable $e) {
+            Log::error('Failed to send booking push: '.$e->getMessage());
+        }
+
         return response()->json([
             'message' => 'Booking received! Our team will confirm your appointment by email.',
             'booking' => [

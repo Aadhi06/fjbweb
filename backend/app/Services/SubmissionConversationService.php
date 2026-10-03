@@ -96,6 +96,7 @@ class SubmissionConversationService
         $submission->update(['status' => 'new']);
 
         $this->emailAdmin($submission, $message);
+        $this->pushAdmin($submission, $message);
 
         return $record;
     }
@@ -302,6 +303,24 @@ class SubmissionConversationService
             ));
         } catch (\Exception $e) {
             Log::error("Failed to send customer reply notification to admin: {$e->getMessage()}");
+        }
+    }
+
+    private function pushAdmin(FormSubmission $submission, string $message): void
+    {
+        try {
+            $preview = trim(preg_replace('/\s+/', ' ', $message) ?? '');
+            if (strlen($preview) > 120) {
+                $preview = substr($preview, 0, 117).'...';
+            }
+            app(WebPushService::class)->notifyAdmins(
+                'New message from '.$this->customerName($submission),
+                $preview !== '' ? $preview : 'Opened the chat and sent a reply.',
+                '/admin?tab=messages&submission='.$submission->id,
+                'message-'.$submission->id
+            );
+        } catch (\Throwable $e) {
+            Log::error('Failed to send message push: '.$e->getMessage());
         }
     }
 
