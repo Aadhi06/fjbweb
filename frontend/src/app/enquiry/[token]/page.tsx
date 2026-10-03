@@ -144,6 +144,13 @@ export default function EnquiryPage({ params }: { params: Promise<{ token: strin
   }, [token, loadConversation]);
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+    const openToken = new URLSearchParams(window.location.search).get("o");
+    if (!openToken) return;
+    fetch(`${API_URL}/mail/click/${encodeURIComponent(openToken)}`, { cache: "no-store", redirect: "manual" }).catch(() => {});
+  }, []);
+
+  useEffect(() => {
     if (!loading && messages.length) {
       chatEndRef.current?.scrollIntoView({ behavior: "auto" });
     }

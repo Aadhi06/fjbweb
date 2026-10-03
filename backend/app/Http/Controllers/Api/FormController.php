@@ -301,12 +301,13 @@ class FormController extends Controller
         ]);
     }
 
-    public function mailClick(string $token)
+    public function mailClick(?string $token = null)
     {
         try {
-            $message = $this->conversationService->markMessageClickedByToken($token);
+            $token = trim((string) $token);
+            $message = $token !== '' ? $this->conversationService->markMessageClickedByToken($token) : null;
             $submission = $message?->submission
-                ?? $this->conversationService->findSubmissionByPublicToken($token);
+                ?? ($token !== '' ? $this->conversationService->findSubmissionByPublicToken($token) : null);
             $url = $submission
                 ? $this->conversationService->conversationUrl($submission)
                 : $this->conversationService->publicFrontendUrl();

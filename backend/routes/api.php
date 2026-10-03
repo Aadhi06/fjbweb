@@ -34,7 +34,7 @@ Route::get('/enquiry/{token}', [FormController::class, 'conversationShow']);
 Route::post('/enquiry/{token}/messages', [FormController::class, 'conversationReply'])
     ->middleware(\App\Http\Middleware\AntiSpam::class);
 Route::get('/mail/open/{token}', [FormController::class, 'mailOpen']);
-Route::get('/mail/click/{token}', [FormController::class, 'mailClick']);
+Route::get('/mail/click/{token?}', [FormController::class, 'mailClick']);
 
 Route::get('/google-reviews', [ReviewController::class, 'index']);
 

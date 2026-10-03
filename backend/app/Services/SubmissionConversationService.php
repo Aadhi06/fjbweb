@@ -94,6 +94,7 @@ class SubmissionConversationService
         ]);
 
         $submission->update(['status' => 'new']);
+        $this->markAdminMessagesViewed($submission);
 
         $this->emailAdmin($submission, $message);
         $this->pushAdmin($submission, $message);
@@ -146,7 +147,13 @@ class SubmissionConversationService
 
     public function trackedConversationUrl(FormSubmission $submission, FormSubmissionMessage $message): string
     {
-        return $this->apiBaseUrl() . '/api/mail/click/' . $message->open_token;
+        $url = $this->conversationUrl($submission);
+        $open = trim((string) $message->open_token);
+        if ($open !== '') {
+            $url .= (str_contains($url, '?') ? '&' : '?') . 'o=' . rawurlencode($open);
+        }
+
+        return $url;
     }
 
     public function markAdminMessagesViewed(FormSubmission $submission): void

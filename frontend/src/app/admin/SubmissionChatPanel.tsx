@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ArrowLeft, CalendarDays, Loader2, MessageSquare, Send } from "lucide-react";
+import { ArrowLeft, CalendarDays, Check, CheckCheck, Loader2, MessageSquare, Send } from "lucide-react";
 import { useSettings } from "@/lib/useSettings";
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8002") + "/api";
@@ -268,16 +268,25 @@ function formatFields(data: Record<string, string>) {
   return entries;
 }
 
+function ReceiptTicks({ status }: { status?: ChatMessage["delivery_status"] }) {
+  const read = status === "chat_opened";
+  const delivered = status === "email_opened" || read;
+  const label = read ? "Read" : delivered ? "Delivered" : "Sent";
+  const Icon = delivered || read ? CheckCheck : Check;
+
+  return (
+    <span
+      title={label}
+      aria-label={label}
+      className={`inline-flex ${read ? "text-[#53bdeb]" : "text-white/70"}`}
+    >
+      <Icon className="w-3.5 h-3.5" strokeWidth={2.4} />
+    </span>
+  );
+}
+
 function ChatBubble({ msg }: { msg: ChatMessage }) {
   const isAdmin = msg.sender === "admin";
-  const statusLabel =
-    msg.delivery_status === "chat_opened"
-      ? `Chat opened${msg.page_viewed_at_human ? ` · ${msg.page_viewed_at_human}` : ""}`
-      : msg.delivery_status === "email_opened"
-        ? `Email opened${msg.email_opened_at_human ? ` · ${msg.email_opened_at_human}` : ""}`
-        : isAdmin
-          ? "Sent"
-          : null;
 
   return (
     <div className={`flex ${isAdmin ? "justify-end" : "justify-start"}`}>
@@ -290,21 +299,9 @@ function ChatBubble({ msg }: { msg: ChatMessage }) {
           {isAdmin ? (msg.admin_name || "You") : "Customer"}
         </p>
         <p className="text-sm whitespace-pre-wrap break-words">{msg.body}</p>
-        <div className={`mt-1 flex items-center gap-2 text-[10px] ${isAdmin ? "opacity-70 justify-end" : "opacity-60"}`}>
+        <div className={`mt-1 flex items-center gap-1.5 text-[10px] ${isAdmin ? "justify-end text-white/70" : "opacity-60"}`}>
           <span>{msg.created_at_human}</span>
-          {statusLabel ? (
-            <span
-              className={`inline-flex items-center px-1.5 py-0.5 rounded-full font-medium ${
-                msg.delivery_status === "chat_opened"
-                  ? "bg-green-500/20 text-green-200"
-                  : msg.delivery_status === "email_opened"
-                    ? "bg-amber-400/25 text-amber-100"
-                    : "bg-white/10 text-white/80"
-              }`}
-            >
-              {statusLabel}
-            </span>
-          ) : null}
+          {isAdmin ? <ReceiptTicks status={msg.delivery_status} /> : null}
         </div>
       </div>
     </div>
@@ -398,7 +395,7 @@ export function SubmissionChatPanel({
 
     const interval = setInterval(() => {
       loadDetail({ markRead: false, silent: true });
-    }, 10000);
+    }, 4000);
 
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
