@@ -22,7 +22,7 @@ class FormSeeder extends Seeder
                     ['name' => 'phone', 'label' => 'Phone Number', 'type' => 'phone', 'placeholder' => '07XXX XXXXXX', 'required' => true, 'order' => 3],
                     ['name' => 'item_type', 'label' => 'What are you selling?', 'type' => 'select', 'required' => true, 'options' => ['Gold Jewellery', 'Gold bars / bullion', 'Gold coins / sovereigns', 'Inherited gold collection', 'Diamonds', 'Luxury Watch', 'Silver', 'Platinum', 'Branded Jewellery', 'Gemstones', 'Other'], 'order' => 4],
                     ['name' => 'description', 'label' => 'Item Description', 'type' => 'textarea', 'placeholder' => 'Describe your item(s) - carat, weight, brand, condition...', 'required' => true, 'order' => 5],
-                    ['name' => 'expected_price', 'label' => 'Expected value', 'type' => 'select', 'placeholder' => 'Select a range', 'required' => true, 'options' => ['Under £500', '£500 – £2,000', '£2,000 – £5,000', '£5,000 – £15,000', '£15,000+'], 'order' => 6],
+                    ['name' => 'expected_price', 'label' => 'Expected value', 'type' => 'text', 'placeholder' => 'e.g. £500 or best offer', 'required' => true, 'options' => null, 'order' => 6],
                     ['name' => 'photos', 'label' => 'Upload Photos', 'type' => 'file', 'required' => false, 'order' => 7],
                     ['name' => 'preferred_contact', 'label' => 'Preferred Contact Method', 'type' => 'radio', 'required' => true, 'options' => ['Phone', 'Email', 'WhatsApp'], 'order' => 8],
                     ['name' => 'consent', 'label' => 'I agree to the privacy policy', 'type' => 'checkbox', 'required' => true, 'order' => 9],

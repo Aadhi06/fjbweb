@@ -83,7 +83,7 @@ function FormFieldComponent({ field, defaultValue }: { field: FormField; default
     case "file":
       return <PhotoUploadField field={field} />;
     default:
-      return <input type={field.type} name={field.name} placeholder={field.placeholder} required={field.required} className={baseClasses} />;
+      return <input type={field.type} name={field.name} placeholder={field.placeholder} required={field.required} defaultValue={defaultValue} className={baseClasses} />;
   }
 }
 
