@@ -2650,46 +2650,50 @@ export default function AdminDashboardPage() {
       </div>
 
       <nav className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-white border-t border-gray-200 safe-bottom">
-        <div className="grid grid-cols-4">
+        <div className="grid grid-cols-5">
           {(
             [
               { id: "dashboard" as ActiveTab, label: "Home", icon: Home },
-              { id: "submissions" as ActiveTab, label: "Enquiries", icon: MessageSquare, badge: unreadCount },
-              { id: "bookings" as ActiveTab, label: "Appointments", icon: CalendarDays },
+              { id: "submissions" as ActiveTab, label: "Enquiries", icon: Package },
+              { id: "messages" as ActiveTab, label: "Messages", icon: MessageSquare, badge: unreadCount },
+              { id: "bookings" as ActiveTab, label: "Appts", icon: CalendarDays },
             ] as const
           ).map((item) => {
             const isActive = activeTab === item.id;
+            const badge = "badge" in item ? item.badge : 0;
             return (
               <button
                 key={item.id}
                 type="button"
                 onClick={() => {
                   setActiveTab(item.id);
-                  if (item.id === "submissions") refreshUnread();
+                  if (item.id === "messages" || item.id === "submissions") refreshUnread();
                 }}
-                className={`flex flex-col items-center justify-center gap-0.5 min-h-14 py-2 ${
+                className={`flex flex-col items-center justify-center gap-0.5 min-h-14 py-2 px-0.5 ${
                   isActive ? "text-[#D97706]" : "text-gray-500"
                 }`}
+                aria-label={item.id === "messages" && badge > 0 ? `Messages, ${badge} new` : item.label}
               >
                 <span className="relative">
                   <item.icon className="w-5 h-5" />
-                  {"badge" in item && item.badge > 0 && (
+                  {badge > 0 && (
                     <span className="absolute -top-1.5 -right-2 min-w-4 h-4 px-1 rounded-full bg-red-500 text-white text-[10px] font-bold leading-4">
-                      {item.badge > 99 ? "99+" : item.badge}
+                      {badge > 99 ? "99+" : badge}
                     </span>
                   )}
                 </span>
-                <span className="text-[11px] font-medium">{item.label}</span>
+                <span className="text-[10px] font-medium leading-tight text-center">{item.label}</span>
               </button>
             );
           })}
           <button
             type="button"
             onClick={() => setSidebarOpen(true)}
-            className="flex flex-col items-center justify-center gap-0.5 min-h-14 py-2 text-gray-500"
+            className="flex flex-col items-center justify-center gap-0.5 min-h-14 py-2 px-0.5 text-gray-500"
+            aria-label="More"
           >
             <MoreHorizontal className="w-5 h-5" />
-            <span className="text-[11px] font-medium">More</span>
+            <span className="text-[10px] font-medium leading-tight text-center">More</span>
           </button>
         </div>
       </nav>

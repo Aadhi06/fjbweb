@@ -551,29 +551,34 @@ export function SubmissionChatPanel({
 
   return (
     <div className="relative flex flex-col h-full min-h-0 bg-[#efeae2]">
-      <div className={`flex items-center gap-2 px-2 sm:px-4 py-2.5 border-b border-black/5 shrink-0 bg-[#008069] text-white ${appChat ? "safe-top" : ""}`}>
+      <div className={`flex items-center gap-1.5 px-2 sm:px-4 py-2.5 border-b border-black/5 shrink-0 bg-[#008069] text-white ${appChat ? "safe-top" : ""}`}>
         {onClose && (
           <button
             type="button"
             onClick={onClose}
-            className="min-h-12 px-1.5 pr-2 flex items-center gap-1 text-white hover:text-white shrink-0"
+            className="min-h-12 min-w-11 flex items-center justify-center text-white shrink-0 -ml-1"
             aria-label="Back to messages"
           >
-            <ArrowLeft className="w-5 h-5" />
-            <span className="text-sm font-semibold">Back</span>
+            <ArrowLeft className="w-6 h-6" />
           </button>
         )}
-        <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold shrink-0 bg-white text-[#008069]">
+        <div className="w-9 h-9 rounded-full flex items-center justify-center font-bold shrink-0 bg-white text-[#008069]">
           {(fieldValue(detail.data || {}, "name", "full_name") || "C").charAt(0).toUpperCase()}
         </div>
-        <div className="min-w-0 flex-1">
+        <button
+          type="button"
+          onClick={onClose}
+          disabled={!onClose}
+          className="min-w-0 flex-1 text-left disabled:pointer-events-none"
+          aria-label={onClose ? "Back to messages" : undefined}
+        >
           <h3 className="text-base font-semibold truncate text-white">
             {fieldValue(detail.data || {}, "name", "full_name") || detail.form_name}
           </h3>
           <p className="text-xs truncate text-white/85">
             {customerTyping ? "typing..." : detail.form_name}
           </p>
-        </div>
+        </button>
         <button
           type="button"
           onClick={() => {
