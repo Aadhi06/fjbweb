@@ -421,9 +421,11 @@ export function SubmissionChatPanel({
     messageIdsRef.current = "";
     loadDetail({ markRead: true });
 
-    const interval = setInterval(() => {
+    const tick = () => {
+      if (document.hidden) return;
       loadDetail({ markRead: false, silent: true });
-    }, 2000);
+    };
+    const interval = setInterval(tick, 8000);
 
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -551,8 +553,14 @@ export function SubmissionChatPanel({
     <div className="relative flex flex-col h-full min-h-0 bg-[#efeae2]">
       <div className={`flex items-center gap-2 px-2 sm:px-4 py-2.5 border-b border-black/5 shrink-0 bg-[#008069] text-white ${appChat ? "safe-top" : ""}`}>
         {onClose && (
-          <button type="button" onClick={onClose} className="min-h-12 min-w-12 flex items-center justify-center text-white/90 hover:text-white shrink-0" aria-label="Back to enquiries">
+          <button
+            type="button"
+            onClick={onClose}
+            className="min-h-12 px-1.5 pr-2 flex items-center gap-1 text-white hover:text-white shrink-0"
+            aria-label="Back to messages"
+          >
             <ArrowLeft className="w-5 h-5" />
+            <span className="text-sm font-semibold">Back</span>
           </button>
         )}
         <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold shrink-0 bg-white text-[#008069]">

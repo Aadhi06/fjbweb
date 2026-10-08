@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { ArrowLeft, Loader2, Mail, MessageSquare, Plus, RefreshCw, Search, Send, X } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Loader2, Mail, MessageSquare, Plus, RefreshCw, Search, Send, X } from "lucide-react";
 import { getAuthHeaders, SubmissionChatPanel } from "./SubmissionChatPanel";
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8002") + "/api";
@@ -45,8 +45,9 @@ function lastMessageTime(conversation: ConversationItem): string {
 }
 
 function isAwaitingReply(conversation: ConversationItem): boolean {
+  if (conversation.last_message?.sender === "customer") return true;
   if (typeof conversation.awaiting_reply === "boolean") return conversation.awaiting_reply;
-  return conversation.last_message?.sender === "customer" || conversation.unread;
+  return conversation.unread;
 }
 
 function isReplied(conversation: ConversationItem): boolean {
@@ -87,10 +88,12 @@ export function MessagesContent({
   showToast,
   onUnreadChange,
   initialSelectedId,
+  onClearSelected,
 }: {
   showToast: (msg: string, type: "success" | "error") => void;
   onUnreadChange?: () => void;
   initialSelectedId?: number | null;
+  onClearSelected?: () => void;
 }) {
   const [conversations, setConversations] = useState<ConversationItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -107,24 +110,39 @@ export function MessagesContent({
   const [searchName, setSearchName] = useState("");
   const [searchDate, setSearchDate] = useState("");
   const [searchTime, setSearchTime] = useState("");
+  const fetchingRef = useRef(false);
 
-  const fetchMessages = useCallback(async () => {
+  const fetchMessages = useCallback(async (options?: { silent?: boolean }) => {
+    if (fetchingRef.current) return;
+    fetchingRef.current = true;
     try {
       const res = await fetch(`${API_URL}/admin/messages`, { headers: getAuthHeaders() });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.message || "Failed to load messages");
       setConversations(Array.isArray(data.data) ? data.data : []);
     } catch {
-      showToast("Failed to load messages", "error");
+      if (!options?.silent) showToast("Failed to load messages", "error");
     } finally {
+      fetchingRef.current = false;
       setLoading(false);
     }
   }, [showToast]);
 
   useEffect(() => {
     fetchMessages();
-    const interval = setInterval(fetchMessages, 3000);
-    return () => clearInterval(interval);
+    const tick = () => {
+      if (document.hidden) return;
+      fetchMessages({ silent: true });
+    };
+    const interval = setInterval(tick, 20000);
+    const onVisible = () => {
+      if (!document.hidden) fetchMessages({ silent: true });
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, [fetchMessages]);
 
   useEffect(() => {
@@ -137,6 +155,16 @@ export function MessagesContent({
   useEffect(() => {
     if (initialSelectedId) setSelectedId(initialSelectedId);
   }, [initialSelectedId]);
+
+  useEffect(() => {
+    const onPop = () => {
+      const id = new URLSearchParams(window.location.search).get("submission");
+      setSelectedId(id ? Number(id) : null);
+      if (!id) onClearSelected?.();
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate");
+  }, [onClearSelected]);
 
   const unreadTotal = conversations.filter((c) => isAwaitingReply(c)).length;
   const repliedTotal = conversations.filter((c) => isReplied(c)).length;
@@ -165,8 +193,44 @@ export function MessagesContent({
 
   const handleNewCustomerMessage = useCallback(() => {
     onUnreadChange?.();
-    fetchMessages();
-  }, [onUnreadChange, fetchMessages]);
+    setConversations((prev) =>
+      prev.map((c) =>
+        c.id === selectedId
+          ? {
+              ...c,
+              unread: true,
+              awaiting_reply: true,
+              replied: false,
+              last_message: {
+                sender: "customer",
+                body: c.last_message?.body || "New message",
+                created_at: new Date().toISOString(),
+                created_at_human: "just now",
+              },
+              last_message_at: new Date().toISOString(),
+            }
+          : c
+      )
+    );
+  }, [onUnreadChange, selectedId]);
+
+  function closeChat() {
+    if (typeof window !== "undefined" && window.history.state?.fjbChat) {
+      window.history.back();
+      return;
+    }
+    setSelectedId(null);
+    onClearSelected?.();
+  }
+
+  function openChat(id: number) {
+    setSelectedId(id);
+    if (typeof window === "undefined") return;
+    const url = new URL(window.location.href);
+    url.searchParams.set("tab", "messages");
+    url.searchParams.set("submission", String(id));
+    window.history.pushState({ fjbChat: id }, "", `${url.pathname}?${url.searchParams.toString()}`);
+  }
 
   function resetCompose() {
     setCompose(null);
@@ -241,7 +305,7 @@ export function MessagesContent({
 
   return (
     <div>
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 sm:mb-6 px-3 pt-3 sm:px-0 sm:pt-0">
+      <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 sm:mb-6 px-3 pt-3 sm:px-0 sm:pt-0 ${selectedId ? "hidden md:flex" : ""}`}>
         <div>
           <h2 className="text-xl sm:text-2xl font-bold text-black mb-1">Messages</h2>
           <p className="text-sm text-gray-500">Email anyone, or start a chat from admin</p>
@@ -277,7 +341,11 @@ export function MessagesContent({
           <p className="text-gray-500">No conversations yet. Send an email or start a chat with any customer.</p>
         </div>
       ) : (
-        <div className="bg-white rounded-none sm:rounded-xl border-0 sm:border border-gray-200 overflow-hidden h-[calc(100dvh-7.5rem)] sm:h-[calc(100dvh-12rem)] min-h-[360px] flex">
+        <div className={`bg-white rounded-none sm:rounded-xl border-0 sm:border border-gray-200 overflow-hidden min-h-[360px] flex ${
+          selectedId
+            ? "fixed inset-0 z-50 h-dvh md:static md:z-auto md:h-[calc(100dvh-12rem)]"
+            : "h-[calc(100dvh-7.5rem)] sm:h-[calc(100dvh-12rem)]"
+        }`}>
           <div
             className={`${
               selectedId ? "hidden md:flex" : "flex"
@@ -384,7 +452,7 @@ export function MessagesContent({
                 <button
                   key={c.id}
                   type="button"
-                  onClick={() => setSelectedId(c.id)}
+                  onClick={() => openChat(c.id)}
                   className={`w-full text-left px-4 py-3.5 border-b border-gray-50 hover:bg-gray-50 transition-colors ${
                     selectedId === c.id ? "bg-amber-50/80" : ""
                   }`}
@@ -428,23 +496,15 @@ export function MessagesContent({
 
           <div className={`${selectedId ? "flex" : "hidden md:flex"} flex-1 flex-col min-w-0 min-h-0`}>
             {selectedId ? (
-              <>
-                <button
-                  type="button"
-                  onClick={() => setSelectedId(null)}
-                  className="md:hidden flex items-center gap-2 px-4 py-3 border-b border-gray-200 text-sm font-medium text-gray-700 bg-white shrink-0"
-                >
-                  <ArrowLeft className="w-4 h-4" /> Back to conversations
-                </button>
-                <SubmissionChatPanel
-                  key={selectedId}
-                  submissionId={selectedId}
-                  showToast={showToast}
-                  onRead={handleRead}
-                  onNewCustomerMessage={handleNewCustomerMessage}
-                  compact
-                />
-              </>
+              <SubmissionChatPanel
+                key={selectedId}
+                submissionId={selectedId}
+                showToast={showToast}
+                onRead={handleRead}
+                onNewCustomerMessage={handleNewCustomerMessage}
+                onClose={closeChat}
+                compact
+              />
             ) : (
               <div className="hidden md:flex flex-1 items-center justify-center text-gray-400 text-sm p-8 text-center">
                 <div>

@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 class FormSubmissionMessage extends Model
@@ -30,8 +31,13 @@ class FormSubmissionMessage extends Model
     protected static function booted(): void
     {
         static::creating(function (FormSubmissionMessage $message) {
-            if ($message->sender === 'admin' && !$message->open_token) {
-                $message->open_token = Str::random(48);
+            try {
+                if ($message->sender === 'admin' && !$message->open_token
+                    && Schema::hasColumn($message->getTable(), 'open_token')) {
+                    $message->open_token = Str::random(48);
+                }
+            } catch (\Throwable $e) {
+                $message->open_token = null;
             }
         });
     }

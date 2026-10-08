@@ -247,13 +247,21 @@ export default function EnquiryPage({ params }: { params: Promise<{ token: strin
     pingTyping(false);
     requestAnimationFrame(resizeComposer);
     try {
-      const formData = new FormData();
-      if (text) formData.append("message", text);
-      filesToSend.forEach((item) => formData.append("files[]", item.file));
+      const hasFiles = filesToSend.length > 0;
       const res = await fetch(`${API_URL}/enquiry/${token}/messages`, {
         method: "POST",
-        headers: { Accept: "application/json" },
-        body: formData,
+        headers: {
+          Accept: "application/json",
+          ...(hasFiles ? {} : { "Content-Type": "application/json" }),
+        },
+        body: hasFiles
+          ? (() => {
+              const formData = new FormData();
+              if (text) formData.append("message", text);
+              filesToSend.forEach((item) => formData.append("files[]", item.file));
+              return formData;
+            })()
+          : JSON.stringify({ message: text }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.message || "Failed");

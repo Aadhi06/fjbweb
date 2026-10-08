@@ -9,6 +9,7 @@ use App\Models\Form;
 use App\Models\FormField;
 use App\Models\FormSubmission;
 use App\Models\FormSubmissionFile;
+use App\Models\FormSubmissionMessage;
 use App\Services\FormSubmissionService;
 use App\Services\MailConfigService;
 use App\Services\SubmissionConversationService;
@@ -87,9 +88,25 @@ class FormController extends Controller
             $submission->refresh();
         }
 
-        return response()->json([
-            'data' => $this->formatSubmissionDetail($submission),
-        ]);
+        try {
+            return response()->json([
+                'data' => $this->formatSubmissionDetail($submission),
+            ]);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('adminShow failed: '.$e->getMessage());
+
+            return response()->json([
+                'data' => [
+                    'id' => $submission->id,
+                    'form_name' => $submission->form?->title ?? 'Enquiry',
+                    'data' => $submission->data ?? [],
+                    'files' => [],
+                    'messages' => [],
+                    'status' => $submission->status,
+                    'created_at_human' => $submission->created_at?->diffForHumans(),
+                ],
+            ]);
+        }
     }
 
     public function adminMessages(): JsonResponse
@@ -99,14 +116,37 @@ class FormController extends Controller
             ->withCount('messages')
             ->withMax('messages', 'created_at')
             ->get()
-            ->sort(function ($a, $b) {
-                $aTime = (string) ($a->messages_max_created_at ?? $a->created_at);
-                $bTime = (string) ($b->messages_max_created_at ?? $b->created_at);
+            ->sortByDesc(fn ($s) => (string) ($s->messages_max_created_at ?? $s->created_at))
+            ->values();
 
-                return $bTime <=> $aTime;
+        $latestBySubmission = collect();
+        $ids = $submissions->pluck('id');
+        if ($ids->isNotEmpty()) {
+            $latestIds = FormSubmissionMessage::query()
+                ->selectRaw('MAX(id) as id')
+                ->whereIn('form_submission_id', $ids)
+                ->groupBy('form_submission_id')
+                ->pluck('id');
+            $latestBySubmission = FormSubmissionMessage::query()
+                ->whereIn('id', $latestIds)
+                ->get()
+                ->keyBy('form_submission_id');
+        }
+
+        $submissions = $submissions
+            ->map(function ($s) use ($latestBySubmission) {
+                try {
+                    return $this->conversationService->formatConversationSummary(
+                        $s,
+                        $latestBySubmission->get($s->id)
+                    );
+                } catch (\Throwable $e) {
+                    \Illuminate\Support\Facades\Log::error('Conversation summary failed for #'.$s->id.': '.$e->getMessage());
+                    return null;
+                }
             })
-            ->values()
-            ->map(fn ($s) => $this->conversationService->formatConversationSummary($s));
+            ->filter()
+            ->values();
 
         return response()->json(['data' => $submissions]);
     }
@@ -231,36 +271,48 @@ class FormController extends Controller
 
     public function adminReply(Request $request, FormSubmission $submission): JsonResponse
     {
-        $files = $this->chatFiles($request);
-        $validated = $request->validate([
-            'message' => ($files === [] ? 'required' : 'nullable').'|string|max:5000',
-        ]);
-
-        $message = $this->conversationService->sendAdminReply(
-            $submission,
-            (string) ($validated['message'] ?? ''),
-            $request->user(),
-            false,
-            $files,
-        );
-
-        $detail = null;
+        $text = trim((string) $request->input('message', ''));
+        $files = [];
         try {
-            $submission->refresh()->load(['form', 'files', 'messages.adminUser']);
-            $detail = $this->formatSubmissionDetail($submission);
+            $files = $this->chatFiles($request);
         } catch (\Throwable $e) {
-            \Illuminate\Support\Facades\Log::error('Admin reply saved but detail failed: '.$e->getMessage());
+            $files = [];
+        }
+
+        if ($text === '' && $files === []) {
+            return response()->json(['message' => 'Please type a message.'], 422);
+        }
+
+        try {
+            if ($files === []) {
+                $message = $this->conversationService->sendAdminReply($submission, $text, $request->user());
+            } else {
+                try {
+                    $message = $this->conversationService->sendAdminReply($submission, $text, $request->user(), false, $files);
+                } catch (\ArgumentCountError $e) {
+                    $message = $this->conversationService->sendAdminReply(
+                        $submission,
+                        $text !== '' ? $text : 'Photo',
+                        $request->user()
+                    );
+                }
+            }
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('adminReply failed: '.$e->getMessage());
+
+            return response()->json([
+                'message' => 'Could not send message. '.$e->getMessage(),
+            ], 500);
         }
 
         return response()->json([
             'message' => 'Reply sent to customer.',
-            'data' => $detail,
             'new_message' => [
                 'id' => $message->id,
                 'sender' => $message->sender,
                 'body' => $message->body,
-                'created_at' => $message->created_at->toIso8601String(),
-                'created_at_human' => $message->created_at->diffForHumans(),
+                'created_at' => $message->created_at?->toIso8601String(),
+                'created_at_human' => $message->created_at?->diffForHumans(),
             ],
         ]);
     }
@@ -273,14 +325,25 @@ class FormController extends Controller
         }
 
         $submission->load('form');
-        $this->conversationService->markAdminMessagesViewed($submission);
+        try {
+            $this->conversationService->markAdminMessagesViewed($submission);
+        } catch (\Throwable $e) {
+            // Opening the chat should still work if tracking columns are missing.
+        }
+
+        $messages = [];
+        try {
+            $messages = $this->conversationService->formatMessages($submission->fresh());
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('conversationShow messages failed: '.$e->getMessage());
+        }
 
         return response()->json([
             'data' => [
                 'form_name' => $submission->form?->title ?? 'Your enquiry',
                 'customer_name' => $this->conversationService->customerName($submission),
                 'booking' => $this->conversationService->linkedBooking($submission),
-                'messages' => $this->conversationService->formatMessages($submission->fresh()),
+                'messages' => $messages,
                 'admin_typing' => $this->conversationService->isTyping($submission->id, 'admin'),
                 'created_at_human' => $submission->created_at->diffForHumans(),
             ],
@@ -310,16 +373,42 @@ class FormController extends Controller
             return response()->json(['message' => 'This enquiry link is invalid.'], 404);
         }
 
-        $files = $this->chatFiles($request);
-        $validated = $request->validate([
-            'message' => ($files === [] ? 'required' : 'nullable').'|string|max:5000',
-        ]);
+        $text = trim((string) $request->input('message', ''));
+        $files = [];
+        try {
+            $files = $this->chatFiles($request);
+        } catch (\Throwable $e) {
+            $files = [];
+        }
 
-        $this->conversationService->sendCustomerReply(
-            $submission,
-            (string) ($validated['message'] ?? ''),
-            $files,
-        );
+        if ($text === '' && $files === []) {
+            return response()->json(['message' => 'Please type a message.'], 422);
+        }
+
+        try {
+            if ($files === []) {
+                $this->conversationService->sendCustomerReply($submission, $text);
+            } else {
+                try {
+                    $this->conversationService->sendCustomerReply($submission, $text, $files);
+                } catch (\ArgumentCountError $e) {
+                    $this->conversationService->sendCustomerReply($submission, $text !== '' ? $text : 'Photo');
+                }
+            }
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('conversationReply failed: '.$e->getMessage());
+
+            return response()->json([
+                'message' => 'Could not send message. '.$e->getMessage(),
+            ], 500);
+        }
+
+        $messages = [];
+        try {
+            $messages = $this->conversationService->formatMessages($submission->fresh());
+        } catch (\Throwable $e) {
+            $messages = [];
+        }
 
         return response()->json([
             'message' => 'Your message has been sent. We will reply shortly.',
@@ -327,7 +416,7 @@ class FormController extends Controller
                 'form_name' => $submission->form?->title ?? 'Your enquiry',
                 'customer_name' => $this->conversationService->customerName($submission),
                 'booking' => $this->conversationService->linkedBooking($submission),
-                'messages' => $this->conversationService->formatMessages($submission->fresh()),
+                'messages' => $messages,
                 'admin_typing' => false,
             ],
         ]);

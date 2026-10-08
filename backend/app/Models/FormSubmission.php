@@ -42,6 +42,6 @@ class FormSubmission extends Model
 
     public function messages(): HasMany
     {
-        return $this->hasMany(FormSubmissionMessage::class)->orderBy('created_at');
+        return $this->hasMany(FormSubmissionMessage::class);
     }
 }

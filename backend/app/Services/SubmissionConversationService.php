@@ -10,7 +10,6 @@ use App\Models\FormSubmissionFile;
 use App\Models\FormSubmissionMessage;
 use App\Models\Setting;
 use App\Models\User;
-use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -80,54 +79,102 @@ class SubmissionConversationService
 
     public function sendAdminReply(FormSubmission $submission, string $message, ?User $admin = null, bool $isNewConversation = false, array $files = []): FormSubmissionMessage
     {
-        $submission->load('form');
-        $isNewConversation = $isNewConversation || $submission->messages()->count() === 0;
         $body = $this->messageBodyOrAttachmentLabel($message, $files);
-
-        $record = FormSubmissionMessage::create([
-            'form_submission_id' => $submission->id,
-            'sender' => 'admin',
-            'body' => $body,
-            'admin_user_id' => $admin?->id,
-        ]);
+        $record = $this->createChatMessage($submission, 'admin', $body, $admin?->id);
 
         try {
             $this->storeChatFiles($submission, $record, $files);
         } catch (\Throwable $e) {
             Log::error('Admin chat file save failed: '.$e->getMessage());
         }
-        $submission->update(['status' => 'replied']);
 
-        $this->setTyping($submission->id, 'admin', false);
-        $this->emailCustomer($submission, $record, $admin?->name, $isNewConversation);
+        try {
+            $submission->update(['status' => 'replied']);
+        } catch (\Throwable $e) {
+            Log::error('Admin reply status update failed: '.$e->getMessage());
+        }
+
+        try {
+            $this->setTyping($submission->id, 'admin', false);
+        } catch (\Throwable $e) {
+            Log::error('Admin typing clear failed: '.$e->getMessage());
+        }
+
+        try {
+            $this->emailCustomer($submission, $record, $admin?->name, $isNewConversation);
+        } catch (\Throwable $e) {
+            Log::error('Admin reply email failed: '.$e->getMessage());
+        }
 
         return $record;
     }
 
     public function sendCustomerReply(FormSubmission $submission, string $message, array $files = []): FormSubmissionMessage
     {
-        $submission->load('form');
         $body = $this->messageBodyOrAttachmentLabel($message, $files);
-
-        $record = FormSubmissionMessage::create([
-            'form_submission_id' => $submission->id,
-            'sender' => 'customer',
-            'body' => $body,
-        ]);
+        $record = $this->createChatMessage($submission, 'customer', $body);
 
         try {
             $this->storeChatFiles($submission, $record, $files);
         } catch (\Throwable $e) {
             Log::error('Customer chat file save failed: '.$e->getMessage());
         }
-        $submission->update(['status' => 'new']);
-        $this->markAdminMessagesViewed($submission);
-        $this->setTyping($submission->id, 'customer', false);
 
-        $this->emailAdmin($submission, $body);
-        $this->pushAdmin($submission, $body);
+        try {
+            $submission->update(['status' => 'new']);
+            $this->markAdminMessagesViewed($submission);
+            $this->setTyping($submission->id, 'customer', false);
+        } catch (\Throwable $e) {
+            Log::error('Customer reply follow-up failed: '.$e->getMessage());
+        }
+
+        try {
+            $this->emailAdmin($submission, $body);
+        } catch (\Throwable $e) {
+            Log::error('Customer reply email failed: '.$e->getMessage());
+        }
+
+        try {
+            $this->pushAdmin($submission, $body);
+        } catch (\Throwable $e) {
+            Log::error('Customer reply push failed: '.$e->getMessage());
+        }
 
         return $record;
+    }
+
+    private function createChatMessage(FormSubmission $submission, string $sender, string $body, ?int $adminUserId = null): FormSubmissionMessage
+    {
+        $payload = [
+            'form_submission_id' => $submission->id,
+            'sender' => $sender,
+            'body' => $body !== '' ? $body : 'Message',
+        ];
+        if ($adminUserId) {
+            $payload['admin_user_id'] = $adminUserId;
+        }
+
+        try {
+            return FormSubmissionMessage::create($payload);
+        } catch (\Throwable $e) {
+            Log::warning('Eloquent chat create failed, inserting core columns: '.$e->getMessage());
+
+            $id = \Illuminate\Support\Facades\DB::table('form_submission_messages')->insertGetId([
+                'form_submission_id' => $submission->id,
+                'sender' => $sender,
+                'body' => $payload['body'],
+                'admin_user_id' => $adminUserId,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            $record = FormSubmissionMessage::find($id);
+            if (!$record) {
+                throw $e;
+            }
+
+            return $record;
+        }
     }
 
     private function messageBodyOrAttachmentLabel(string $message, array $files): string
@@ -189,20 +236,21 @@ class SubmissionConversationService
 
     private function emailCustomer(FormSubmission $submission, FormSubmissionMessage $message, ?string $adminName, bool $isNewConversation = false): void
     {
-        $mailConfig = app(MailConfigService::class);
-        if (!$mailConfig->isConfigured()) {
-            $mailConfig->logIfNotConfigured('submission-reply-customer');
-            return;
-        }
-
-        $email = $this->customerEmail($submission);
-        if (!$email) {
-            return;
-        }
-
-        $mailConfig->applyFromSettings();
-
         try {
+            $mailConfig = app(MailConfigService::class);
+            if (!$mailConfig->isConfigured()) {
+                $mailConfig->logIfNotConfigured('submission-reply-customer');
+                return;
+            }
+
+            $email = $this->customerEmail($submission);
+            if (!$email) {
+                return;
+            }
+
+            $mailConfig->applyFromSettings();
+            $submission->loadMissing('form');
+
             Mail::to($email)->send(new CustomerSubmissionReply(
                 $submission,
                 $message,
@@ -210,7 +258,7 @@ class SubmissionConversationService
                 $adminName,
                 $isNewConversation,
             ));
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             Log::error("Failed to send submission reply to customer: {$e->getMessage()}");
         }
     }
@@ -296,10 +344,7 @@ class SubmissionConversationService
 
     public function isUnread(FormSubmission $submission): bool
     {
-        $latestCustomer = $submission->messages()
-            ->where('sender', 'customer')
-            ->latest()
-            ->first();
+        $latestCustomer = $this->latestMessage($submission, 'customer');
 
         if (!$latestCustomer) {
             return false;
@@ -315,30 +360,33 @@ class SubmissionConversationService
     public function unreadCount(): int
     {
         return FormSubmission::query()
-            ->whereHas('messages', fn ($q) => $q->where('sender', 'customer'))
-            ->with(['messages' => fn ($q) => $q->where('sender', 'customer')->latest()])
-            ->get()
-            ->filter(fn ($s) => $this->isUnread($s))
+            ->whereExists(function ($query) {
+                $query->selectRaw('1')
+                    ->from('form_submission_messages as latest')
+                    ->whereColumn('latest.form_submission_id', 'form_submissions.id')
+                    ->where('latest.sender', 'customer')
+                    ->where('latest.id', function ($sub) {
+                        $sub->selectRaw('MAX(id)')
+                            ->from('form_submission_messages')
+                            ->whereColumn('form_submission_id', 'form_submissions.id');
+                    });
+            })
             ->count();
     }
 
-    public function formatConversationSummary(FormSubmission $submission): array
+    public function formatConversationSummary(FormSubmission $submission, ?FormSubmissionMessage $latest = null): array
     {
-        $submission->loadMissing(['form', 'messages' => fn ($q) => $q->latest()->limit(1)]);
+        $submission->loadMissing('form');
 
-        $latest = $submission->messages->first();
-        if ($latest && $this->chatAttachmentsReady()) {
-            try {
-                $latest->loadMissing('attachments');
-            } catch (\Throwable $e) {
-                Log::warning('Chat attachments unavailable: '.$e->getMessage());
-            }
-        }
+        $latest ??= $this->latestMessage($submission);
         $name = $this->customerName($submission);
         $email = $this->customerEmail($submission);
-        $unread = $this->isUnread($submission);
         $replied = (bool) $latest && $latest->sender === 'admin';
         $awaitingReply = (bool) $latest && $latest->sender === 'customer';
+        $unread = $awaitingReply && (
+            !$submission->admin_last_read_at
+            || ($latest?->created_at && $latest->created_at->gt($submission->admin_last_read_at))
+        );
 
         return [
             'id' => $submission->id,
@@ -349,16 +397,16 @@ class SubmissionConversationService
             'unread' => $unread,
             'replied' => $replied,
             'awaiting_reply' => $awaitingReply,
-            'customer_typing' => $this->isTyping($submission->id, 'customer'),
-            'booking' => $this->linkedBooking($submission),
+            'customer_typing' => false,
+            'booking' => $this->linkedBooking($submission, false),
             'last_message' => $latest ? [
                 'sender' => $latest->sender,
                 'body' => $this->previewBody($latest),
                 'created_at' => $latest->created_at?->toIso8601String(),
                 'created_at_human' => $latest->created_at->diffForHumans(),
             ] : null,
-            'last_message_at' => $latest?->created_at?->toIso8601String(),
-            'message_count' => $submission->messages_count ?? $submission->messages()->count(),
+            'last_message_at' => $latest?->created_at?->toIso8601String() ?? $submission->messages_max_created_at,
+            'message_count' => $submission->messages_count ?? 0,
             'created_at_human' => $submission->created_at->diffForHumans(),
         ];
     }
@@ -382,14 +430,14 @@ class SubmissionConversationService
         $submission->update(['data' => $data]);
     }
 
-    public function linkedBooking(FormSubmission $submission): ?array
+    public function linkedBooking(FormSubmission $submission, bool $hydrate = true): ?array
     {
         $id = $submission->data['_booking_id'] ?? null;
         if (!$id) {
             return null;
         }
 
-        $booking = Booking::find($id);
+        $booking = $hydrate ? Booking::find($id) : null;
         if ($booking) {
             return [
                 'id' => $booking->id,
@@ -412,22 +460,21 @@ class SubmissionConversationService
 
     private function emailAdmin(FormSubmission $submission, string $message): void
     {
-        $mailConfig = app(MailConfigService::class);
-        if (!$mailConfig->isConfigured()) {
-            $mailConfig->logIfNotConfigured('customer-reply-admin');
-            return;
-        }
-
-        $mailConfig->applyFromSettings();
-
         try {
+            $mailConfig = app(MailConfigService::class);
+            if (!$mailConfig->isConfigured()) {
+                $mailConfig->logIfNotConfigured('customer-reply-admin');
+                return;
+            }
+
+            $mailConfig->applyFromSettings();
             $adminEmail = Setting::get('admin_email', 'info@finejewellerybuyers.co.uk');
             Mail::to($adminEmail)->send(new AdminCustomerReplyNotification(
                 $submission,
                 $message,
                 $this->conversationUrl($submission),
             ));
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             Log::error("Failed to send customer reply notification to admin: {$e->getMessage()}");
         }
     }
@@ -470,58 +517,62 @@ class SubmissionConversationService
 
     public function formatMessages(FormSubmission $submission): array
     {
-        $with = ['adminUser:id,name'];
-        if ($this->chatAttachmentsReady()) {
-            $with[] = 'attachments';
-        }
+        try {
+            $with = ['adminUser:id,name'];
+            if ($this->chatAttachmentsReady() && method_exists(FormSubmissionMessage::class, 'attachments')) {
+                $with[] = 'attachments';
+            }
 
-        return $submission->messages()
-            ->with($with)
-            ->orderBy('created_at')
-            ->get()
-            ->map(fn (FormSubmissionMessage $m) => [
-                'id' => $m->id,
-                'sender' => $m->sender,
-                'body' => $m->body,
-                'admin_name' => $m->adminUser?->name,
-                'email_opened_at' => $m->email_opened_at?->toIso8601String(),
-                'email_opened_at_human' => $m->email_opened_at?->diffForHumans(),
-                'page_viewed_at' => $m->page_viewed_at?->toIso8601String(),
-                'page_viewed_at_human' => $m->page_viewed_at?->diffForHumans(),
-                'delivery_status' => $m->sender === 'admin'
-                    ? ($m->page_viewed_at ? 'chat_opened' : ($m->email_opened_at ? 'email_opened' : 'sent'))
-                    : null,
-                'attachments' => $this->formatAttachments($m),
-                'created_at' => $m->created_at->toIso8601String(),
-                'created_at_human' => $m->created_at->diffForHumans(),
-            ])
-            ->all();
+            return $submission->messages()
+                ->with($with)
+                ->orderBy('created_at')
+                ->get()
+                ->map(fn (FormSubmissionMessage $m) => $this->formatMessageRow($m))
+                ->all();
+        } catch (\Throwable $e) {
+            Log::warning('formatMessages attachments failed, retrying without files: '.$e->getMessage());
+
+            return $submission->messages()
+                ->with(['adminUser:id,name'])
+                ->orderBy('created_at')
+                ->get()
+                ->map(fn (FormSubmissionMessage $m) => $this->formatMessageRow($m, false))
+                ->all();
+        }
+    }
+
+    private function formatMessageRow(FormSubmissionMessage $m, bool $includeAttachments = true): array
+    {
+        return [
+            'id' => $m->id,
+            'sender' => $m->sender,
+            'body' => $m->body,
+            'admin_name' => $m->adminUser?->name,
+            'email_opened_at' => $m->email_opened_at?->toIso8601String(),
+            'email_opened_at_human' => $m->email_opened_at?->diffForHumans(),
+            'page_viewed_at' => $m->page_viewed_at?->toIso8601String(),
+            'page_viewed_at_human' => $m->page_viewed_at?->diffForHumans(),
+            'delivery_status' => $m->sender === 'admin'
+                ? ($m->page_viewed_at ? 'chat_opened' : ($m->email_opened_at ? 'email_opened' : 'sent'))
+                : null,
+            'attachments' => $includeAttachments ? $this->formatAttachments($m) : [],
+            'created_at' => $m->created_at->toIso8601String(),
+            'created_at_human' => $m->created_at->diffForHumans(),
+        ];
     }
 
     public function chatAttachmentsReady(): bool
     {
         static $ready = null;
-        if ($ready === true) {
-            return true;
+        if ($ready !== null) {
+            return $ready;
         }
 
         try {
-            if (Schema::hasColumn('form_submission_files', 'form_submission_message_id')) {
-                return $ready = true;
-            }
-
-            Schema::table('form_submission_files', function (Blueprint $table) {
-                $table->unsignedBigInteger('form_submission_message_id')->nullable();
-            });
-
             return $ready = Schema::hasColumn('form_submission_files', 'form_submission_message_id');
         } catch (\Throwable $e) {
-            Log::error('Chat attachment column setup failed: '.$e->getMessage());
-            try {
-                return $ready = Schema::hasColumn('form_submission_files', 'form_submission_message_id');
-            } catch (\Throwable $ignored) {
-                return $ready = false;
-            }
+            Log::warning('Chat attachment column check failed: '.$e->getMessage());
+            return $ready = false;
         }
     }
 
@@ -544,6 +595,19 @@ class SubmissionConversationService
             Log::warning('Chat attachment format failed: '.$e->getMessage());
             return [];
         }
+    }
+
+    private function latestMessage(FormSubmission $submission, ?string $sender = null): ?FormSubmissionMessage
+    {
+        $query = FormSubmissionMessage::query()
+            ->where('form_submission_id', $submission->id)
+            ->orderByDesc('id');
+
+        if ($sender) {
+            $query->where('sender', $sender);
+        }
+
+        return $query->first();
     }
 
     private function previewBody(FormSubmissionMessage $message): string

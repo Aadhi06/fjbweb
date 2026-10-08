@@ -2535,6 +2535,7 @@ export default function AdminDashboardPage() {
             showToast={showToast}
             onUnreadChange={refreshUnread}
             initialSelectedId={messagesSelectedId}
+            onClearSelected={() => setMessagesSelectedId(null)}
           />
         );
       case "marketing":
