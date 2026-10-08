@@ -1,16 +1,17 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ArrowLeft, CalendarDays, Check, CheckCheck, Loader2, MessageSquare, Send } from "lucide-react";
+import { ArrowLeft, CalendarDays, Check, CheckCheck, Loader2, MessageSquare, Paperclip, Send } from "lucide-react";
+import { ChatMedia, PendingChatFiles, type ChatAttachment } from "@/components/chat/ChatMedia";
 import { useSettings } from "@/lib/useSettings";
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8002") + "/api";
 
-export function getAuthHeaders(): Record<string, string> {
+export function getAuthHeaders(json = true): Record<string, string> {
   const token = typeof window !== "undefined" ? localStorage.getItem("admin_token") : null;
   return {
     Accept: "application/json",
-    "Content-Type": "application/json",
+    ...(json ? { "Content-Type": "application/json" } : {}),
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
   };
 }
@@ -26,6 +27,7 @@ export type ChatMessage = {
   page_viewed_at?: string | null;
   page_viewed_at_human?: string | null;
   delivery_status?: "sent" | "email_opened" | "chat_opened" | null;
+  attachments?: ChatAttachment[];
 };
 
 export type SubmissionFile = {
@@ -269,6 +271,12 @@ function formatFields(data: Record<string, string>) {
   return entries;
 }
 
+function shouldHideAttachmentLabel(msg: ChatMessage): boolean {
+  if (!msg.attachments?.length) return false;
+  const body = (msg.body || "").trim().toLowerCase();
+  return body === "" || body === "photo" || body === "pdf" || body === "photo and pdf" || body === "attachment";
+}
+
 function ReceiptTicks({ status }: { status?: ChatMessage["delivery_status"] }) {
   const read = status === "chat_opened";
   const delivered = status === "email_opened" || read;
@@ -299,7 +307,10 @@ function ChatBubble({ msg }: { msg: ChatMessage }) {
         <p className="text-[10px] font-semibold text-[#008069] mb-0.5">
           {isAdmin ? (msg.admin_name || "You") : "Customer"}
         </p>
-        <p className="text-[15px] whitespace-pre-wrap break-words leading-relaxed">{msg.body}</p>
+        {msg.body && !shouldHideAttachmentLabel(msg) ? (
+          <p className="text-[15px] whitespace-pre-wrap break-words leading-relaxed">{msg.body}</p>
+        ) : null}
+        <ChatMedia attachments={msg.attachments} />
         <div className={`mt-1 flex items-center gap-1.5 text-[10px] text-[#667781] ${isAdmin ? "justify-end" : ""}`}>
           <span>{msg.created_at_human}</span>
           {isAdmin ? <ReceiptTicks status={msg.delivery_status} /> : null}
@@ -332,6 +343,8 @@ export function SubmissionChatPanel({
   const [showDetails, setShowDetails] = useState(false);
   const [showSuggested, setShowSuggested] = useState(false);
   const [composerFocused, setComposerFocused] = useState(false);
+  const [pendingFiles, setPendingFiles] = useState<{ file: File; url: string }[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const settings = useSettings();
   const keyboardInset = useKeyboardInset();
   const chatEndRef = useRef<HTMLDivElement>(null);
@@ -401,6 +414,10 @@ export function SubmissionChatPanel({
     setDetail(null);
     setReply("");
     setSelectedReplyIds([]);
+    setPendingFiles((current) => {
+      current.forEach((item) => URL.revokeObjectURL(item.url));
+      return [];
+    });
     messageIdsRef.current = "";
     loadDetail({ markRead: true });
 
@@ -423,19 +440,54 @@ export function SubmissionChatPanel({
     };
   }, [pingTyping]);
 
+  function addPendingFiles(list: FileList | null) {
+    if (!list) return;
+    const next = Array.from(list).filter((file) => {
+      const okType = file.type.startsWith("image/") || file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+      const okSize = file.size <= 10 * 1024 * 1024;
+      if (!okType) showToast("Use a photo or PDF", "error");
+      else if (!okSize) showToast("Each file must be under 10MB", "error");
+      return okType && okSize;
+    });
+    setPendingFiles((current) => {
+      const room = Math.max(0, 5 - current.length);
+      return [
+        ...current,
+        ...next.slice(0, room).map((file) => ({ file, url: URL.createObjectURL(file) })),
+      ];
+    });
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }
+
+  function removePendingFile(index: number) {
+    setPendingFiles((current) => {
+      const copy = [...current];
+      const [removed] = copy.splice(index, 1);
+      if (removed) URL.revokeObjectURL(removed.url);
+      return copy;
+    });
+  }
+
   async function sendReply(e: React.FormEvent) {
     e.preventDefault();
-    if (!reply.trim() || sending) return;
+    if ((!reply.trim() && pendingFiles.length === 0) || sending) return;
     setSending(true);
     try {
+      const formData = new FormData();
+      if (reply.trim()) formData.append("message", reply.trim());
+      pendingFiles.forEach((item) => formData.append("files[]", item.file));
       const res = await fetch(`${API_URL}/admin/submissions/${submissionId}/messages`, {
         method: "POST",
-        headers: getAuthHeaders(),
-        body: JSON.stringify({ message: reply.trim() }),
+        headers: getAuthHeaders(false),
+        body: formData,
       });
       if (!res.ok) throw new Error();
       setReply("");
       setSelectedReplyIds([]);
+      setPendingFiles((current) => {
+        current.forEach((item) => URL.revokeObjectURL(item.url));
+        return [];
+      });
       pingTyping(false);
       await loadDetail({ markRead: false });
       showToast("Reply sent to customer email", "success");
@@ -603,7 +655,35 @@ export function SubmissionChatPanel({
             })}
           </div>
         )}
+        {pendingFiles.length > 0 && (
+          <div className="px-3 pt-2">
+            <PendingChatFiles
+              files={pendingFiles.map((item) => ({
+                name: item.file.name,
+                url: item.url,
+                isImage: item.file.type.startsWith("image/"),
+              }))}
+              onRemove={removePendingFile}
+            />
+          </div>
+        )}
         <div className="flex gap-2 items-end px-3 py-2.5">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*,.pdf,application/pdf"
+            multiple
+            className="sr-only"
+            onChange={(e) => addPendingFiles(e.target.files)}
+          />
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="h-[52px] w-[52px] flex items-center justify-center bg-white text-[#111b21] rounded-full shrink-0 border border-black/10"
+            aria-label="Attach photo or PDF"
+          >
+            <Paperclip className="w-5 h-5" />
+          </button>
           <label className="sr-only" htmlFor={`reply-${submissionId}`}>Message</label>
           <textarea
             id={`reply-${submissionId}`}
@@ -636,7 +716,7 @@ export function SubmissionChatPanel({
           />
           <button
             type="submit"
-            disabled={sending || !reply.trim()}
+            disabled={sending || (!reply.trim() && pendingFiles.length === 0)}
             className="h-[52px] w-[52px] flex items-center justify-center bg-[#008069] text-white rounded-full disabled:opacity-40 shrink-0"
             aria-label="Send message"
           >

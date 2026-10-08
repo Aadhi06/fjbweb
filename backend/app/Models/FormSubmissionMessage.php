@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 
 class FormSubmissionMessage extends Model
@@ -43,6 +44,11 @@ class FormSubmissionMessage extends Model
     public function adminUser(): BelongsTo
     {
         return $this->belongsTo(User::class, 'admin_user_id');
+    }
+
+    public function attachments(): HasMany
+    {
+        return $this->hasMany(FormSubmissionFile::class, 'form_submission_message_id');
     }
 
     public function markEmailOpened(): void

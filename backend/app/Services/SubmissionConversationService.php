@@ -6,6 +6,7 @@ use App\Mail\AdminCustomerReplyNotification;
 use App\Mail\CustomerSubmissionReply;
 use App\Models\Booking;
 use App\Models\FormSubmission;
+use App\Models\FormSubmissionFile;
 use App\Models\FormSubmissionMessage;
 use App\Models\Setting;
 use App\Models\User;
@@ -75,18 +76,20 @@ class SubmissionConversationService
         return $message?->submission;
     }
 
-    public function sendAdminReply(FormSubmission $submission, string $message, ?User $admin = null, bool $isNewConversation = false): FormSubmissionMessage
+    public function sendAdminReply(FormSubmission $submission, string $message, ?User $admin = null, bool $isNewConversation = false, array $files = []): FormSubmissionMessage
     {
         $submission->load('form');
         $isNewConversation = $isNewConversation || $submission->messages()->count() === 0;
+        $body = $this->messageBodyOrAttachmentLabel($message, $files);
 
         $record = FormSubmissionMessage::create([
             'form_submission_id' => $submission->id,
             'sender' => 'admin',
-            'body' => $message,
+            'body' => $body,
             'admin_user_id' => $admin?->id,
         ]);
 
+        $this->storeChatFiles($submission, $record, $files);
         $submission->update(['status' => 'replied']);
 
         $this->setTyping($submission->id, 'admin', false);
@@ -95,24 +98,76 @@ class SubmissionConversationService
         return $record;
     }
 
-    public function sendCustomerReply(FormSubmission $submission, string $message): FormSubmissionMessage
+    public function sendCustomerReply(FormSubmission $submission, string $message, array $files = []): FormSubmissionMessage
     {
         $submission->load('form');
+        $body = $this->messageBodyOrAttachmentLabel($message, $files);
 
         $record = FormSubmissionMessage::create([
             'form_submission_id' => $submission->id,
             'sender' => 'customer',
-            'body' => $message,
+            'body' => $body,
         ]);
 
+        $this->storeChatFiles($submission, $record, $files);
         $submission->update(['status' => 'new']);
         $this->markAdminMessagesViewed($submission);
         $this->setTyping($submission->id, 'customer', false);
 
-        $this->emailAdmin($submission, $message);
-        $this->pushAdmin($submission, $message);
+        $this->emailAdmin($submission, $body);
+        $this->pushAdmin($submission, $body);
 
         return $record;
+    }
+
+    private function messageBodyOrAttachmentLabel(string $message, array $files): string
+    {
+        $body = trim($message);
+        if ($body !== '') {
+            return $body;
+        }
+
+        $hasPdf = false;
+        $hasImage = false;
+        foreach ($files as $file) {
+            $mime = strtolower((string) $file->getMimeType());
+            $name = strtolower((string) $file->getClientOriginalName());
+            if (str_contains($mime, 'pdf') || str_ends_with($name, '.pdf')) {
+                $hasPdf = true;
+            }
+            if (str_starts_with($mime, 'image/')) {
+                $hasImage = true;
+            }
+        }
+
+        if ($hasPdf && $hasImage) {
+            return 'Photo and PDF';
+        }
+        if ($hasPdf) {
+            return 'PDF';
+        }
+        if ($hasImage) {
+            return 'Photo';
+        }
+
+        return 'Attachment';
+    }
+
+    private function storeChatFiles(FormSubmission $submission, FormSubmissionMessage $message, array $files): void
+    {
+        foreach ($files as $file) {
+            $path = $file->store("submissions/{$submission->id}/chat", 'public');
+
+            FormSubmissionFile::create([
+                'form_submission_id' => $submission->id,
+                'form_submission_message_id' => $message->id,
+                'field_name' => 'chat',
+                'original_name' => $file->getClientOriginalName(),
+                'file_path' => $path,
+                'mime_type' => $file->getMimeType(),
+                'file_size' => $file->getSize(),
+            ]);
+        }
     }
 
     private function emailCustomer(FormSubmission $submission, FormSubmissionMessage $message, ?string $adminName, bool $isNewConversation = false): void
@@ -255,6 +310,7 @@ class SubmissionConversationService
         $submission->loadMissing(['form', 'messages' => fn ($q) => $q->latest()->limit(1)]);
 
         $latest = $submission->messages->first();
+        $latest?->loadMissing('attachments');
         $name = $this->customerName($submission);
         $email = $this->customerEmail($submission);
         $unread = $this->isUnread($submission);
@@ -272,7 +328,7 @@ class SubmissionConversationService
             'booking' => $this->linkedBooking($submission),
             'last_message' => $latest ? [
                 'sender' => $latest->sender,
-                'body' => $latest->body,
+                'body' => $this->previewBody($latest),
                 'created_at' => $latest->created_at?->toIso8601String(),
                 'created_at_human' => $latest->created_at->diffForHumans(),
             ] : null,
@@ -390,7 +446,7 @@ class SubmissionConversationService
     public function formatMessages(FormSubmission $submission): array
     {
         return $submission->messages()
-            ->with('adminUser:id,name')
+            ->with(['adminUser:id,name', 'attachments'])
             ->orderBy('created_at')
             ->get()
             ->map(fn (FormSubmissionMessage $m) => [
@@ -405,9 +461,41 @@ class SubmissionConversationService
                 'delivery_status' => $m->sender === 'admin'
                     ? ($m->page_viewed_at ? 'chat_opened' : ($m->email_opened_at ? 'email_opened' : 'sent'))
                     : null,
+                'attachments' => $m->attachments->map(fn (FormSubmissionFile $file) => [
+                    'id' => $file->id,
+                    'original_name' => $file->original_name,
+                    'url' => $file->publicUrl(),
+                    'mime_type' => $file->mime_type,
+                    'is_image' => $file->isImage(),
+                    'is_pdf' => $file->isPdf(),
+                ])->values()->all(),
                 'created_at' => $m->created_at->toIso8601String(),
                 'created_at_human' => $m->created_at->diffForHumans(),
             ])
             ->all();
+    }
+
+    private function previewBody(FormSubmissionMessage $message): string
+    {
+        $body = trim((string) $message->body);
+        if ($body !== '') {
+            return $body;
+        }
+
+        $files = $message->attachments;
+        $hasPdf = $files->contains(fn (FormSubmissionFile $file) => $file->isPdf());
+        $hasImage = $files->contains(fn (FormSubmissionFile $file) => $file->isImage());
+
+        if ($hasPdf && $hasImage) {
+            return 'Photo and PDF';
+        }
+        if ($hasPdf) {
+            return 'PDF';
+        }
+        if ($hasImage) {
+            return 'Photo';
+        }
+
+        return 'Attachment';
     }
 }

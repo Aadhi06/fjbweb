@@ -237,14 +237,17 @@ class FormController extends Controller
 
     public function adminReply(Request $request, FormSubmission $submission): JsonResponse
     {
+        $files = $this->chatFiles($request);
         $validated = $request->validate([
-            'message' => 'required|string|min:1|max:5000',
+            'message' => ($files === [] ? 'required' : 'nullable').'|string|max:5000',
         ]);
 
         $message = $this->conversationService->sendAdminReply(
             $submission,
-            $validated['message'],
+            (string) ($validated['message'] ?? ''),
             $request->user(),
+            false,
+            $files,
         );
 
         $submission->refresh()->load(['form', 'files', 'messages.adminUser']);
@@ -307,11 +310,16 @@ class FormController extends Controller
             return response()->json(['message' => 'This enquiry link is invalid.'], 404);
         }
 
+        $files = $this->chatFiles($request);
         $validated = $request->validate([
-            'message' => 'required|string|min:1|max:5000',
+            'message' => ($files === [] ? 'required' : 'nullable').'|string|max:5000',
         ]);
 
-        $this->conversationService->sendCustomerReply($submission, $validated['message']);
+        $this->conversationService->sendCustomerReply(
+            $submission,
+            (string) ($validated['message'] ?? ''),
+            $files,
+        );
 
         return response()->json([
             'message' => 'Your message has been sent. We will reply shortly.',
@@ -364,14 +372,16 @@ class FormController extends Controller
             'form_name' => $submission->form?->title ?? 'Unknown Form',
             'form_slug' => $submission->form?->slug,
             'data' => $submission->data,
-            'files' => $submission->files->map(fn ($f) => [
-                'id' => $f->id,
-                'field_name' => $f->field_name,
-                'original_name' => $f->original_name,
-                'url' => $f->publicUrl(),
-                'mime_type' => $f->mime_type,
-                'is_image' => $f->isImage(),
-            ]),
+            'files' => $submission->files
+                ->filter(fn ($f) => empty($f->form_submission_message_id))
+                ->map(fn ($f) => [
+                    'id' => $f->id,
+                    'field_name' => $f->field_name,
+                    'original_name' => $f->original_name,
+                    'url' => $f->publicUrl(),
+                    'mime_type' => $f->mime_type,
+                    'is_image' => $f->isImage(),
+                ])->values(),
             'messages' => $this->conversationService->formatMessages($submission),
             'customer_typing' => $this->conversationService->isTyping($submission->id, 'customer'),
             'admin_typing' => $this->conversationService->isTyping($submission->id, 'admin'),
@@ -539,5 +549,15 @@ class FormController extends Controller
             'order' => $field->order,
             'is_active' => $field->is_active,
         ];
+    }
+
+    private function chatFiles(Request $request): array
+    {
+        $request->validate([
+            'files' => 'nullable|array|max:5',
+            'files.*' => 'file|max:10240|mimes:jpg,jpeg,png,webp,gif,pdf',
+        ]);
+
+        return $request->file('files', []) ?: [];
     }
 }

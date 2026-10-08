@@ -1,8 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ArrowLeft, CalendarDays, CheckCheck, Loader2, Send } from "lucide-react";
+import { ArrowLeft, CalendarDays, CheckCheck, Loader2, Paperclip, Send } from "lucide-react";
 import Link from "next/link";
+import { ChatMedia, PendingChatFiles, type ChatAttachment } from "@/components/chat/ChatMedia";
 
 const API_URL =
   (process.env.NEXT_PUBLIC_API_URL ||
@@ -17,7 +18,14 @@ type ChatMessage = {
   admin_name?: string | null;
   created_at?: string;
   created_at_human: string;
+  attachments?: ChatAttachment[];
 };
+
+function shouldHideAttachmentLabel(msg: ChatMessage): boolean {
+  if (!msg.attachments?.length) return false;
+  const body = (msg.body || "").trim().toLowerCase();
+  return body === "" || body === "photo" || body === "pdf" || body === "photo and pdf" || body === "attachment";
+}
 
 type LinkedBooking = {
   id: number;
@@ -78,6 +86,8 @@ export default function EnquiryPage({ params }: { params: Promise<{ token: strin
   const [error, setError] = useState("");
   const [newIncoming, setNewIncoming] = useState(false);
   const [adminTyping, setAdminTyping] = useState(false);
+  const [pendingFiles, setPendingFiles] = useState<{ file: File; url: string }[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const scrollerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -197,29 +207,64 @@ export default function EnquiryPage({ params }: { params: Promise<{ token: strin
     el.style.height = `${Math.min(el.scrollHeight, 128)}px`;
   }
 
+  function addPendingFiles(list: FileList | null) {
+    if (!list) return;
+    const next = Array.from(list).filter((file) => {
+      const okType = file.type.startsWith("image/") || file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+      return okType && file.size <= 10 * 1024 * 1024;
+    });
+    if (next.length !== list.length) {
+      setError("Use a photo or PDF under 10MB.");
+    }
+    setPendingFiles((current) => {
+      const room = Math.max(0, 5 - current.length);
+      return [
+        ...current,
+        ...next.slice(0, room).map((file) => ({ file, url: URL.createObjectURL(file) })),
+      ];
+    });
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }
+
+  function removePendingFile(index: number) {
+    setPendingFiles((current) => {
+      const copy = [...current];
+      const [removed] = copy.splice(index, 1);
+      if (removed) URL.revokeObjectURL(removed.url);
+      return copy;
+    });
+  }
+
   async function handleSend(e?: React.FormEvent) {
     e?.preventDefault();
-    if (!token || !reply.trim() || sending) return;
+    if (!token || (!reply.trim() && pendingFiles.length === 0) || sending) return;
     const text = reply.trim();
+    const filesToSend = pendingFiles;
     setSending(true);
     setError("");
     setReply("");
+    setPendingFiles([]);
     pingTyping(false);
     requestAnimationFrame(resizeComposer);
     try {
+      const formData = new FormData();
+      if (text) formData.append("message", text);
+      filesToSend.forEach((item) => formData.append("files[]", item.file));
       const res = await fetch(`${API_URL}/enquiry/${token}/messages`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", Accept: "application/json" },
-        body: JSON.stringify({ message: text }),
+        headers: { Accept: "application/json" },
+        body: formData,
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.message || "Failed");
+      filesToSend.forEach((item) => URL.revokeObjectURL(item.url));
       applyPayload(json);
       nearBottomRef.current = true;
       requestAnimationFrame(() => chatEndRef.current?.scrollIntoView({ behavior: "smooth" }));
       textareaRef.current?.focus();
     } catch {
       setReply(text);
+      setPendingFiles(filesToSend);
       setError("Couldn’t send. Check your connection and try again.");
     } finally {
       setSending(false);
@@ -322,7 +367,10 @@ export default function EnquiryPage({ params }: { params: Promise<{ token: strin
                           {msg.admin_name || "Fine Jewellery Buyers"}
                         </p>
                       )}
-                      <p className="text-[15px] whitespace-pre-wrap break-words leading-relaxed">{msg.body}</p>
+                      {msg.body && !shouldHideAttachmentLabel(msg) ? (
+                        <p className="text-[15px] whitespace-pre-wrap break-words leading-relaxed">{msg.body}</p>
+                      ) : null}
+                      <ChatMedia attachments={msg.attachments} />
                       <p className={`mt-1 flex items-center gap-1 text-[10px] text-[#667781] ${mine ? "justify-end" : ""}`}>
                         <span>{timeLabel(msg.created_at, msg.created_at_human)}</span>
                         {mine && <CheckCheck className="w-3.5 h-3.5" aria-hidden />}
@@ -359,7 +407,35 @@ export default function EnquiryPage({ params }: { params: Promise<{ token: strin
       <div className="shrink-0 bg-[#f0f2f5] safe-bottom">
         <form onSubmit={handleSend} className="max-w-2xl mx-auto px-2.5 sm:px-3 py-2">
           {error && <p className="text-xs text-red-600 px-2 mb-1.5">{error}</p>}
+          {pendingFiles.length > 0 && (
+            <div className="px-1 pb-2">
+              <PendingChatFiles
+                files={pendingFiles.map((item) => ({
+                  name: item.file.name,
+                  url: item.url,
+                  isImage: item.file.type.startsWith("image/"),
+                }))}
+                onRemove={removePendingFile}
+              />
+            </div>
+          )}
           <div className="flex items-end gap-2">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*,.pdf,application/pdf"
+              multiple
+              className="sr-only"
+              onChange={(e) => addPendingFiles(e.target.files)}
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="h-11 w-11 flex items-center justify-center bg-white text-[#111b21] rounded-full shrink-0 shadow-sm"
+              aria-label="Attach photo or PDF"
+            >
+              <Paperclip className="w-5 h-5" />
+            </button>
             <label className="sr-only" htmlFor="enquiry-message">
               Your message
             </label>
@@ -390,7 +466,7 @@ export default function EnquiryPage({ params }: { params: Promise<{ token: strin
             />
             <button
               type="submit"
-              disabled={sending || !reply.trim()}
+              disabled={sending || (!reply.trim() && pendingFiles.length === 0)}
               className="h-11 w-11 flex items-center justify-center bg-[#008069] text-white rounded-full disabled:opacity-40 shrink-0 active:scale-95 transition-transform"
               aria-label="Send message"
             >
