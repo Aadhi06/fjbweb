@@ -163,7 +163,7 @@ export function MessagesContent({
       if (!id) onClearSelected?.();
     };
     window.addEventListener("popstate", onPop);
-    return () => window.removeEventListener("popstate");
+    return () => window.removeEventListener("popstate", onPop);
   }, [onClearSelected]);
 
   const unreadTotal = conversations.filter((c) => isAwaitingReply(c)).length;
