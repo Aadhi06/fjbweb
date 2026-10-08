@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ArrowLeft, Loader2, Mail, MessageSquare, Plus, RefreshCw, Send, X } from "lucide-react";
+import { ArrowLeft, Loader2, Mail, MessageSquare, Plus, RefreshCw, Search, Send, X } from "lucide-react";
 import { getAuthHeaders, SubmissionChatPanel } from "./SubmissionChatPanel";
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8002") + "/api";
@@ -13,6 +13,8 @@ type ConversationItem = {
   customer_email?: string | null;
   status: string;
   unread: boolean;
+  replied?: boolean;
+  last_message_at?: string;
   customer_typing?: boolean;
   booking?: { id: number; service_type?: string | null; booking_date?: string | null; booking_time?: string | null } | null;
   last_message?: {
@@ -37,6 +39,42 @@ type BookingOption = {
 
 type ComposeMode = "email" | "chat" | null;
 
+function isReplied(conversation: ConversationItem): boolean {
+  if (conversation.unread) return false;
+  if (typeof conversation.replied === "boolean") return conversation.replied;
+  return conversation.last_message?.sender === "admin";
+}
+
+function localDateTimeParts(value?: string): { date: string; time: string } | null {
+  if (!value) return null;
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return null;
+  const date = `${parsed.getFullYear()}-${String(parsed.getMonth() + 1).padStart(2, "0")}-${String(parsed.getDate()).padStart(2, "0")}`;
+  const time = `${String(parsed.getHours()).padStart(2, "0")}:${String(parsed.getMinutes()).padStart(2, "0")}`;
+  return { date, time };
+}
+
+function matchesConversationSearch(
+  conversation: ConversationItem,
+  searchName: string,
+  searchDate: string,
+  searchTime: string,
+): boolean {
+  const query = searchName.trim().toLowerCase();
+  if (query) {
+    const haystack = `${conversation.customer_name} ${conversation.customer_email || ""}`.toLowerCase();
+    if (!haystack.includes(query)) return false;
+  }
+
+  if (!searchDate && !searchTime) return true;
+
+  const parts = localDateTimeParts(conversation.last_message?.created_at || conversation.last_message_at);
+  if (!parts) return false;
+  if (searchDate && parts.date !== searchDate) return false;
+  if (searchTime && parts.time !== searchTime) return false;
+  return true;
+}
+
 export function MessagesContent({
   showToast,
   onUnreadChange,
@@ -57,7 +95,10 @@ export function MessagesContent({
   const [bookingId, setBookingId] = useState("");
   const [bookings, setBookings] = useState<BookingOption[]>([]);
   const [sending, setSending] = useState(false);
-  const [listFilter, setListFilter] = useState<"all" | "unread">("all");
+  const [listFilter, setListFilter] = useState<"all" | "unread" | "replied">("all");
+  const [searchName, setSearchName] = useState("");
+  const [searchDate, setSearchDate] = useState("");
+  const [searchTime, setSearchTime] = useState("");
 
   const fetchMessages = useCallback(async () => {
     try {
@@ -89,15 +130,20 @@ export function MessagesContent({
   }, [initialSelectedId]);
 
   const unreadTotal = conversations.filter((c) => c.unread).length;
+  const repliedTotal = conversations.filter((c) => isReplied(c)).length;
   const visibleConversations = useMemo(() => {
     const sorted = [...conversations].sort((a, b) => {
       if (a.unread !== b.unread) return a.unread ? -1 : 1;
-      const aTime = a.last_message?.created_at || "";
-      const bTime = b.last_message?.created_at || "";
+      const aTime = a.last_message?.created_at || a.last_message_at || "";
+      const bTime = b.last_message?.created_at || b.last_message_at || "";
       return bTime.localeCompare(aTime);
     });
-    return listFilter === "unread" ? sorted.filter((c) => c.unread) : sorted;
-  }, [conversations, listFilter]);
+    return sorted.filter((c) => {
+      if (listFilter === "unread" && !c.unread) return false;
+      if (listFilter === "replied" && !isReplied(c)) return false;
+      return matchesConversationSearch(c, searchName, searchDate, searchTime);
+    });
+  }, [conversations, listFilter, searchName, searchDate, searchTime]);
 
   const handleRead = useCallback(() => {
     onUnreadChange?.();
@@ -226,42 +272,100 @@ export function MessagesContent({
               selectedId ? "hidden md:flex" : "flex"
             } w-full md:w-80 lg:w-96 border-r border-gray-200 flex-col shrink-0`}
           >
-            <div className="sticky top-0 z-10 bg-white border-b border-gray-100 px-3 py-2 flex items-center gap-2 shrink-0">
-              <button
-                type="button"
-                aria-pressed={listFilter === "all"}
-                onClick={() => setListFilter("all")}
-                className={`min-h-11 px-3.5 rounded-full text-sm font-semibold transition-colors ${
-                  listFilter === "all" ? "bg-black text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                }`}
-              >
-                All {conversations.length}
-              </button>
-              <button
-                type="button"
-                aria-pressed={listFilter === "unread"}
-                onClick={() => setListFilter("unread")}
-                className={`min-h-11 px-3.5 rounded-full text-sm font-semibold inline-flex items-center gap-1.5 transition-colors ${
-                  listFilter === "unread" ? "bg-[#D97706] text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                }`}
-              >
-                New
-                {unreadTotal > 0 && (
-                  <span
-                    className={`min-w-5 h-5 px-1 rounded-full text-[11px] leading-5 font-bold ${
-                      listFilter === "unread" ? "bg-white text-[#D97706]" : "bg-red-500 text-white"
-                    }`}
-                  >
-                    {unreadTotal > 99 ? "99+" : unreadTotal}
-                  </span>
-                )}
-              </button>
+            <div className="sticky top-0 z-10 bg-white border-b border-gray-100 px-3 py-2.5 space-y-2 shrink-0">
+              <label className="relative block">
+                <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <input
+                  type="search"
+                  value={searchName}
+                  onChange={(e) => setSearchName(e.target.value)}
+                  placeholder="Search by name"
+                  aria-label="Search by name"
+                  className="w-full min-h-11 pl-9 pr-3 rounded-lg border border-gray-200 text-sm text-black placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#D97706]/30 focus:border-[#D97706]"
+                />
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                <label className="block">
+                  <span className="sr-only">Filter by date</span>
+                  <input
+                    type="date"
+                    value={searchDate}
+                    onChange={(e) => setSearchDate(e.target.value)}
+                    className="w-full min-h-11 px-3 rounded-lg border border-gray-200 text-sm text-black focus:outline-none focus:ring-2 focus:ring-[#D97706]/30 focus:border-[#D97706]"
+                  />
+                </label>
+                <label className="block">
+                  <span className="sr-only">Filter by time</span>
+                  <input
+                    type="time"
+                    value={searchTime}
+                    onChange={(e) => setSearchTime(e.target.value)}
+                    className="w-full min-h-11 px-3 rounded-lg border border-gray-200 text-sm text-black focus:outline-none focus:ring-2 focus:ring-[#D97706]/30 focus:border-[#D97706]"
+                  />
+                </label>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  aria-pressed={listFilter === "all"}
+                  onClick={() => setListFilter("all")}
+                  className={`min-h-11 px-3.5 rounded-full text-sm font-semibold transition-colors ${
+                    listFilter === "all" ? "bg-black text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  }`}
+                >
+                  All {conversations.length}
+                </button>
+                <button
+                  type="button"
+                  aria-pressed={listFilter === "unread"}
+                  onClick={() => setListFilter("unread")}
+                  className={`min-h-11 px-3.5 rounded-full text-sm font-semibold inline-flex items-center gap-1.5 transition-colors ${
+                    listFilter === "unread" ? "bg-[#D97706] text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  }`}
+                >
+                  New
+                  {unreadTotal > 0 && (
+                    <span
+                      className={`min-w-5 h-5 px-1 rounded-full text-[11px] leading-5 font-bold ${
+                        listFilter === "unread" ? "bg-white text-[#D97706]" : "bg-red-500 text-white"
+                      }`}
+                    >
+                      {unreadTotal > 99 ? "99+" : unreadTotal}
+                    </span>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  aria-pressed={listFilter === "replied"}
+                  onClick={() => setListFilter("replied")}
+                  className={`ml-auto min-h-11 px-3.5 rounded-full text-sm font-semibold inline-flex items-center gap-1.5 transition-colors ${
+                    listFilter === "replied" ? "bg-[#008069] text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  }`}
+                >
+                  Replied
+                  {repliedTotal > 0 && (
+                    <span
+                      className={`min-w-5 h-5 px-1 rounded-full text-[11px] leading-5 font-bold ${
+                        listFilter === "replied" ? "bg-white text-[#008069]" : "bg-[#008069] text-white"
+                      }`}
+                    >
+                      {repliedTotal > 99 ? "99+" : repliedTotal}
+                    </span>
+                  )}
+                </button>
+              </div>
             </div>
             <div className="overflow-y-auto flex-1">
               {visibleConversations.length === 0 ? (
                 <div className="p-8 text-center">
                   <p className="text-sm text-gray-500">
-                    {listFilter === "unread" ? "No new messages" : "No conversations"}
+                    {listFilter === "unread"
+                      ? "No new messages"
+                      : listFilter === "replied"
+                        ? "No replied messages"
+                        : searchName || searchDate || searchTime
+                          ? "No matching conversations"
+                          : "No conversations"}
                   </p>
                 </div>
               ) : (
@@ -285,6 +389,8 @@ export function MessagesContent({
                         </p>
                         {c.unread ? (
                           <span className="text-[10px] font-bold uppercase tracking-wide text-red-500 shrink-0">New</span>
+                        ) : isReplied(c) ? (
+                          <span className="text-[10px] font-bold uppercase tracking-wide text-[#008069] shrink-0">Replied</span>
                         ) : null}
                       </div>
                       <p className="text-xs text-gray-500 truncate">

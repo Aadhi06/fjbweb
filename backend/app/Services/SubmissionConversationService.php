@@ -257,6 +257,8 @@ class SubmissionConversationService
         $latest = $submission->messages->first();
         $name = $this->customerName($submission);
         $email = $this->customerEmail($submission);
+        $unread = $this->isUnread($submission);
+        $replied = (bool) $latest && $latest->sender === 'admin' && !$unread;
 
         return [
             'id' => $submission->id,
@@ -264,7 +266,8 @@ class SubmissionConversationService
             'customer_name' => $name,
             'customer_email' => $email,
             'status' => $submission->status,
-            'unread' => $this->isUnread($submission),
+            'unread' => $unread,
+            'replied' => $replied,
             'customer_typing' => $this->isTyping($submission->id, 'customer'),
             'booking' => $this->linkedBooking($submission),
             'last_message' => $latest ? [
@@ -273,6 +276,7 @@ class SubmissionConversationService
                 'created_at' => $latest->created_at?->toIso8601String(),
                 'created_at_human' => $latest->created_at->diffForHumans(),
             ] : null,
+            'last_message_at' => $latest?->created_at?->toIso8601String(),
             'message_count' => $submission->messages_count ?? $submission->messages()->count(),
             'created_at_human' => $submission->created_at->diffForHumans(),
         ];
