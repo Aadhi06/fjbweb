@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { ArrowLeft, Loader2, Mail, MessageSquare, Plus, RefreshCw, Send, X } from "lucide-react";
 import { getAuthHeaders, SubmissionChatPanel } from "./SubmissionChatPanel";
 
@@ -18,6 +18,7 @@ type ConversationItem = {
   last_message?: {
     sender: string;
     body: string;
+    created_at?: string;
     created_at_human: string;
   } | null;
   message_count: number;
@@ -56,6 +57,7 @@ export function MessagesContent({
   const [bookingId, setBookingId] = useState("");
   const [bookings, setBookings] = useState<BookingOption[]>([]);
   const [sending, setSending] = useState(false);
+  const [listFilter, setListFilter] = useState<"all" | "unread">("all");
 
   const fetchMessages = useCallback(async () => {
     try {
@@ -85,6 +87,17 @@ export function MessagesContent({
   useEffect(() => {
     if (initialSelectedId) setSelectedId(initialSelectedId);
   }, [initialSelectedId]);
+
+  const unreadTotal = conversations.filter((c) => c.unread).length;
+  const visibleConversations = useMemo(() => {
+    const sorted = [...conversations].sort((a, b) => {
+      if (a.unread !== b.unread) return a.unread ? -1 : 1;
+      const aTime = a.last_message?.created_at || "";
+      const bTime = b.last_message?.created_at || "";
+      return bTime.localeCompare(aTime);
+    });
+    return listFilter === "unread" ? sorted.filter((c) => c.unread) : sorted;
+  }, [conversations, listFilter]);
 
   const handleRead = useCallback(() => {
     onUnreadChange?.();
@@ -213,8 +226,46 @@ export function MessagesContent({
               selectedId ? "hidden md:flex" : "flex"
             } w-full md:w-80 lg:w-96 border-r border-gray-200 flex-col shrink-0`}
           >
+            <div className="sticky top-0 z-10 bg-white border-b border-gray-100 px-3 py-2 flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                aria-pressed={listFilter === "all"}
+                onClick={() => setListFilter("all")}
+                className={`min-h-11 px-3.5 rounded-full text-sm font-semibold transition-colors ${
+                  listFilter === "all" ? "bg-black text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                }`}
+              >
+                All {conversations.length}
+              </button>
+              <button
+                type="button"
+                aria-pressed={listFilter === "unread"}
+                onClick={() => setListFilter("unread")}
+                className={`min-h-11 px-3.5 rounded-full text-sm font-semibold inline-flex items-center gap-1.5 transition-colors ${
+                  listFilter === "unread" ? "bg-[#D97706] text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                }`}
+              >
+                New
+                {unreadTotal > 0 && (
+                  <span
+                    className={`min-w-5 h-5 px-1 rounded-full text-[11px] leading-5 font-bold ${
+                      listFilter === "unread" ? "bg-white text-[#D97706]" : "bg-red-500 text-white"
+                    }`}
+                  >
+                    {unreadTotal > 99 ? "99+" : unreadTotal}
+                  </span>
+                )}
+              </button>
+            </div>
             <div className="overflow-y-auto flex-1">
-              {conversations.map((c) => (
+              {visibleConversations.length === 0 ? (
+                <div className="p-8 text-center">
+                  <p className="text-sm text-gray-500">
+                    {listFilter === "unread" ? "No new messages" : "No conversations"}
+                  </p>
+                </div>
+              ) : (
+                visibleConversations.map((c) => (
                 <button
                   key={c.id}
                   type="button"
@@ -229,8 +280,12 @@ export function MessagesContent({
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center justify-between gap-2">
-                        <p className="font-semibold text-sm text-black truncate">{c.customer_name}</p>
-                        {c.unread && <span className="w-2.5 h-2.5 rounded-full bg-red-500 shrink-0 animate-pulse" />}
+                        <p className={`text-sm text-black truncate ${c.unread ? "font-bold" : "font-semibold"}`}>
+                          {c.customer_name}
+                        </p>
+                        {c.unread ? (
+                          <span className="text-[10px] font-bold uppercase tracking-wide text-red-500 shrink-0">New</span>
+                        ) : null}
                       </div>
                       <p className="text-xs text-gray-500 truncate">
                         {c.booking
@@ -240,7 +295,7 @@ export function MessagesContent({
                       {c.customer_typing ? (
                         <p className="text-xs text-[#008069] font-medium truncate mt-1">typing...</p>
                       ) : c.last_message ? (
-                        <p className="text-xs text-gray-400 truncate mt-1">
+                        <p className={`text-xs truncate mt-1 ${c.unread ? "text-gray-700 font-medium" : "text-gray-400"}`}>
                           {c.last_message.sender === "admin" ? "You: " : ""}
                           {c.last_message.body}
                         </p>
@@ -249,7 +304,8 @@ export function MessagesContent({
                     </div>
                   </div>
                 </button>
-              ))}
+                ))
+              )}
             </div>
           </div>
 

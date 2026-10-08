@@ -270,6 +270,7 @@ class SubmissionConversationService
             'last_message' => $latest ? [
                 'sender' => $latest->sender,
                 'body' => $latest->body,
+                'created_at' => $latest->created_at?->toIso8601String(),
                 'created_at_human' => $latest->created_at->diffForHumans(),
             ] : null,
             'message_count' => $submission->messages_count ?? $submission->messages()->count(),

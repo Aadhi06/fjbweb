@@ -97,9 +97,19 @@ class FormController extends Controller
         $submissions = FormSubmission::with(['form'])
             ->whereHas('messages')
             ->withCount('messages')
+            ->withMax('messages', 'created_at')
             ->get()
-            ->sortByDesc(function ($submission) {
-                return $submission->messages()->latest()->value('created_at');
+            ->sort(function ($a, $b) {
+                $aUnread = $this->conversationService->isUnread($a);
+                $bUnread = $this->conversationService->isUnread($b);
+                if ($aUnread !== $bUnread) {
+                    return $aUnread ? -1 : 1;
+                }
+
+                $aTime = (string) ($a->messages_max_created_at ?? $a->created_at);
+                $bTime = (string) ($b->messages_max_created_at ?? $b->created_at);
+
+                return $bTime <=> $aTime;
             })
             ->values()
             ->map(fn ($s) => $this->conversationService->formatConversationSummary($s));
