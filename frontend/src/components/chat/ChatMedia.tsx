@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { FileText, X } from "lucide-react";
 
 export type ChatAttachment = {
@@ -31,48 +32,57 @@ export function MediaLightbox({
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") onClose();
     }
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = prev;
+      window.removeEventListener("keydown", onKey);
+    };
   }, [file, onClose]);
 
-  if (!file) return null;
+  if (!file || typeof document === "undefined") return null;
 
   const pdf = isPdfAttachment(file);
 
-  return (
+  const dialog = (
     <div
-      className="fixed inset-0 z-[120] bg-black/90 flex items-center justify-center p-4"
-      onClick={onClose}
+      className="fixed inset-0 z-[300] bg-black flex flex-col"
       role="dialog"
       aria-modal="true"
       aria-label={file.original_name || "Preview"}
     >
-      <button
-        type="button"
-        onClick={onClose}
-        className="absolute top-4 right-4 min-h-11 min-w-11 rounded-full bg-white text-black flex items-center justify-center"
-        aria-label="Close"
-      >
-        <X className="w-5 h-5" />
-      </button>
-      {pdf ? (
-        <iframe
-          src={file.url}
-          title={file.original_name || "PDF"}
-          className="w-full max-w-3xl h-[88dvh] rounded-xl bg-white"
-          onClick={(e) => e.stopPropagation()}
-        />
-      ) : (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={file.url}
-          alt={file.original_name || "Photo"}
-          className="max-w-full max-h-[88dvh] object-contain"
-          onClick={(e) => e.stopPropagation()}
-        />
-      )}
+      <div className="shrink-0 flex items-center justify-end gap-2 px-3 pt-[max(0.75rem,env(safe-area-inset-top))] pb-2">
+        <button
+          type="button"
+          onClick={onClose}
+          className="min-h-12 px-4 rounded-full bg-white text-black text-sm font-semibold inline-flex items-center gap-1.5"
+          aria-label="Close"
+        >
+          <X className="w-5 h-5" />
+          Close
+        </button>
+      </div>
+      <div className="flex-1 min-h-0 flex items-center justify-center px-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
+        {pdf ? (
+          <iframe
+            src={file.url}
+            title={file.original_name || "PDF"}
+            className="w-full h-full rounded-xl bg-white"
+          />
+        ) : (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={file.url}
+            alt={file.original_name || "Photo"}
+            className="max-w-full max-h-full object-contain"
+          />
+        )}
+      </div>
     </div>
   );
+
+  return createPortal(dialog, document.body);
 }
 
 export function ChatMedia({ attachments }: { attachments?: ChatAttachment[] }) {

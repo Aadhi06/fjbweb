@@ -23,12 +23,15 @@ export function useAdminUnreadCount(enabled: boolean) {
 
   useEffect(() => {
     if (!enabled) return;
-    refresh();
+    const start = window.setTimeout(refresh, 800);
     const id = setInterval(() => {
       if (document.hidden) return;
       refresh();
-    }, 30000);
-    return () => clearInterval(id);
+    }, 45000);
+    return () => {
+      window.clearTimeout(start);
+      clearInterval(id);
+    };
   }, [enabled, refresh]);
 
   return { count, refresh };

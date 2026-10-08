@@ -62,6 +62,7 @@ import { BookingsContent } from "./BookingsContent";
 import { UsersContent } from "./UsersContent";
 import { SubmissionsContent } from "./SubmissionsContent";
 import { MessagesContent } from "./MessagesContent";
+import { AdminSplash } from "./AdminSplash";
 import { AdminMessagesFab, useAdminUnreadCount } from "./AdminMessagesFab";
 import { AdminPushNotifications } from "./AdminPushNotifications";
 import { MetalBuyingRates } from "./MetalBuyingRates";
@@ -2500,11 +2501,7 @@ export default function AdminDashboardPage() {
   }
 
   if (checking) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[#f5f5f5]">
-        <div className="w-8 h-8 border-4 border-gray-200 border-t-[#D97706] rounded-full animate-spin" />
-      </div>
-    );
+    return <AdminSplash />;
   }
 
   function renderContent() {

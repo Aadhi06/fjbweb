@@ -1,5 +1,5 @@
-const CACHE = "fjb-app-v2";
-const PRECACHE = ["/", "/admin", "/icon-192.png", "/icon-512.png", "/apple-icon.png"];
+const CACHE = "fjb-app-v3";
+const PRECACHE = ["/icon-192.png", "/icon-512.png", "/apple-icon.png", "/images/logo.png"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -27,14 +27,23 @@ self.addEventListener("fetch", (event) => {
   if (url.origin !== self.location.origin) return;
   if (url.pathname.startsWith("/api")) return;
 
+  const isAsset = /\.(png|jpg|jpeg|webp|svg|ico|woff2?)$/i.test(url.pathname);
+  if (!isAsset) {
+    event.respondWith(fetch(request).catch(() => caches.match(request)));
+    return;
+  }
+
   event.respondWith(
-    fetch(request)
-      .then((response) => {
-        const copy = response.clone();
-        caches.open(CACHE).then((cache) => cache.put(request, copy));
-        return response;
-      })
-      .catch(() => caches.match(request))
+    caches.match(request).then((cached) => {
+      const networked = fetch(request)
+        .then((response) => {
+          const copy = response.clone();
+          caches.open(CACHE).then((cache) => cache.put(request, copy));
+          return response;
+        })
+        .catch(() => cached);
+      return cached || networked;
+    })
   );
 });
 
@@ -56,15 +65,21 @@ self.addEventListener("push", (event) => {
   }
 
   event.waitUntil(
-    self.registration.showNotification(data.title || "Fine Jewellery Buyers", {
-      body: data.body || "New admin alert",
-      icon: "/icon-192.png",
-      badge: "/favicon-48.png",
-      tag: data.tag || "fjb-admin",
-      renotify: true,
-      vibrate: [180, 80, 180],
-      data: { url: data.url || "/admin" },
-    })
+    Promise.all([
+      self.registration.showNotification(data.title || "Fine Jewellery Buyers", {
+        body: data.body || "New admin alert",
+        icon: "/icon-192.png",
+        badge: "/favicon-48.png",
+        tag: data.tag || "fjb-admin",
+        renotify: true,
+        silent: false,
+        vibrate: [160, 70, 160, 70, 220],
+        data: { url: data.url || "/admin" },
+      }),
+      self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
+        clients.forEach((client) => client.postMessage({ type: "FJB_PUSH_ALERT", title: data.title }));
+      }),
+    ])
   );
 });
 

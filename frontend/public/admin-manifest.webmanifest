@@ -11,8 +11,8 @@
     "client_mode": ["navigate-existing", "auto"]
   },
   "orientation": "portrait",
-  "background_color": "#000000",
-  "theme_color": "#111111",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
   "lang": "en-GB",
   "icons": [
     { "src": "/favicon-48.png", "sizes": "48x48", "type": "image/png" },

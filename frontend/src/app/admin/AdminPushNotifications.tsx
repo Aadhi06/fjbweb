@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Bell, BellOff, BellRing } from "lucide-react";
 import { getAuthHeaders } from "./SubmissionChatPanel";
+import { playAlertSound } from "@/lib/alertSound";
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8002") + "/api";
 
@@ -29,7 +30,6 @@ export function AdminPushNotifications({
 }) {
   const [status, setStatus] = useState<"loading" | "unsupported" | "off" | "on" | "blocked">("loading");
   const [busy, setBusy] = useState(false);
-  const lastUnread = useRef<number | null>(null);
   const autoTried = useRef(false);
 
   const syncStatus = useCallback(async () => {
@@ -97,38 +97,16 @@ export function AdminPushNotifications({
 
   useEffect(() => {
     if (showTest) return;
-    let cancelled = false;
-    const poll = async () => {
-      try {
-        const res = await fetch(`${API_URL}/admin/messages/unread-count`, { headers: getAuthHeaders() });
-        if (!res.ok || cancelled) return;
-        const json = await res.json();
-        const count = Number(json.count || 0);
-        if (lastUnread.current !== null && count > lastUnread.current && document.hidden && Notification.permission === "granted") {
-          const registration = "serviceWorker" in navigator ? await navigator.serviceWorker.ready : null;
-          const body = count === 1 ? "1 unread enquiry or message" : `${count} unread enquiries or messages`;
-          if (registration) {
-            registration.showNotification("New FJB message", {
-              body,
-              icon: "/icon-192.png",
-              badge: "/favicon-48.png",
-              tag: "fjb-unread",
-              data: { url: "/admin?tab=messages" },
-            });
-          } else {
-            new Notification("New FJB message", { body, icon: "/icon-192.png" });
-          }
-        }
-        lastUnread.current = count;
-      } catch {
-        // ignore
-      }
+    const onMessage = (event: MessageEvent) => {
+      if (event.data?.type === "FJB_PUSH_ALERT") playAlertSound();
     };
-    poll();
-    const id = window.setInterval(poll, 15000);
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.addEventListener("message", onMessage);
+    }
     return () => {
-      cancelled = true;
-      window.clearInterval(id);
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.removeEventListener("message", onMessage);
+      }
     };
   }, [showTest]);
 
@@ -136,6 +114,7 @@ export function AdminPushNotifications({
     setBusy(true);
     try {
       await subscribe();
+      playAlertSound();
       await fetch(`${API_URL}/admin/push/test`, { method: "POST", headers: getAuthHeaders() });
     } finally {
       setBusy(false);
