@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowLeft, CalendarDays, Check, CheckCheck, Loader2, MessageSquare, Paperclip, Send } from "lucide-react";
-import { ChatMedia, PendingChatFiles, type ChatAttachment } from "@/components/chat/ChatMedia";
+import { ChatMedia, MediaLightbox, PendingChatFiles, type ChatAttachment } from "@/components/chat/ChatMedia";
 import { useSettings } from "@/lib/useSettings";
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8002") + "/api";
@@ -344,6 +344,7 @@ export function SubmissionChatPanel({
   const [showSuggested, setShowSuggested] = useState(false);
   const [composerFocused, setComposerFocused] = useState(false);
   const [pendingFiles, setPendingFiles] = useState<{ file: File; url: string }[]>([]);
+  const [previewFile, setPreviewFile] = useState<SubmissionFile | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const settings = useSettings();
   const keyboardInset = useKeyboardInset();
@@ -594,14 +595,20 @@ export function SubmissionChatPanel({
       {!hideExtras && photoCount > 0 && (
         <div className="shrink-0 flex gap-2 overflow-x-auto px-3 py-2 bg-[#f0f2f5] border-b border-black/5">
           {detail.files!.slice(0, 6).map((file) => (
-            <a key={file.id} href={file.url} target="_blank" rel="noopener noreferrer" className="shrink-0">
+            <button
+              key={file.id}
+              type="button"
+              onClick={() => setPreviewFile(file)}
+              className="shrink-0 min-h-11"
+              aria-label={`View ${file.original_name}`}
+            >
               {file.is_image ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={file.url} alt={file.original_name} className="w-16 h-16 rounded-xl object-cover bg-gray-100" />
               ) : (
                 <span className="w-16 h-16 rounded-xl bg-gray-100 flex items-center justify-center text-[10px] text-gray-500 p-1">{file.original_name}</span>
               )}
-            </a>
+            </button>
           ))}
         </div>
       )}
@@ -782,14 +789,20 @@ export function SubmissionChatPanel({
                 <p className="text-sm font-semibold text-black mb-2">Photos</p>
                 <div className="grid grid-cols-2 gap-2">
                   {detail.files.map((file) => (
-                    <a key={file.id} href={file.url} target="_blank" rel="noopener noreferrer" className="block rounded-xl overflow-hidden border">
+                    <button
+                      key={file.id}
+                      type="button"
+                      onClick={() => setPreviewFile(file)}
+                      className="block rounded-xl overflow-hidden border w-full text-left"
+                      aria-label={`View ${file.original_name}`}
+                    >
                       {file.is_image ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img src={file.url} alt={file.original_name} className="w-full h-36 object-cover bg-gray-100" />
                       ) : (
                         <div className="h-36 flex items-center justify-center text-xs text-gray-500 p-2 text-center">{file.original_name}</div>
                       )}
-                    </a>
+                    </button>
                   ))}
                 </div>
               </div>
@@ -797,6 +810,7 @@ export function SubmissionChatPanel({
           </div>
         </div>
       )}
+      <MediaLightbox file={previewFile} onClose={() => setPreviewFile(null)} />
     </div>
   );
 }

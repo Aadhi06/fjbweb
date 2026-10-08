@@ -19,17 +19,64 @@ export function isPdfAttachment(file: { is_pdf?: boolean; mime_type?: string | n
   return mime.includes("pdf") || name.endsWith(".pdf");
 }
 
-export function ChatMedia({ attachments }: { attachments?: ChatAttachment[] }) {
-  const [open, setOpen] = useState<ChatAttachment | null>(null);
-
+export function MediaLightbox({
+  file,
+  onClose,
+}: {
+  file: { url: string; original_name?: string; is_image?: boolean; is_pdf?: boolean; mime_type?: string | null } | null;
+  onClose: () => void;
+}) {
   useEffect(() => {
-    if (!open) return;
+    if (!file) return;
     function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") setOpen(null);
+      if (e.key === "Escape") onClose();
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [open]);
+  }, [file, onClose]);
+
+  if (!file) return null;
+
+  const pdf = isPdfAttachment(file);
+
+  return (
+    <div
+      className="fixed inset-0 z-[120] bg-black/90 flex items-center justify-center p-4"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-label={file.original_name || "Preview"}
+    >
+      <button
+        type="button"
+        onClick={onClose}
+        className="absolute top-4 right-4 min-h-11 min-w-11 rounded-full bg-white text-black flex items-center justify-center"
+        aria-label="Close"
+      >
+        <X className="w-5 h-5" />
+      </button>
+      {pdf ? (
+        <iframe
+          src={file.url}
+          title={file.original_name || "PDF"}
+          className="w-full max-w-3xl h-[88dvh] rounded-xl bg-white"
+          onClick={(e) => e.stopPropagation()}
+        />
+      ) : (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={file.url}
+          alt={file.original_name || "Photo"}
+          className="max-w-full max-h-[88dvh] object-contain"
+          onClick={(e) => e.stopPropagation()}
+        />
+      )}
+    </div>
+  );
+}
+
+export function ChatMedia({ attachments }: { attachments?: ChatAttachment[] }) {
+  const [open, setOpen] = useState<ChatAttachment | null>(null);
 
   if (!attachments?.length) return null;
 
@@ -37,61 +84,42 @@ export function ChatMedia({ attachments }: { attachments?: ChatAttachment[] }) {
     <>
       <div className={`mt-1.5 grid gap-1.5 ${attachments.length > 1 ? "grid-cols-2" : "grid-cols-1"}`}>
         {attachments.map((file) =>
-          file.is_image ? (
+          file.is_image || isPdfAttachment(file) ? (
             <button
               key={file.id}
               type="button"
               onClick={() => setOpen(file)}
-              className="block overflow-hidden rounded-xl bg-black/5 min-h-11 text-left"
+              className="block overflow-hidden rounded-xl bg-black/5 min-h-11 text-left w-full"
               aria-label={`View ${file.original_name}`}
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={file.url}
-                alt={file.original_name}
-                className="w-full max-h-64 object-cover bg-black/5"
-              />
+              {file.is_image ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={file.url}
+                  alt={file.original_name}
+                  className="w-full max-h-64 object-cover bg-black/5"
+                />
+              ) : (
+                <span className="flex items-center gap-2 min-h-11 px-3 py-2">
+                  <FileText className="w-5 h-5 shrink-0 text-[#111b21]" />
+                  <span className="text-sm font-medium truncate">{file.original_name || "PDF"}</span>
+                </span>
+              )}
             </button>
           ) : (
-            <a
+            <button
               key={file.id}
-              href={file.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 min-h-11 px-3 py-2 rounded-xl bg-black/5 hover:bg-black/10"
+              type="button"
+              onClick={() => setOpen(file)}
+              className="flex items-center gap-2 min-h-11 px-3 py-2 rounded-xl bg-black/5 w-full text-left"
             >
               <FileText className="w-5 h-5 shrink-0 text-[#111b21]" />
-              <span className="text-sm font-medium truncate">{file.original_name || "PDF"}</span>
-            </a>
+              <span className="text-sm font-medium truncate">{file.original_name || "File"}</span>
+            </button>
           )
         )}
       </div>
-
-      {open && (
-        <div
-          className="fixed inset-0 z-[120] bg-black/90 flex items-center justify-center p-4"
-          onClick={() => setOpen(null)}
-          role="dialog"
-          aria-modal="true"
-          aria-label={open.original_name}
-        >
-          <button
-            type="button"
-            onClick={() => setOpen(null)}
-            className="absolute top-4 right-4 min-h-11 min-w-11 rounded-full bg-white text-black flex items-center justify-center"
-            aria-label="Close image"
-          >
-            <X className="w-5 h-5" />
-          </button>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={open.url}
-            alt={open.original_name}
-            className="max-w-full max-h-[88dvh] object-contain"
-            onClick={(e) => e.stopPropagation()}
-          />
-        </div>
-      )}
+      <MediaLightbox file={open} onClose={() => setOpen(null)} />
     </>
   );
 }
