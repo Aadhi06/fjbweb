@@ -423,7 +423,7 @@ export default function EnquiryPage({ params }: { params: Promise<{ token: strin
             <input
               ref={fileInputRef}
               type="file"
-              accept="image/*,.pdf,application/pdf"
+              accept="image/*,.pdf,.heic,.heif,application/pdf"
               multiple
               className="sr-only"
               onChange={(e) => addPendingFiles(e.target.files)}

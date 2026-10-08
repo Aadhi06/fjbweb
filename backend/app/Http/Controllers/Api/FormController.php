@@ -100,12 +100,6 @@ class FormController extends Controller
             ->withMax('messages', 'created_at')
             ->get()
             ->sort(function ($a, $b) {
-                $aUnread = $this->conversationService->isUnread($a);
-                $bUnread = $this->conversationService->isUnread($b);
-                if ($aUnread !== $bUnread) {
-                    return $aUnread ? -1 : 1;
-                }
-
                 $aTime = (string) ($a->messages_max_created_at ?? $a->created_at);
                 $bTime = (string) ($b->messages_max_created_at ?? $b->created_at);
 
@@ -250,11 +244,17 @@ class FormController extends Controller
             $files,
         );
 
-        $submission->refresh()->load(['form', 'files', 'messages.adminUser']);
+        $detail = null;
+        try {
+            $submission->refresh()->load(['form', 'files', 'messages.adminUser']);
+            $detail = $this->formatSubmissionDetail($submission);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Admin reply saved but detail failed: '.$e->getMessage());
+        }
 
         return response()->json([
             'message' => 'Reply sent to customer.',
-            'data' => $this->formatSubmissionDetail($submission),
+            'data' => $detail,
             'new_message' => [
                 'id' => $message->id,
                 'sender' => $message->sender,
@@ -553,11 +553,45 @@ class FormController extends Controller
 
     private function chatFiles(Request $request): array
     {
-        $request->validate([
-            'files' => 'nullable|array|max:5',
-            'files.*' => 'file|max:10240|mimes:jpg,jpeg,png,webp,gif,pdf',
-        ]);
+        $raw = $request->file('files');
+        if ($raw instanceof \Illuminate\Http\UploadedFile) {
+            $raw = [$raw];
+        }
+        if (!is_array($raw) || $raw === []) {
+            $raw = [];
+            foreach ($request->allFiles() as $key => $value) {
+                if (!str_starts_with((string) $key, 'files')) {
+                    continue;
+                }
+                $raw = array_merge($raw, is_array($value) ? $value : [$value]);
+            }
+        }
 
-        return $request->file('files', []) ?: [];
+        $files = array_values(array_filter($raw, fn ($file) => $file instanceof \Illuminate\Http\UploadedFile && $file->isValid()));
+        if (count($files) > 5) {
+            $files = array_slice($files, 0, 5);
+        }
+
+        foreach ($files as $file) {
+            if ($file->getSize() > 10 * 1024 * 1024) {
+                abort(response()->json(['message' => 'Each file must be under 10MB.'], 422));
+            }
+            $mime = strtolower((string) $file->getMimeType());
+            $name = strtolower((string) $file->getClientOriginalName());
+            $ok = str_starts_with($mime, 'image/')
+                || str_contains($mime, 'pdf')
+                || str_ends_with($name, '.pdf')
+                || str_ends_with($name, '.jpg')
+                || str_ends_with($name, '.jpeg')
+                || str_ends_with($name, '.png')
+                || str_ends_with($name, '.webp')
+                || str_ends_with($name, '.heic')
+                || str_ends_with($name, '.heif');
+            if (!$ok) {
+                abort(response()->json(['message' => 'Please upload a photo or PDF.'], 422));
+            }
+        }
+
+        return $files;
     }
 }

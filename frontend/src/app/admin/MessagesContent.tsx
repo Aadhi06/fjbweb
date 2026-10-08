@@ -14,6 +14,7 @@ type ConversationItem = {
   status: string;
   unread: boolean;
   replied?: boolean;
+  awaiting_reply?: boolean;
   last_message_at?: string;
   customer_typing?: boolean;
   booking?: { id: number; service_type?: string | null; booking_date?: string | null; booking_time?: string | null } | null;
@@ -39,9 +40,16 @@ type BookingOption = {
 
 type ComposeMode = "email" | "chat" | null;
 
+function lastMessageTime(conversation: ConversationItem): string {
+  return conversation.last_message?.created_at || conversation.last_message_at || "";
+}
+
+function isAwaitingReply(conversation: ConversationItem): boolean {
+  if (typeof conversation.awaiting_reply === "boolean") return conversation.awaiting_reply;
+  return conversation.last_message?.sender === "customer" || conversation.unread;
+}
+
 function isReplied(conversation: ConversationItem): boolean {
-  if (conversation.unread) return false;
-  if (typeof conversation.replied === "boolean") return conversation.replied;
   return conversation.last_message?.sender === "admin";
 }
 
@@ -103,8 +111,9 @@ export function MessagesContent({
   const fetchMessages = useCallback(async () => {
     try {
       const res = await fetch(`${API_URL}/admin/messages`, { headers: getAuthHeaders() });
-      const data = await res.json();
-      setConversations(data.data || []);
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.message || "Failed to load messages");
+      setConversations(Array.isArray(data.data) ? data.data : []);
     } catch {
       showToast("Failed to load messages", "error");
     } finally {
@@ -129,17 +138,19 @@ export function MessagesContent({
     if (initialSelectedId) setSelectedId(initialSelectedId);
   }, [initialSelectedId]);
 
-  const unreadTotal = conversations.filter((c) => c.unread).length;
+  const unreadTotal = conversations.filter((c) => isAwaitingReply(c)).length;
   const repliedTotal = conversations.filter((c) => isReplied(c)).length;
   const visibleConversations = useMemo(() => {
     const sorted = [...conversations].sort((a, b) => {
-      if (a.unread !== b.unread) return a.unread ? -1 : 1;
-      const aTime = a.last_message?.created_at || a.last_message_at || "";
-      const bTime = b.last_message?.created_at || b.last_message_at || "";
-      return bTime.localeCompare(aTime);
+      const aTime = lastMessageTime(a);
+      const bTime = lastMessageTime(b);
+      if (aTime && bTime && aTime !== bTime) return bTime.localeCompare(aTime);
+      if (aTime && !bTime) return -1;
+      if (!aTime && bTime) return 1;
+      return b.id - a.id;
     });
     return sorted.filter((c) => {
-      if (listFilter === "unread" && !c.unread) return false;
+      if (listFilter === "unread" && !isAwaitingReply(c)) return false;
       if (listFilter === "replied" && !isReplied(c)) return false;
       return matchesConversationSearch(c, searchName, searchDate, searchTime);
     });
@@ -360,7 +371,7 @@ export function MessagesContent({
                 <div className="p-8 text-center">
                   <p className="text-sm text-gray-500">
                     {listFilter === "unread"
-                      ? "No new messages"
+                      ? "No new customer messages"
                       : listFilter === "replied"
                         ? "No replied messages"
                         : searchName || searchDate || searchTime
@@ -384,10 +395,10 @@ export function MessagesContent({
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center justify-between gap-2">
-                        <p className={`text-sm text-black truncate ${c.unread ? "font-bold" : "font-semibold"}`}>
+                        <p className={`text-sm text-black truncate ${isAwaitingReply(c) ? "font-bold" : "font-semibold"}`}>
                           {c.customer_name}
                         </p>
-                        {c.unread ? (
+                        {isAwaitingReply(c) ? (
                           <span className="text-[10px] font-bold uppercase tracking-wide text-red-500 shrink-0">New</span>
                         ) : isReplied(c) ? (
                           <span className="text-[10px] font-bold uppercase tracking-wide text-[#008069] shrink-0">Replied</span>
@@ -401,7 +412,7 @@ export function MessagesContent({
                       {c.customer_typing ? (
                         <p className="text-xs text-[#008069] font-medium truncate mt-1">typing...</p>
                       ) : c.last_message ? (
-                        <p className={`text-xs truncate mt-1 ${c.unread ? "text-gray-700 font-medium" : "text-gray-400"}`}>
+                        <p className={`text-xs truncate mt-1 ${isAwaitingReply(c) ? "text-gray-700 font-medium" : "text-gray-400"}`}>
                           {c.last_message.sender === "admin" ? "You: " : ""}
                           {c.last_message.body}
                         </p>

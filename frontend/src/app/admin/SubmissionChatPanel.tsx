@@ -473,15 +473,21 @@ export function SubmissionChatPanel({
     if ((!reply.trim() && pendingFiles.length === 0) || sending) return;
     setSending(true);
     try {
-      const formData = new FormData();
-      if (reply.trim()) formData.append("message", reply.trim());
-      pendingFiles.forEach((item) => formData.append("files[]", item.file));
+      const hasFiles = pendingFiles.length > 0;
       const res = await fetch(`${API_URL}/admin/submissions/${submissionId}/messages`, {
         method: "POST",
-        headers: getAuthHeaders(false),
-        body: formData,
+        headers: getAuthHeaders(!hasFiles),
+        body: hasFiles
+          ? (() => {
+              const formData = new FormData();
+              if (reply.trim()) formData.append("message", reply.trim());
+              pendingFiles.forEach((item) => formData.append("files[]", item.file));
+              return formData;
+            })()
+          : JSON.stringify({ message: reply.trim() }),
       });
-      if (!res.ok) throw new Error();
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json.message || "Failed to send reply");
       setReply("");
       setSelectedReplyIds([]);
       setPendingFiles((current) => {
@@ -491,8 +497,8 @@ export function SubmissionChatPanel({
       pingTyping(false);
       await loadDetail({ markRead: false });
       showToast("Reply sent to customer email", "success");
-    } catch {
-      showToast("Failed to send reply", "error");
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "Failed to send reply", "error");
     } finally {
       setSending(false);
     }
@@ -671,7 +677,7 @@ export function SubmissionChatPanel({
           <input
             ref={fileInputRef}
             type="file"
-            accept="image/*,.pdf,application/pdf"
+            accept="image/*,.pdf,.heic,.heif,application/pdf"
             multiple
             className="sr-only"
             onChange={(e) => addPendingFiles(e.target.files)}

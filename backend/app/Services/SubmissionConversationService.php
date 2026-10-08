@@ -10,9 +10,11 @@ use App\Models\FormSubmissionFile;
 use App\Models\FormSubmissionMessage;
 use App\Models\Setting;
 use App\Models\User;
+use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 class SubmissionConversationService
@@ -89,7 +91,11 @@ class SubmissionConversationService
             'admin_user_id' => $admin?->id,
         ]);
 
-        $this->storeChatFiles($submission, $record, $files);
+        try {
+            $this->storeChatFiles($submission, $record, $files);
+        } catch (\Throwable $e) {
+            Log::error('Admin chat file save failed: '.$e->getMessage());
+        }
         $submission->update(['status' => 'replied']);
 
         $this->setTyping($submission->id, 'admin', false);
@@ -109,7 +115,11 @@ class SubmissionConversationService
             'body' => $body,
         ]);
 
-        $this->storeChatFiles($submission, $record, $files);
+        try {
+            $this->storeChatFiles($submission, $record, $files);
+        } catch (\Throwable $e) {
+            Log::error('Customer chat file save failed: '.$e->getMessage());
+        }
         $submission->update(['status' => 'new']);
         $this->markAdminMessagesViewed($submission);
         $this->setTyping($submission->id, 'customer', false);
@@ -155,6 +165,13 @@ class SubmissionConversationService
 
     private function storeChatFiles(FormSubmission $submission, FormSubmissionMessage $message, array $files): void
     {
+        if ($files === [] || !$this->chatAttachmentsReady()) {
+            if ($files !== []) {
+                Log::error('Chat photo was not saved because the attachment column is missing.');
+            }
+            return;
+        }
+
         foreach ($files as $file) {
             $path = $file->store("submissions/{$submission->id}/chat", 'public');
 
@@ -310,11 +327,18 @@ class SubmissionConversationService
         $submission->loadMissing(['form', 'messages' => fn ($q) => $q->latest()->limit(1)]);
 
         $latest = $submission->messages->first();
-        $latest?->loadMissing('attachments');
+        if ($latest && $this->chatAttachmentsReady()) {
+            try {
+                $latest->loadMissing('attachments');
+            } catch (\Throwable $e) {
+                Log::warning('Chat attachments unavailable: '.$e->getMessage());
+            }
+        }
         $name = $this->customerName($submission);
         $email = $this->customerEmail($submission);
         $unread = $this->isUnread($submission);
-        $replied = (bool) $latest && $latest->sender === 'admin' && !$unread;
+        $replied = (bool) $latest && $latest->sender === 'admin';
+        $awaitingReply = (bool) $latest && $latest->sender === 'customer';
 
         return [
             'id' => $submission->id,
@@ -324,6 +348,7 @@ class SubmissionConversationService
             'status' => $submission->status,
             'unread' => $unread,
             'replied' => $replied,
+            'awaiting_reply' => $awaitingReply,
             'customer_typing' => $this->isTyping($submission->id, 'customer'),
             'booking' => $this->linkedBooking($submission),
             'last_message' => $latest ? [
@@ -445,8 +470,13 @@ class SubmissionConversationService
 
     public function formatMessages(FormSubmission $submission): array
     {
+        $with = ['adminUser:id,name'];
+        if ($this->chatAttachmentsReady()) {
+            $with[] = 'attachments';
+        }
+
         return $submission->messages()
-            ->with(['adminUser:id,name', 'attachments'])
+            ->with($with)
             ->orderBy('created_at')
             ->get()
             ->map(fn (FormSubmissionMessage $m) => [
@@ -461,18 +491,59 @@ class SubmissionConversationService
                 'delivery_status' => $m->sender === 'admin'
                     ? ($m->page_viewed_at ? 'chat_opened' : ($m->email_opened_at ? 'email_opened' : 'sent'))
                     : null,
-                'attachments' => $m->attachments->map(fn (FormSubmissionFile $file) => [
-                    'id' => $file->id,
-                    'original_name' => $file->original_name,
-                    'url' => $file->publicUrl(),
-                    'mime_type' => $file->mime_type,
-                    'is_image' => $file->isImage(),
-                    'is_pdf' => $file->isPdf(),
-                ])->values()->all(),
+                'attachments' => $this->formatAttachments($m),
                 'created_at' => $m->created_at->toIso8601String(),
                 'created_at_human' => $m->created_at->diffForHumans(),
             ])
             ->all();
+    }
+
+    public function chatAttachmentsReady(): bool
+    {
+        static $ready = null;
+        if ($ready === true) {
+            return true;
+        }
+
+        try {
+            if (Schema::hasColumn('form_submission_files', 'form_submission_message_id')) {
+                return $ready = true;
+            }
+
+            Schema::table('form_submission_files', function (Blueprint $table) {
+                $table->unsignedBigInteger('form_submission_message_id')->nullable();
+            });
+
+            return $ready = Schema::hasColumn('form_submission_files', 'form_submission_message_id');
+        } catch (\Throwable $e) {
+            Log::error('Chat attachment column setup failed: '.$e->getMessage());
+            try {
+                return $ready = Schema::hasColumn('form_submission_files', 'form_submission_message_id');
+            } catch (\Throwable $ignored) {
+                return $ready = false;
+            }
+        }
+    }
+
+    private function formatAttachments(FormSubmissionMessage $message): array
+    {
+        if (!$this->chatAttachmentsReady() || !$message->relationLoaded('attachments')) {
+            return [];
+        }
+
+        try {
+            return $message->attachments->map(fn (FormSubmissionFile $file) => [
+                'id' => $file->id,
+                'original_name' => $file->original_name,
+                'url' => $file->publicUrl(),
+                'mime_type' => $file->mime_type,
+                'is_image' => $file->isImage(),
+                'is_pdf' => $file->isPdf(),
+            ])->values()->all();
+        } catch (\Throwable $e) {
+            Log::warning('Chat attachment format failed: '.$e->getMessage());
+            return [];
+        }
     }
 
     private function previewBody(FormSubmissionMessage $message): string
@@ -482,7 +553,7 @@ class SubmissionConversationService
             return $body;
         }
 
-        $files = $message->attachments;
+        $files = $message->relationLoaded('attachments') ? $message->attachments : collect();
         $hasPdf = $files->contains(fn (FormSubmissionFile $file) => $file->isPdf());
         $hasImage = $files->contains(fn (FormSubmissionFile $file) => $file->isImage());
 
