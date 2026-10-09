@@ -167,7 +167,7 @@ export const PAGE_SEO: Record<string, PageSeo> = {
   blog: {
     title: "Blog | Sell Gold Bars, Coins & Inherited Jewellery",
     description:
-      "Guides for high-value sellers — gold bars, sovereigns, inherited estates and designer jewellery. How to sell in Hatton Garden without a scrap quote.",
+      "Best place to sell gold in the UK — Hatton Garden or insured post. Guides on live rates, bars, sovereigns, inherited gold and designer jewellery.",
     path: "/blog",
   },
   privacy: {

@@ -14,6 +14,7 @@ export type HighValueBlog = {
   meta_description: string;
   showReviews?: boolean;
   showVisitDirections?: boolean;
+  faq?: { question: string; answer: string }[];
 };
 
 export function resolveBlogImage(path?: string | null): string | null {
@@ -24,6 +25,171 @@ export function resolveBlogImage(path?: string | null): string | null {
 }
 
 export const HIGH_VALUE_BLOGS: HighValueBlog[] = [
+  {
+    slug: "best-place-to-sell-gold-uk",
+    title: "Best Place to Sell Gold in the UK (2026)",
+    excerpt:
+      "The best place to sell gold in the UK is a specialist who pays live market rates — Hatton Garden in person, or insured post from any UK postcode. Here is how to choose.",
+    image: "/images/gold-valuation.png",
+    category: "Sell Gold",
+    published_at: "2026-10-09T10:00:00+01:00",
+    meta_title: "Best Place to Sell Gold UK | Hatton Garden or Insured Post",
+    meta_description:
+      "Best place to sell gold in the UK in 2026. Fine Jewellery Buyers — Hatton Garden or free insured post. Live rates, 9ct–24ct, same-day payment. No pawn ticket.",
+    showReviews: true,
+    showVisitDirections: true,
+    faq: [
+      {
+        question: "Where is the best place to sell gold in the UK?",
+        answer:
+          "The best place to sell gold in the UK is a specialist buyer who prices against today’s live gold market. Fine Jewellery Buyers in Hatton Garden, London, buys 9ct–24ct jewellery, scrap, bars and coins in person or by free insured post from any UK postcode, with same-day payment if you accept.",
+      },
+      {
+        question: "Is Hatton Garden better than a high-street gold buyer?",
+        answer:
+          "Usually yes. High-street cash-for-gold shops and pawnbrokers often hold a wide scrap margin. Hatton Garden specialists compete on weight, carat and the live gold price. Check published live rates before you travel.",
+      },
+      {
+        question: "Can I sell gold from outside London?",
+        answer:
+          "Yes. Fine Jewellery Buyers offers free insured Royal Mail Special Delivery from anywhere in the UK. Items are opened on camera. If you decline the offer, the gold is returned free.",
+      },
+    ],
+    content: `
+<p>The <strong>best place to sell gold in the UK</strong> is not the nearest pawn shop. It is the buyer who pays against today’s live gold market — weight, carat and purity — and who will show you that rate before you hand anything over.</p>
+<p>Fine Jewellery Buyers is that kind of buyer. The showroom is at <strong>Suite 39, 4th Floor, 88–90 Hatton Garden, London EC1N 8AA</strong>. If you are not in London, the same valuers buy gold by <strong>free insured post</strong> from any UK postcode. Payment is the same day if you accept. There is no obligation to sell.</p>
+
+<h2>What “best place” actually means</h2>
+<p>When people search <strong>best place to sell gold UK</strong>, they want a fair price and a safe process. Use this checklist:</p>
+<ul>
+  <li>They publish a <a href="/live-rates">live buying rate</a> you can check first.</li>
+  <li>They test carat and weigh the gold in front of you (or on camera for postal sales).</li>
+  <li>Bars, coins and signed jewellery are not automatically melted as scrap.</li>
+  <li>You can decline and keep the gold — posted items come back free.</li>
+  <li>Payment is the same day if you accept.</li>
+</ul>
+<p>High-street jewellers and cash-for-gold kiosks often fail that list. Hatton Garden specialists are built around it.</p>
+
+<h2>Best place to sell gold if you live in London</h2>
+<p>Walk into Hatton Garden. Fine Jewellery Buyers is in the jewellery quarter at 88–90 Hatton Garden. Tell security you need Fine Jewellery Buyers — they will call the office and open the gate. Lift to the 4th floor, last suite on the left (Suite 39). Walk-ins are welcome Monday–Saturday, 10:00–18:00.</p>
+<p>Read <a href="/blog/best-place-to-sell-gold-in-london-top-price-paid">best place to sell gold in London</a> and the service page <a href="/sell-gold-london">sell gold in London</a>.</p>
+
+<h2>Best place to sell gold if you live outside London</h2>
+<p>You do not need a local scrap shop. “Near me” usually means a wide margin. Post the gold to Hatton Garden with our insured pack. We open it on camera, confirm the offer, and pay the same day you accept. See <a href="/blog/best-place-to-sell-gold-near-me">best place to sell gold near me</a>.</p>
+
+<h2>What we buy</h2>
+<ul>
+  <li>Gold jewellery — 9ct, 14ct, 18ct, 22ct, 24ct — worn, broken or complete</li>
+  <li>Scrap gold, dental gold and unmatched items</li>
+  <li><a href="/sell-gold-bars">Gold bars</a> — PAMP, Perth Mint, Royal Mint and other investment bars</li>
+  <li><a href="/sell-gold-coins">Gold coins</a> — sovereigns, Krugerrands, Britannias</li>
+  <li><a href="/sell-inherited-gold">Inherited gold</a> and estate boxes, sorted line by line</li>
+</ul>
+<p>The full buying page is <a href="/sell-gold">sell gold in the UK</a>.</p>
+
+<h2>How to sell today</h2>
+<ol>
+  <li>Check <a href="/live-rates">today’s rates</a> or the <a href="/gold-calculator">gold calculator</a>.</li>
+  <li>Start a <a href="/free-valuation">free valuation</a>, <a href="/book-appointment">book a visit</a>, or walk in.</li>
+  <li>We test, weigh and explain the offer. Accept and get paid. Decline and keep the gold.</li>
+</ol>
+<p><a href="#reviews">Check our Google reviews</a> on this page before you decide.</p>
+`.trim(),
+  },
+  {
+    slug: "best-place-to-sell-gold-near-me",
+    title: "Best Place to Sell Gold Near Me in the UK",
+    excerpt:
+      "“Sell gold near me” usually means a local scrap ticket. The better option is a Hatton Garden specialist — walk in if you are in London, or post insured from home.",
+    image: "/images/gold-live-rates.png",
+    category: "Sell Gold",
+    published_at: "2026-10-09T10:15:00+01:00",
+    meta_title: "Best Place to Sell Gold Near Me UK | Not a Pawn Shop",
+    meta_description:
+      "Best place to sell gold near me in the UK. Skip the local pawn ticket — Fine Jewellery Buyers pays live rates in Hatton Garden or by free insured post nationwide.",
+    showReviews: true,
+    showVisitDirections: true,
+    faq: [
+      {
+        question: "Where is the best place to sell gold near me?",
+        answer:
+          "In the UK, the best place is rarely the closest cash-for-gold shop. Fine Jewellery Buyers in Hatton Garden pays live market-linked rates. London sellers can walk in. Everyone else can sell by free insured post and get the same valuers and the same rates.",
+      },
+      {
+        question: "Is it safe to post gold instead of selling locally?",
+        answer:
+          "Yes, when the pack is fully insured and tracked. Fine Jewellery Buyers uses Royal Mail Special Delivery, opens items on camera, and returns gold free if you decline the offer.",
+      },
+    ],
+    content: `
+<p>If you searched <strong>best place to sell gold near me</strong>, your phone is pointing at the nearest pawnbroker or supermarket kiosk. That is convenient. It is rarely the best price.</p>
+<p>The better “near me” for gold in the UK is a specialist who publishes live rates. Fine Jewellery Buyers is in <strong>Hatton Garden, London</strong>. If you can travel, walk in. If you cannot, we are still the buyer — via <strong>free insured Royal Mail Special Delivery</strong> from your local Post Office.</p>
+
+<h2>Why the closest shop is often the worst price</h2>
+<p>Local cash-for-gold shops buy in volume and hold a wide scrap margin. They may not sort sovereigns, bars or signed jewellery. You get one ticket for the lot. Hatton Garden buyers compete on today’s gold price and will tell you when a piece should not be melted.</p>
+
+<h2>If you are in London or the South East</h2>
+<p>Come to Suite 39, 4th Floor, 88–90 Hatton Garden, London EC1N 8AA. Walk-ins welcome Monday–Saturday, 10:00–18:00. Bring photo ID. Check <a href="/live-rates">live rates</a> on the train. Full directions: <a href="/sell-gold-london">sell gold in London</a>.</p>
+
+<h2>If you are in Manchester, Birmingham, Glasgow, Leeds or anywhere else</h2>
+<p>You do not need a “gold buyer near me” in those cities to get a Hatton Garden price. Start a <a href="/free-valuation">free photo valuation</a>, then send the gold in our insured pack. We open it on camera. Accept and we pay the same day. Decline and it comes back free.</p>
+
+<h2>How to compare any local offer</h2>
+<ol>
+  <li>Weigh the gold at home if you can, and note the hallmark (9ct, 18ct, 22ct).</li>
+  <li>Put the weight into our <a href="/gold-calculator">gold calculator</a>.</li>
+  <li>If a local shop is far below that number, post it to us instead.</li>
+</ol>
+<p>More on choosing a buyer: <a href="/blog/best-place-to-sell-gold-uk">best place to sell gold in the UK</a>.</p>
+`.trim(),
+  },
+  {
+    slug: "best-gold-buyer-hatton-garden",
+    title: "Best Gold Buyer in Hatton Garden — How to Choose",
+    excerpt:
+      "Hatton Garden has many gold buyers. The best one shows a live rate, tests in front of you, and pays the same day. Here is how Fine Jewellery Buyers works.",
+    image: "/images/hatton-garden-building.jpg",
+    category: "Hatton Garden",
+    published_at: "2026-10-09T10:30:00+01:00",
+    meta_title: "Best Gold Buyer Hatton Garden | Live Rates & Same-Day Pay",
+    meta_description:
+      "Best gold buyer in Hatton Garden? Fine Jewellery Buyers at 88–90 Hatton Garden — live rates, GIA-trained valuers, walk-ins, same-day payment. Check Google reviews.",
+    showReviews: true,
+    showVisitDirections: true,
+    faq: [
+      {
+        question: "Who is the best gold buyer in Hatton Garden?",
+        answer:
+          "Choose a Hatton Garden buyer who publishes live gold rates, tests and weighs in front of you, and lets you walk away. Fine Jewellery Buyers at Suite 39, 88–90 Hatton Garden does that, with same-day payment if you accept and free insured post if you cannot visit.",
+      },
+      {
+        question: "Do I need an appointment to sell gold in Hatton Garden?",
+        answer:
+          "No. Walk-ins are welcome Monday–Saturday, 10:00–18:00 at 88–90 Hatton Garden. Book a private appointment for large bars, estates or designer collections.",
+      },
+    ],
+    content: `
+<p>Hatton Garden is the right <strong>street</strong> to sell gold in London. The <strong>best gold buyer in Hatton Garden</strong> is the office that prices against the live market and will still let you say no.</p>
+<p>Fine Jewellery Buyers is at <strong>Suite 39, 4th Floor, 88–90 Hatton Garden</strong>. We buy 9ct to 24ct jewellery, scrap, bars and coins. Walk-ins welcome. <a href="#reviews">Read the Google reviews</a> on this page, then compare <a href="/live-rates">today’s buying rates</a>.</p>
+
+<h2>How to pick a Hatton Garden gold buyer</h2>
+<ul>
+  <li>Can you see a live rate online before you arrive?</li>
+  <li>Do they test carat and weigh the gold in the room?</li>
+  <li>Will they pay more than melt for bars, sovereigns or Cartier if it is justified?</li>
+  <li>Can you decline with no pressure?</li>
+  <li>Is payment the same day?</li>
+</ul>
+<p>If any answer is no, try the next door. We are set up so those answers are yes.</p>
+
+<h2>Finding the office</h2>
+<p>Security is in the lobby. Say you need Fine Jewellery Buyers. They call us and open the gate. Lift to the 4th floor, turn left — last suite is 39. Press the bell. Monday–Saturday, 10:00–18:00.</p>
+
+<h2>What we pay for</h2>
+<p>Scrap chains and broken rings on weight and purity. <a href="/sell-gold-bars">Bars</a> and <a href="/sell-gold-coins">coins</a> on bullion. Designer gold on brand when it authenticates — see <a href="/blog/sell-designer-gold-jewellery-not-scrap">why not to melt Cartier as scrap</a>.</p>
+<p>Start a <a href="/free-valuation">free valuation</a>, <a href="/book-appointment">book a private slot</a>, or walk in. Full service: <a href="/sell-gold-london">sell gold in London</a> and <a href="/blog/best-place-to-sell-gold-uk">best place to sell gold in the UK</a>.</p>
+`.trim(),
+  },
   {
     slug: "how-to-sell-gold-uk-best-price",
     title: "How to Sell Gold in the UK and Get the Best Price",

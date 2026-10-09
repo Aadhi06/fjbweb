@@ -55,7 +55,7 @@ export default function BlogPage() {
       <section className="bg-black py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h1 className="text-3xl md:text-5xl font-serif font-bold text-white mb-4">Gold &amp; Jewellery Blog</h1>
-          <p className="text-white/70 max-w-2xl mx-auto text-lg">Guides for selling gold bars, coins, inherited collections and designer jewellery — written for serious sellers, not scrap tickets.</p>
+          <p className="text-white/70 max-w-2xl mx-auto text-lg">Best place to sell gold in the UK, Hatton Garden or by post — plus bars, coins, inherited collections and designer jewellery.</p>
         </div>
       </section>
       <section className="py-16 bg-surface">
