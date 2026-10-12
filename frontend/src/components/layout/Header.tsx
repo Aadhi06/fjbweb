@@ -25,7 +25,6 @@ const services = [
 const navigation = [
   { name: "Home", href: "/" },
   { name: "How It Works", href: "/how-it-works" },
-  { name: "Prepaid Delivery", href: "/prepaid-delivery" },
   { name: "Gold Calculator", href: "/gold-calculator" },
   { name: "Book Appointment", href: "/book-appointment" },
   { name: "About", href: "/about" },
