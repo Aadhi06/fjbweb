@@ -27,6 +27,7 @@ export const PRIMARY_NAV_LINKS: { name: string; path: string }[] = [
   { name: "Sell Diamonds", path: "/services/sell-diamonds" },
   { name: "Gold Calculator", path: "/gold-calculator" },
   { name: "How It Works", path: "/how-it-works" },
+  { name: "Prepaid Delivery", path: "/prepaid-delivery" },
   { name: "Book Appointment", path: "/book-appointment" },
   { name: "About Us", path: "/about" },
   { name: "Contact", path: "/contact" },
@@ -139,6 +140,18 @@ export const PAGE_SEO: Record<string, PageSeo> = {
     description:
       "Learn how to sell gold and jewellery online in the UK. Fill our form, get a free valuation, ship securely with Royal Mail, and receive same-day payment.",
     path: "/how-it-works",
+  },
+  "prepaid-delivery": {
+    title: "Prepaid Royal Mail Special Delivery | Send Jewellery Free",
+    description:
+      "We arrange and pay Royal Mail Special Delivery. Prepaid label or QR code by WhatsApp or email. Print at home or take the QR to a Post Office. Fully insured.",
+    path: "/prepaid-delivery",
+    keywords: [
+      "prepaid Royal Mail Special Delivery",
+      "send jewellery by post UK",
+      "insured postage gold",
+      "free postage label jewellery",
+    ],
   },
   faq: {
     title: "Gold Buyer FAQs | Selling Gold, Diamonds & Watches",
@@ -345,7 +358,7 @@ export type OrganizationJsonLdInput = {
 };
 
 function parsePostalAddress(address?: string) {
-  const raw = (address || "Suite 39, 4th Floor, 88–90 Hatton Garden, London EC1N 8AA").trim();
+  const raw = (address || "Suite 39, 4th Floor, 88–90 Hatton Garden, London EC1N 8PN").trim();
   const full = /suite\s*39/i.test(raw)
     ? raw
     : `Suite 39, 4th Floor, ${raw}`;

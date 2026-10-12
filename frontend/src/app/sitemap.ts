@@ -20,6 +20,7 @@ const STATIC_PAGES: { path: string; priority: number; changeFrequency: MetadataR
   { path: "/live-rates", priority: 0.9, changeFrequency: "hourly" },
   { path: "/gold-calculator", priority: 0.9, changeFrequency: "weekly" },
   { path: "/how-it-works", priority: 0.85, changeFrequency: "monthly" },
+  { path: "/prepaid-delivery", priority: 0.85, changeFrequency: "monthly" },
   { path: "/about", priority: 0.8, changeFrequency: "monthly" },
   { path: "/faq", priority: 0.8, changeFrequency: "monthly" },
   { path: "/contact", priority: 0.75, changeFrequency: "monthly" },

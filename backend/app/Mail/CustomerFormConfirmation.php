@@ -51,7 +51,7 @@ class CustomerFormConfirmation extends Mailable
         $businessName = htmlspecialchars(Setting::get('business_name', 'Fine Jewellery Buyers'));
         $phone = htmlspecialchars(Setting::get('phone', '020 3123 4567'));
         $email = htmlspecialchars(Setting::get('email', 'info@finejewellerybuyers.co.uk'));
-        $address = htmlspecialchars(Setting::get('address', '88–90 Hatton Garden, 4th Floor, Office No. 39, London EC1N 8AA'));
+        $address = htmlspecialchars(Setting::get('address', '88–90 Hatton Garden, 4th Floor, Office No. 39, London EC1N 8PN'));
         $formTitle = htmlspecialchars($this->form->title);
         $summaryRows = $this->buildSummaryRows();
         $conversationUrl = htmlspecialchars(app(\App\Services\SubmissionConversationService::class)->conversationUrl($this->submission));

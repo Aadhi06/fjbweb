@@ -22,6 +22,7 @@ const footerLinks = {
   company: [
     { name: "About Us", href: "/about" },
     { name: "How It Works", href: "/how-it-works" },
+    { name: "Prepaid Delivery", href: "/prepaid-delivery" },
     { name: "Sell Gold in London", href: "/sell-gold-london" },
     { name: "Sell Jewellery in Hatton Garden", href: "/sell-jewellery-hatton-garden" },
     { name: "Blog", href: "/blog" },

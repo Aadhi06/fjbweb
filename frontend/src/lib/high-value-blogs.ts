@@ -57,7 +57,7 @@ export const HIGH_VALUE_BLOGS: HighValueBlog[] = [
     ],
     content: `
 <p>The <strong>best place to sell gold in the UK</strong> is not the nearest pawn shop. It is the buyer who pays against today’s live gold market — weight, carat and purity — and who will show you that rate before you hand anything over.</p>
-<p>Fine Jewellery Buyers is that kind of buyer. The showroom is at <strong>Suite 39, 4th Floor, 88–90 Hatton Garden, London EC1N 8AA</strong>. If you are not in London, the same valuers buy gold by <strong>free insured post</strong> from any UK postcode. Payment is the same day if you accept. There is no obligation to sell.</p>
+<p>Fine Jewellery Buyers is that kind of buyer. The showroom is at <strong>Suite 39, 4th Floor, 88–90 Hatton Garden, London EC1N 8PN</strong>. If you are not in London, the same valuers buy gold by <strong>free insured post</strong> from any UK postcode. Payment is the same day if you accept. There is no obligation to sell.</p>
 
 <h2>What “best place” actually means</h2>
 <p>When people search <strong>best place to sell gold UK</strong>, they want a fair price and a safe process. Use this checklist:</p>
@@ -129,7 +129,7 @@ export const HIGH_VALUE_BLOGS: HighValueBlog[] = [
 <p>Local cash-for-gold shops buy in volume and hold a wide scrap margin. They may not sort sovereigns, bars or signed jewellery. You get one ticket for the lot. Hatton Garden buyers compete on today’s gold price and will tell you when a piece should not be melted.</p>
 
 <h2>If you are in London or the South East</h2>
-<p>Come to Suite 39, 4th Floor, 88–90 Hatton Garden, London EC1N 8AA. Walk-ins welcome Monday–Saturday, 10:00–18:00. Bring photo ID. Check <a href="/live-rates">live rates</a> on the train. Full directions: <a href="/sell-gold-london">sell gold in London</a>.</p>
+<p>Come to Suite 39, 4th Floor, 88–90 Hatton Garden, London EC1N 8PN. Walk-ins welcome Monday–Saturday, 10:00–18:00. Bring photo ID. Check <a href="/live-rates">live rates</a> on the train. Full directions: <a href="/sell-gold-london">sell gold in London</a>.</p>
 
 <h2>If you are in Manchester, Birmingham, Glasgow, Leeds or anywhere else</h2>
 <p>You do not need a “gold buyer near me” in those cities to get a Hatton Garden price. Start a <a href="/free-valuation">free photo valuation</a>, then send the gold in our insured pack. We open it on camera. Accept and we pay the same day. Decline and it comes back free.</p>

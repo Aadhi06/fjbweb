@@ -5,7 +5,7 @@ import { ArrowRight, FileText, MessageSquare, Package, Search, Banknote } from "
 const steps = [
   { icon: FileText, title: "Fill In Our Online Form", description: "Complete our easy valuation form with details and photos. It takes less than 2 minutes." },
   { icon: MessageSquare, title: "Get Your Valuation", description: "Our experts review your submission and contact you within 24 hours with an estimate." },
-  { icon: Package, title: "Ship Securely", description: "Accept the estimate and we send you a free, fully insured Royal Mail prepaid package." },
+  { icon: Package, title: "Ship Securely", description: "Accept the estimate and we send a prepaid Royal Mail Special Delivery label — we arrange and pay the postage." },
   { icon: Search, title: "Expert Assessment", description: "We inspect your items on camera for full transparency. GIA-trained experts assess your pieces." },
   { icon: Banknote, title: "Get Paid Instantly", description: "Accept our final offer and receive payment within 24 hours. Decline? Free returns." },
 ];
@@ -30,9 +30,12 @@ export function HowItWorks() {
             </div>
           ))}
         </div>
-        <div className="text-center mt-12">
-          <Link href="/free-valuation" className="inline-flex items-center px-8 py-4 bg-black text-white font-bold rounded-full hover:bg-black/80 transition-colors shadow-lg cursor-pointer">
+        <div className="text-center mt-12 flex flex-col sm:flex-row gap-3 justify-center">
+          <Link href="/free-valuation" className="inline-flex items-center justify-center min-h-12 px-8 py-4 bg-black text-white font-bold rounded-full hover:bg-black/80 transition-colors shadow-lg cursor-pointer">
             Start Selling Now <ArrowRight className="w-5 h-5 ml-2" />
+          </Link>
+          <Link href="/prepaid-delivery" className="inline-flex items-center justify-center min-h-12 px-8 py-4 border-2 border-black text-black font-bold rounded-full hover:bg-black/5 transition-colors">
+            Prepaid delivery steps
           </Link>
         </div>
       </div>

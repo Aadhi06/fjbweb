@@ -15,7 +15,8 @@ const FAQ_ITEMS = [
   { question: "How do I sell my gold to you?", answer: "Fill in our free online valuation form with photos and details. We reply within 24 hours with an estimate. If you accept, we send a free insured Royal Mail pack." },
   { question: "What types of gold do you buy?", answer: "We buy all gold carats — 9ct, 14ct, 18ct, 22ct and 24ct — including scrap gold, broken jewellery, bars, coins and dental gold." },
   { question: "How quickly will I get paid?", answer: "Once your items are assessed and you accept our offer, we pay by same-day bank transfer." },
-  { question: "Is postage insured?", answer: "Yes. Every shipment is fully insured and tracked via Royal Mail Special Delivery." },
+  { question: "Is postage insured?", answer: "Yes. We arrange and pay for Royal Mail Special Delivery. You receive a prepaid label or QR code by WhatsApp or email. See https://www.finejewellerybuyers.co.uk/prepaid-delivery" },
+  { question: "Do I pay for postage?", answer: "No. Print the prepaid label, or take the QR code to a Post Office. Hand it in at the counter, keep the receipt, and send us a photo so we can track the parcel." },
   { question: "Do I have to accept your offer?", answer: "No. Our valuation is free and no-obligation. If you decline, we return your items free of charge." },
 ];
 

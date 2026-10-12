@@ -33,7 +33,7 @@ export default function HowItWorksPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid md:grid-cols-3 gap-8">
             {[
-              { icon: Shield, title: "Fully Insured Shipping", description: "Every shipment is fully insured and tracked via Royal Mail." },
+              { icon: Shield, title: "Fully Insured Shipping", description: "Every shipment is fully insured and tracked via prepaid Royal Mail Special Delivery." },
               { icon: Eye, title: "Video Unboxing", description: "We open and inspect every item on camera for transparency." },
               { icon: Truck, title: "Free Returns", description: "Decline our offer? We return your items free of charge." },
             ].map(({ icon: Icon, title, description }) => (
@@ -44,6 +44,11 @@ export default function HowItWorksPage() {
               </div>
             ))}
           </div>
+          <p className="text-center mt-8">
+            <Link href="/prepaid-delivery" className="inline-flex items-center text-black font-semibold underline underline-offset-4 hover:text-gold-dark">
+              How prepaid Royal Mail delivery works <ArrowRight className="w-4 h-4 ml-1" />
+            </Link>
+          </p>
         </div>
       </section>
       <WhyChooseUs />

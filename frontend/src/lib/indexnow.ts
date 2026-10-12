@@ -14,6 +14,8 @@ const PRIORITY_PATHS = [
   "/sell-jewellery-hatton-garden",
   "/services/sell-jewellery",
   "/faq",
+  "/prepaid-delivery",
+  "/how-it-works",
   "/llms.txt",
   "/llms-full.txt",
   "/blog",

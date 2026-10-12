@@ -6,7 +6,7 @@ class VisitDirectionsHtml
 {
     public static function locationLine(): string
     {
-        return 'Suite 39, 4th Floor, 88–90 Hatton Garden, London EC1N 8AA';
+        return 'Suite 39, 4th Floor, 88–90 Hatton Garden, London EC1N 8PN';
     }
 
     public static function block(): string
