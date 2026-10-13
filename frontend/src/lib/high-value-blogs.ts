@@ -26,6 +26,90 @@ export function resolveBlogImage(path?: string | null): string | null {
 
 export const HIGH_VALUE_BLOGS: HighValueBlog[] = [
   {
+    slug: "sell-gold-from-home-uk",
+    title: "Why You Don’t Need to Worry When You Sell Gold From Home",
+    excerpt:
+      "You do not have to visit Hatton Garden. Send photos for a free valuation. If the estimate is right, we send prepaid postage. We open your parcel on camera and pay by same-day bank transfer if you accept.",
+    image: "/images/why-secure-collection.png",
+    category: "Sell Gold",
+    published_at: "2026-10-13T15:25:00+01:00",
+    meta_title: "Sell Gold From Home UK | Prepaid Postage & Same-Day Pay",
+    meta_description:
+      "Sell gold from home without visiting our office. Free valuation, prepaid Royal Mail Special Delivery, camera unboxing, same-day bank transfer if you accept.",
+    showReviews: true,
+    showVisitDirections: false,
+    faq: [
+      {
+        question: "Can I sell gold from home without visiting Hatton Garden?",
+        answer:
+          "Yes. Send photos for a free valuation. If the estimate is acceptable, Fine Jewellery Buyers sends prepaid Royal Mail Special Delivery. You pack the gold at home, we open the parcel on camera, and pay by same-day bank transfer if you accept.",
+      },
+      {
+        question: "Is it safe to post gold to a buyer?",
+        answer:
+          "Yes, when you use insured Royal Mail Special Delivery. We arrange and pay the postage, send a prepaid label or QR code, and ask you to hand the parcel in at a Post Office counter — never a postbox. We open every parcel on camera.",
+      },
+      {
+        question: "Do you open the gold on camera?",
+        answer:
+          "Yes. Every postal parcel is opened and inspected on camera so you can see what arrived and how it was tested. Nothing is melted until you accept the offer.",
+      },
+      {
+        question: "When do I get paid if I sell gold by post?",
+        answer:
+          "If you accept the final offer after the camera inspection, we pay by same-day bank transfer. If you decline, the gold is returned free of charge.",
+      },
+    ],
+    content: `
+<p>You do not have to travel to Hatton Garden to sell gold. Many people worry that posting jewellery is risky, or that a buyer they never meet will underpay. The process at Fine Jewellery Buyers is built so you can sell <strong>from home</strong> with the same valuers, the same live rates, and same-day payment — just like a walk-in.</p>
+<p>Send us a valuation. If the estimate is right, we send prepaid postage. You send the gold. We open it on camera. If you accept, we pay by bank transfer the same day.</p>
+
+<h2>Why selling gold from home is safe</h2>
+<p>Worry usually comes from three things: losing the parcel, being quoted one price then paid another, or never seeing what happens after the gold leaves your house.</p>
+<ul>
+  <li><strong>Postage is arranged and paid by us.</strong> We use Royal Mail Special Delivery — insured and tracked. You do not pay the counter.</li>
+  <li><strong>The first figure is an estimate from your photos.</strong> The final figure is confirmed after we weigh and test the gold in front of the camera.</li>
+  <li><strong>You can decline.</strong> If the offer is not right, we return the items free. Nothing is melted until you say yes.</li>
+</ul>
+<p>Full postage steps are on <a href="/prepaid-delivery">prepaid delivery</a>. The five-step sale is on <a href="/how-it-works">how it works</a>.</p>
+
+<h2>1. Send us your valuation</h2>
+<p>Start a <a href="/free-valuation">free valuation</a>. Upload clear photos, describe the items, and tell us the carat or weight if you know it. You can check <a href="/live-rates">today’s buying rates</a> or the <a href="/gold-calculator">gold calculator</a> first.</p>
+<p>We reply within 24 hours with an estimate. There is no obligation and no visit required.</p>
+
+<h2>2. If the estimate is okay, we send prepaid postage</h2>
+<p>Accept the estimate and we confirm the cover we need, then send a prepaid Royal Mail Special Delivery label and QR code by WhatsApp or email. Our delivery address is already on the label.</p>
+<p>Print the label at home, or take the QR code on your phone to a Post Office — they will print and attach it. Wrap the jewellery, use a sturdy box with padding, put your name and reference inside, and hand the parcel to the counter. Ask for proof of postage and send us a photo of the receipt. Do not put gold in a postbox.</p>
+
+<h2>3. We open it on camera</h2>
+<p>When the parcel arrives, we contact you and open it on camera. You see the contents, the weight, and the test. That is the secure part — you are not guessing what happened after you posted it.</p>
+<p>If the gold matches the photos, the final offer should sit with the estimate. If something is different — a different carat, extra items, or damage — we explain it on the call before you decide.</p>
+
+<h2>4. Accept and get paid the same day</h2>
+<p>If you are happy, we pay by <strong>same-day bank transfer</strong>. If you are not, we pack the items and return them free of charge on insured post.</p>
+<p>That is the whole postal sale: valuation, prepaid label, camera unboxing, then payment or a free return. You never have to come to the office.</p>
+
+<h2>What you can send from home</h2>
+<ul>
+  <li>Gold jewellery — 9ct, 14ct, 18ct, 22ct, 24ct — worn, broken or complete</li>
+  <li>Scrap gold and unmatched pieces</li>
+  <li><a href="/sell-gold-bars">Gold bars</a> and <a href="/sell-gold-coins">coins</a> — sovereigns, Krugerrands, Britannias</li>
+  <li><a href="/sell-inherited-gold">Inherited gold</a> and mixed boxes</li>
+  <li>Designer jewellery, diamonds and watches — valued separately from scrap when the piece supports it</li>
+</ul>
+<p>Walk-ins are still welcome at <strong>Suite 39, 4th Floor, 88–90 Hatton Garden, London EC1N 8PN</strong> if you would rather come in. Postal sellers get the same team.</p>
+
+<h2>Start from home today</h2>
+<ol>
+  <li>Send photos on the <a href="/free-valuation">free valuation</a> form.</li>
+  <li>If the estimate is right, we send the prepaid Royal Mail label.</li>
+  <li>Pack the gold, hand it in at the Post Office counter, send us the receipt photo.</li>
+  <li>We open it on camera. Accept and we pay the same day.</li>
+</ol>
+<p>Read <a href="/prepaid-delivery">how prepaid Royal Mail delivery works</a>, or see <a href="/blog/best-place-to-sell-gold-uk">best place to sell gold in the UK</a> if you are still comparing buyers.</p>
+`.trim(),
+  },
+  {
     slug: "best-place-to-sell-gold-uk",
     title: "Best Place to Sell Gold in the UK (2026)",
     excerpt:
