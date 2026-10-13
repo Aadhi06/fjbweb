@@ -128,7 +128,7 @@ export function BlogDetailClient({ slug }: { slug: string }) {
   return (
     <>
       <section className="bg-black py-12 md:py-16">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <Link href="/blog" className="inline-flex items-center gap-1.5 text-white/60 hover:text-white text-sm font-medium mb-6 transition-colors">
             <ArrowLeft className="w-4 h-4" /> Back to Blog
           </Link>
@@ -145,13 +145,13 @@ export function BlogDetailClient({ slug }: { slug: string }) {
             {post.title}
           </h1>
           {post.excerpt && (
-            <p className="text-lg text-white/70 mt-4 max-w-3xl">{post.excerpt}</p>
+            <p className="text-lg text-white/70 mt-4">{post.excerpt}</p>
           )}
         </div>
       </section>
 
       <article className="bg-surface min-h-screen">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 -mt-2">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-2">
           {img && (
             <div className="rounded-2xl overflow-hidden shadow-lg mb-10 border border-border">
               {/* eslint-disable-next-line @next/next/no-img-element */}
