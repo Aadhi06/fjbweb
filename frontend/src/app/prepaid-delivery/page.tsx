@@ -11,6 +11,7 @@ import {
   Shield,
   Smartphone,
 } from "lucide-react";
+import { RoyalMailTracker } from "@/components/sections/RoyalMailTracker";
 import { getSettings } from "@/lib/settings";
 import { buildMetadata, breadcrumbJsonLd, faqJsonLd, PAGE_SEO, SITE_URL } from "@/lib/seo";
 
@@ -65,6 +66,11 @@ const FAQS = [
     question: "Can I put the parcel in a postbox?",
     answer:
       "No. Hand it over at the Post Office counter and ask for proof of postage. Do not put jewellery in a postbox.",
+  },
+  {
+    question: "How do I track my parcel?",
+    answer:
+      "Enter the Royal Mail reference from your proof of postage or prepaid label in Track your item on this page. It opens Royal Mail Track and Trace.",
   },
 ];
 
@@ -122,12 +128,12 @@ export default async function PrepaidDeliveryPage() {
               >
                 Start a free valuation <ArrowRight className="w-4 h-4 ml-2" />
               </Link>
-              <Link
-                href="/how-it-works"
+              <a
+                href="#track-your-item"
                 className="inline-flex items-center justify-center min-h-12 px-6 border-2 border-white text-white font-semibold rounded-full hover:bg-white/10"
               >
-                How it works
-              </Link>
+                Track your item
+              </a>
             </div>
           </div>
           <div className="rounded-2xl overflow-hidden bg-white border border-white/10">
@@ -140,6 +146,8 @@ export default async function PrepaidDeliveryPage() {
           </div>
         </div>
       </section>
+
+      <RoyalMailTracker />
 
       <section className="py-16 bg-white">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
