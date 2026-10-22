@@ -160,9 +160,9 @@ export const PAGE_SEO: Record<string, PageSeo> = {
     path: "/faq",
   },
   "live-rates": {
-    title: "Live Gold & Silver Prices UK | Updated Every 30 Seconds",
+    title: "What We Pay for Gold Today UK | Live Buying Rates",
     description:
-      "View live gold and silver prices in GBP per gram. See what we pay for 9ct, 18ct, 22ct and 24ct gold plus silver — updated every 30 seconds.",
+      "See what we pay for gold today — live buying rates for 9ct, 14ct, 18ct, 22ct and 24ct gold in GBP per gram. Updated every 30 seconds.",
     path: "/live-rates",
   },
   "gold-calculator": {

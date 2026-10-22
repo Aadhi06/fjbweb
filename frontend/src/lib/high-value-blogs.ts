@@ -26,6 +26,92 @@ export function resolveBlogImage(path?: string | null): string | null {
 
 export const HIGH_VALUE_BLOGS: HighValueBlog[] = [
   {
+    slug: "best-second-hand-jewellery-hatton-garden",
+    title: "Best Second-Hand Jewellery Place in Hatton Garden",
+    excerpt:
+      "Looking for the best second-hand jewellery place in Hatton Garden? Fine Jewellery Buyers buys pre-owned gold, Cartier, Tiffany, diamonds and watches — free valuation, walk-in or post, same-day pay.",
+    image: "/images/jewellery-luxury-brands.png",
+    category: "Hatton Garden",
+    published_at: "2026-10-16T16:50:00+01:00",
+    meta_title: "Best Second-Hand Jewellery Place Hatton Garden | Sell Pre-Owned",
+    meta_description:
+      "Best second-hand jewellery place in Hatton Garden. Fine Jewellery Buyers at 88–90 Hatton Garden buys pre-owned gold, designer jewellery, diamonds and watches. Free valuation, same-day pay.",
+    showReviews: true,
+    showVisitDirections: true,
+    faq: [
+      {
+        question: "Where is the best second-hand jewellery place in Hatton Garden?",
+        answer:
+          "If you want to sell pre-owned jewellery, Fine Jewellery Buyers at Suite 39, 88–90 Hatton Garden is a specialist buyer — not a pawn shop. They value gold, Cartier, Tiffany, diamonds and watches, with a free valuation and same-day payment if you accept.",
+      },
+      {
+        question: "Do you sell second-hand jewellery to the public?",
+        answer:
+          "No. Fine Jewellery Buyers buys jewellery from the public. They do not retail or sell second-hand jewellery. Walk in or post items if you want a cash offer.",
+      },
+      {
+        question: "What second-hand jewellery do you buy in Hatton Garden?",
+        answer:
+          "Pre-owned gold jewellery (9ct–24ct), designer pieces including Cartier, Tiffany & Co. and Boodles, diamonds, gemstones, luxury watches, silver and platinum. Worn, broken or boxed — hallmarks help but are not required.",
+      },
+      {
+        question: "Can I walk in without an appointment?",
+        answer:
+          "Yes. Walk-ins are welcome Monday–Saturday, 10:00–18:00 at 88–90 Hatton Garden. Book a private appointment for larger collections. If you cannot visit, send photos for a free valuation and use prepaid insured post.",
+      },
+    ],
+    content: `
+<p>People searching for the <strong>best second-hand jewellery place in Hatton Garden</strong> usually want one of two things: a fair buyer for jewellery they already own, or a shop that sells pre-owned pieces. Fine Jewellery Buyers is the first of those — a specialist <strong>buyer</strong> of second-hand jewellery, not a retailer.</p>
+<p>We are at <strong>Suite 39, 4th Floor, 88–90 Hatton Garden, London EC1N 8PN</strong>. Walk in for a free valuation, or sell from home with prepaid postage. If you accept, payment is the same day. There is no pawn ticket and no obligation to sell.</p>
+
+<h2>What “best second-hand jewellery place” should mean</h2>
+<p>Hatton Garden has retail jewellers, pawnbrokers and cash-for-gold counters. A good <strong>second-hand jewellery place</strong> for sellers does this:</p>
+<ul>
+  <li>Values gold against a <a href="/live-rates">live market rate</a> you can check first.</li>
+  <li>Looks at brand, stones and condition — not only melt weight.</li>
+  <li>Tests and weighs in front of you (or on camera if you post).</li>
+  <li>Lets you decline. Nothing is melted until you say yes.</li>
+  <li>Pays the same day if you accept.</li>
+</ul>
+<p>We buy jewellery outright. We do not lend against it and we do not sell jewellery to the public. If you came looking to <em>buy</em> a second-hand ring, we cannot help with retail. If you came to <strong>sell</strong> second-hand jewellery, that is the job.</p>
+
+<h2>What second-hand jewellery we buy</h2>
+<ul>
+  <li>Pre-owned gold jewellery — 9ct, 14ct, 18ct, 22ct, 24ct — worn, broken or complete</li>
+  <li>Designer pieces — Cartier, Tiffany &amp; Co., Boodles, Van Cleef &amp; Arpels, Bulgari and similar</li>
+  <li>Diamond rings, earrings and loose stones — certified or uncertified</li>
+  <li>Gemstone jewellery and luxury watches</li>
+  <li>Silver, platinum and mixed boxes from estates</li>
+</ul>
+<p>Hallmarks help. They are not required. Signed jewellery is priced above scrap when the piece authenticates — see <a href="/blog/sell-designer-gold-jewellery-not-scrap">why not to melt Cartier as scrap</a> and the service page <a href="/sell-jewellery-hatton-garden">sell jewellery in Hatton Garden</a>.</p>
+
+<h2>How a Hatton Garden visit works</h2>
+<p>Walk-ins are welcome Monday–Saturday, 10:00–18:00. Security is in the lobby — say Fine Jewellery Buyers. They call the office and open the gate. Lift to the 4th floor, last suite on the left (Suite 39), press the bell.</p>
+<p>We test, weigh and explain the offer in the room. Accept and we pay by bank transfer or cash. Decline and you take the jewellery home. For larger collections, <a href="/book-appointment">book a private appointment</a>.</p>
+
+<h2>Cannot get to Hatton Garden?</h2>
+<p>You can still sell second-hand jewellery from home. Send photos on the <a href="/free-valuation">free valuation</a> form. If the estimate is right, we send prepaid Royal Mail Special Delivery. We open the parcel on camera and pay the same day if you accept. Full steps: <a href="/blog/sell-gold-from-home-uk">sell gold from home</a> and <a href="/prepaid-delivery">prepaid delivery</a>.</p>
+
+<h2>How to choose a second-hand jewellery buyer on the street</h2>
+<ol>
+  <li>Check published live rates before you travel.</li>
+  <li>Ask whether designer pieces are valued above scrap.</li>
+  <li>Watch the test and the weigh.</li>
+  <li>Confirm you can walk away with the jewellery.</li>
+  <li>Read recent Google reviews — they are on this page.</li>
+</ol>
+<p>If a counter only wants to melt everything, try the next door. The <a href="/blog/best-gold-buyer-hatton-garden">best gold buyer in Hatton Garden</a> and the best second-hand jewellery buyer are the same kind of office: transparent price, no pressure, same-day pay.</p>
+
+<h2>Start today</h2>
+<ol>
+  <li>Check <a href="/live-rates">today’s rates</a> or start a <a href="/free-valuation">free valuation</a>.</li>
+  <li>Walk into 88–90 Hatton Garden, or post with our prepaid label.</li>
+  <li>We confirm the offer. Accept and get paid the same day.</li>
+</ol>
+<p>More on selling gold in the quarter: <a href="/sell-gold-london">sell gold in London</a> and <a href="/blog/best-place-to-sell-gold-in-london-top-price-paid">best place to sell gold in London</a>.</p>
+`.trim(),
+  },
+  {
     slug: "sell-gold-from-home-uk",
     title: "Why You Don’t Need to Worry When You Sell Gold From Home",
     excerpt:
