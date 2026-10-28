@@ -10,11 +10,11 @@ import type { MetalRate } from "@/lib/types";
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8002";
 
 const fallbackRates: MetalRate[] = [
-  { metal: "Gold 9ct", price_per_gram: 37.68, price_per_oz: 1171.7, buying_price_per_gram: 35.8, change_24h: 0, currency: "GBP", updated_at: "" },
-  { metal: "Gold 18ct", price_per_gram: 75.37, price_per_oz: 2344.2, buying_price_per_gram: 71.6, change_24h: 0, currency: "GBP", updated_at: "" },
-  { metal: "Gold 22ct", price_per_gram: 92.05, price_per_oz: 2862.8, buying_price_per_gram: 87.45, change_24h: 0, currency: "GBP", updated_at: "" },
-  { metal: "Gold 24ct", price_per_gram: 100.39, price_per_oz: 3122.5, buying_price_per_gram: 95.37, change_24h: 0, currency: "GBP", updated_at: "" },
-  { metal: "Silver", price_per_gram: 1.5, price_per_oz: 46.74, buying_price_per_gram: 1.43, change_24h: 0, currency: "GBP", updated_at: "" },
+  { metal: "Gold 9ct", price_per_gram: 37.68, price_per_oz: 1171.7, buying_price_per_gram: 32.03, change_24h: 0, currency: "GBP", updated_at: "" },
+  { metal: "Gold 18ct", price_per_gram: 75.37, price_per_oz: 2344.2, buying_price_per_gram: 64.06, change_24h: 0, currency: "GBP", updated_at: "" },
+  { metal: "Gold 22ct", price_per_gram: 92.05, price_per_oz: 2862.8, buying_price_per_gram: 78.24, change_24h: 0, currency: "GBP", updated_at: "" },
+  { metal: "Gold 24ct", price_per_gram: 100.39, price_per_oz: 3122.5, buying_price_per_gram: 85.33, change_24h: 0, currency: "GBP", updated_at: "" },
+  { metal: "Silver", price_per_gram: 1.5, price_per_oz: 46.74, buying_price_per_gram: 1.2, change_24h: 0, currency: "GBP", updated_at: "" },
 ];
 
 export function LiveRatesPreview() {

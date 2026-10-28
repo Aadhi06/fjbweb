@@ -16,20 +16,20 @@ import { API_BASE_URL, formatCurrency } from "@/lib/utils";
 import type { MetalRate, GoldCaratRate } from "@/lib/types";
 
 const fallbackRates: MetalRate[] = [
-  { metal: "Gold 9ct", price_per_gram: 37.68, price_per_oz: 1171.7, buying_price_per_gram: 35.8, change_24h: 1.2, currency: "GBP", updated_at: new Date().toISOString() },
-  { metal: "Gold 14ct", price_per_gram: 58.56, price_per_oz: 1821.5, buying_price_per_gram: 55.63, change_24h: 1.2, currency: "GBP", updated_at: new Date().toISOString() },
-  { metal: "Gold 18ct", price_per_gram: 75.37, price_per_oz: 2344.2, buying_price_per_gram: 71.6, change_24h: 1.2, currency: "GBP", updated_at: new Date().toISOString() },
-  { metal: "Gold 22ct", price_per_gram: 92.05, price_per_oz: 2862.8, buying_price_per_gram: 87.45, change_24h: 1.2, currency: "GBP", updated_at: new Date().toISOString() },
-  { metal: "Gold 24ct", price_per_gram: 100.39, price_per_oz: 3122.5, buying_price_per_gram: 95.37, change_24h: 1.2, currency: "GBP", updated_at: new Date().toISOString() },
-  { metal: "Silver", price_per_gram: 1.5, price_per_oz: 46.74, buying_price_per_gram: 1.43, change_24h: 4.22, currency: "GBP", updated_at: new Date().toISOString() },
+  { metal: "Gold 9ct", price_per_gram: 37.68, price_per_oz: 1171.7, buying_price_per_gram: 32.03, change_24h: 1.2, currency: "GBP", updated_at: new Date().toISOString() },
+  { metal: "Gold 14ct", price_per_gram: 58.56, price_per_oz: 1821.5, buying_price_per_gram: 49.78, change_24h: 1.2, currency: "GBP", updated_at: new Date().toISOString() },
+  { metal: "Gold 18ct", price_per_gram: 75.37, price_per_oz: 2344.2, buying_price_per_gram: 64.06, change_24h: 1.2, currency: "GBP", updated_at: new Date().toISOString() },
+  { metal: "Gold 22ct", price_per_gram: 92.05, price_per_oz: 2862.8, buying_price_per_gram: 78.24, change_24h: 1.2, currency: "GBP", updated_at: new Date().toISOString() },
+  { metal: "Gold 24ct", price_per_gram: 100.39, price_per_oz: 3122.5, buying_price_per_gram: 85.33, change_24h: 1.2, currency: "GBP", updated_at: new Date().toISOString() },
+  { metal: "Silver", price_per_gram: 1.5, price_per_oz: 46.74, buying_price_per_gram: 1.2, change_24h: 4.22, currency: "GBP", updated_at: new Date().toISOString() },
 ];
 
 const fallbackCarats: GoldCaratRate[] = [
-  { carat: "9ct", purity: 0.375, price_per_gram: 37.68, buying_price_per_gram: 35.8 },
-  { carat: "14ct", purity: 14 / 24, price_per_gram: 58.56, buying_price_per_gram: 55.63 },
-  { carat: "18ct", purity: 0.75, price_per_gram: 75.37, buying_price_per_gram: 71.6 },
-  { carat: "22ct", purity: 0.9167, price_per_gram: 92.05, buying_price_per_gram: 87.45 },
-  { carat: "24ct", purity: 0.999, price_per_gram: 100.39, buying_price_per_gram: 95.37 },
+  { carat: "9ct", purity: 0.375, price_per_gram: 37.68, buying_price_per_gram: 32.03 },
+  { carat: "14ct", purity: 14 / 24, price_per_gram: 58.56, buying_price_per_gram: 49.78 },
+  { carat: "18ct", purity: 0.75, price_per_gram: 75.37, buying_price_per_gram: 64.06 },
+  { carat: "22ct", purity: 0.9167, price_per_gram: 92.05, buying_price_per_gram: 78.24 },
+  { carat: "24ct", purity: 0.999, price_per_gram: 100.39, buying_price_per_gram: 85.33 },
 ];
 
 const FAQS = [

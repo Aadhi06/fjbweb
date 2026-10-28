@@ -26,6 +26,84 @@ export function resolveBlogImage(path?: string | null): string | null {
 
 export const HIGH_VALUE_BLOGS: HighValueBlog[] = [
   {
+    slug: "gold-price-going-down-sell-today",
+    title: "Gold Price Going Down? Sell Today to Fine Jewellery Buyers",
+    excerpt:
+      "Sterling gold has pulled back from its recent highs. If you already planned to sell, waiting can cost you. Check what we pay today, then walk into Hatton Garden or post from home.",
+    image: "/images/gold-live-rates.png",
+    category: "Sell Gold",
+    published_at: "2026-10-28T17:20:00+00:00",
+    meta_title: "Gold Price Going Down? Sell Gold Today UK | Hatton Garden",
+    meta_description:
+      "Gold prices have fallen from recent highs. Sell gold today to Fine Jewellery Buyers in Hatton Garden — live buying rates, walk-in or prepaid post, same-day pay if you accept.",
+    showReviews: true,
+    showVisitDirections: true,
+    faq: [
+      {
+        question: "Is the gold price going down?",
+        answer:
+          "In late October 2026 sterling gold pulled back from its recent highs and traded near three-month lows, around £3,000 an ounce. Prices move every day. Check Fine Jewellery Buyers’ live rates page for what we pay today.",
+      },
+      {
+        question: "Should I sell gold now or wait for the price to go back up?",
+        answer:
+          "Nobody can promise the next high. If you already planned to sell jewellery, scrap, bars or coins, a falling market is a reason to act on today’s rate rather than hold and hope. This is not investment advice.",
+      },
+      {
+        question: "What do you pay when the gold price is falling?",
+        answer:
+          "We pay a live buying rate per gram for 9ct, 14ct, 18ct, 22ct and 24ct gold. The offer follows the market at the time we test, weigh and you accept — not last week’s high.",
+      },
+      {
+        question: "Can I sell gold today without an appointment?",
+        answer:
+          "Yes. Walk into Suite 39, 88–90 Hatton Garden, Monday–Saturday 10:00–18:00. Bring photo ID. If you cannot visit, start a free valuation and send items by prepaid insured post from anywhere in the UK.",
+      },
+    ],
+    content: `
+<p>The <strong>gold price is going down</strong> from its recent highs. Through late October 2026, sterling gold fell towards three-month lows, around £3,000 an ounce. If you have jewellery, scrap, bars or coins you already meant to sell, waiting for “the next peak” can mean selling after another drop.</p>
+<p>Fine Jewellery Buyers is a gold <strong>buyer</strong> in Hatton Garden — we do not retail jewellery. Check <a href="/live-rates">what we pay for gold today</a>, then walk in or send by prepaid post. If you accept, payment is the same day. There is no pawn ticket and no obligation to sell.</p>
+
+<h2>What “gold price going down” means for a seller</h2>
+<p>Spot gold is the wholesale market. Your payout is weight × carat × <strong>today’s buying rate</strong>. When the ounce falls, the gram falls with it. A chain that was worth more last month is worth less this week until the market turns.</p>
+<p>That is why we publish live buying prices for 9ct, 14ct, 18ct, 22ct and 24ct. Use the <a href="/gold-calculator">gold calculator</a> with a home weight if you want a range first. The rate that counts is the one on the day we test and you accept.</p>
+<p>This page is for people who want to <strong>sell gold</strong>. It is not investment advice. We cannot tell you whether gold will rise next month.</p>
+
+<h2>Why sell today rather than wait</h2>
+<ul>
+  <li>The market already gave back part of the summer and early-autumn high.</li>
+  <li>A falling price does not pause while you “think about it over Christmas”.</li>
+  <li>High-street scrap shops often hold a wider margin when headlines turn negative.</li>
+  <li>You can still decline. Nothing is melted until you say yes.</li>
+</ul>
+<p>If you were only holding gold as a bet on a higher price, that is a different decision. If the gold is broken jewellery, an inherited box, or coins you do not want, today’s live rate is the one that pays you.</p>
+
+<h2>What we pay — and what we buy</h2>
+<p>We pay the live buying rate on our <a href="/live-rates">today’s gold rate</a> page. Designer pieces (Cartier, Tiffany, Boodles and similar) are valued above scrap when the piece authenticates. Bars and coins are not automatically melted — see <a href="/sell-gold-bars">sell gold bars</a> and <a href="/sell-gold-coins">sell gold coins</a>.</p>
+<ul>
+  <li>Gold jewellery — 9ct, 14ct, 18ct, 22ct, 24ct — worn, broken or complete</li>
+  <li>Scrap gold, dental gold and unmatched items</li>
+  <li>Investment bars and bullion coins</li>
+  <li><a href="/sell-inherited-gold">Inherited gold</a> and mixed estate boxes</li>
+</ul>
+
+<h2>Sell in Hatton Garden today</h2>
+<p>Walk-ins are welcome Monday–Saturday, 10:00–18:00 at <strong>Suite 39, 4th Floor, 88–90 Hatton Garden, London EC1N 8PN</strong>. Tell security Fine Jewellery Buyers. They call the office and open the gate. Lift to the 4th floor, last suite on the left, press the bell. Bring photo ID.</p>
+<p>We test, weigh and show you the offer in the room. Accept and we pay by bank transfer or cash. Decline and you take the gold home. For larger lots, <a href="/book-appointment">book a private appointment</a>. Full directions: <a href="/sell-gold-london">sell gold in London</a>.</p>
+
+<h2>Cannot get to London today?</h2>
+<p>Start a <a href="/free-valuation">free photo valuation</a>. If the estimate is right, we send prepaid Royal Mail Special Delivery. You hand the parcel in at a Post Office counter — not a postbox. We open it on camera. Accept and we pay by same-day bank transfer. Decline and the gold comes back free. Steps: <a href="/blog/sell-gold-from-home-uk">sell gold from home</a> and <a href="/prepaid-delivery">prepaid delivery</a>.</p>
+
+<h2>How to sell today</h2>
+<ol>
+  <li>Check <a href="/live-rates">what we pay today</a> or the <a href="/gold-calculator">calculator</a>.</li>
+  <li>Walk into 88–90 Hatton Garden, or send photos for a free valuation.</li>
+  <li>We confirm the offer. Accept and get paid the same day.</li>
+</ol>
+<p>Read the <a href="#reviews">Google reviews</a> on this page first if you have not sold with us before. More on choosing a buyer: <a href="/blog/best-gold-buyer-hatton-garden">best gold buyer in Hatton Garden</a> and <a href="/blog/best-place-to-sell-gold-uk">best place to sell gold in the UK</a>.</p>
+`.trim(),
+  },
+  {
     slug: "best-second-hand-jewellery-hatton-garden",
     title: "Best Second-Hand Jewellery Place in Hatton Garden",
     excerpt:

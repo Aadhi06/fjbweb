@@ -100,10 +100,10 @@ export default function GoldCalculatorPage() {
   }, []);
 
   const currentBuyingRate = metalType === "silver"
-    ? (silverRate?.buying || SILVER_FALLBACK_RATE * 0.95)
+    ? (silverRate?.buying || SILVER_FALLBACK_RATE * 0.80)
     : metalType === "palladium"
-      ? (palladiumRate?.buying || PALLADIUM_FALLBACK_RATE * 0.85)
-      : (goldRates[selectedCarat.label]?.buying || selectedCarat.fallbackRate * 0.95);
+      ? (palladiumRate?.buying || PALLADIUM_FALLBACK_RATE * 0.80)
+      : (goldRates[selectedCarat.label]?.buying || selectedCarat.fallbackRate * 0.85);
 
   const weightNum = parseFloat(weight) || 0;
   const wePayValue = currentBuyingRate * weightNum;
