@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ArrowLeft, CalendarDays, CheckCheck, Loader2, Paperclip, Send } from "lucide-react";
+import { ArrowLeft, CalendarDays, Loader2, Paperclip, Send } from "lucide-react";
 import Link from "next/link";
 import { ChatMedia, PendingChatFiles, type ChatAttachment } from "@/components/chat/ChatMedia";
 
@@ -381,7 +381,6 @@ export default function EnquiryPage({ params }: { params: Promise<{ token: strin
                       <ChatMedia attachments={msg.attachments} />
                       <p className={`mt-1 flex items-center gap-1 text-[10px] text-[#667781] ${mine ? "justify-end" : ""}`}>
                         <span>{timeLabel(msg.created_at, msg.created_at_human)}</span>
-                        {mine && <CheckCheck className="w-3.5 h-3.5" aria-hidden />}
                       </p>
                     </div>
                   </div>

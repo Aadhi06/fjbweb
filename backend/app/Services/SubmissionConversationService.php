@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class SubmissionConversationService
@@ -141,6 +142,36 @@ class SubmissionConversationService
         }
 
         return $record;
+    }
+
+    /**
+     * Hard-delete a chat message for everyone (admin + customer).
+     * Removes attachment files from disk. No "deleted" placeholder remains.
+     */
+    public function deleteMessage(FormSubmission $submission, FormSubmissionMessage $message): void
+    {
+        if ((int) $message->form_submission_id !== (int) $submission->id) {
+            abort(404, 'Message not found in this conversation.');
+        }
+
+        if ($this->chatAttachmentsReady()) {
+            $files = FormSubmissionFile::query()
+                ->where('form_submission_message_id', $message->id)
+                ->get();
+
+            foreach ($files as $file) {
+                if ($file->file_path) {
+                    try {
+                        Storage::disk('public')->delete($file->file_path);
+                    } catch (\Throwable $e) {
+                        Log::warning('Chat attachment file delete failed: '.$e->getMessage());
+                    }
+                }
+                $file->delete();
+            }
+        }
+
+        $message->delete();
     }
 
     private function createChatMessage(FormSubmission $submission, string $sender, string $body, ?int $adminUserId = null): FormSubmissionMessage
@@ -515,7 +546,7 @@ class SubmissionConversationService
         return 'Customer';
     }
 
-    public function formatMessages(FormSubmission $submission): array
+    public function formatMessages(FormSubmission $submission, bool $includeDeliveryStatus = true): array
     {
         try {
             $with = ['adminUser:id,name'];
@@ -527,7 +558,7 @@ class SubmissionConversationService
                 ->with($with)
                 ->orderBy('created_at')
                 ->get()
-                ->map(fn (FormSubmissionMessage $m) => $this->formatMessageRow($m))
+                ->map(fn (FormSubmissionMessage $m) => $this->formatMessageRow($m, true, $includeDeliveryStatus))
                 ->all();
         } catch (\Throwable $e) {
             Log::warning('formatMessages attachments failed, retrying without files: '.$e->getMessage());
@@ -536,29 +567,35 @@ class SubmissionConversationService
                 ->with(['adminUser:id,name'])
                 ->orderBy('created_at')
                 ->get()
-                ->map(fn (FormSubmissionMessage $m) => $this->formatMessageRow($m, false))
+                ->map(fn (FormSubmissionMessage $m) => $this->formatMessageRow($m, false, $includeDeliveryStatus))
                 ->all();
         }
     }
 
-    private function formatMessageRow(FormSubmissionMessage $m, bool $includeAttachments = true): array
+    private function formatMessageRow(FormSubmissionMessage $m, bool $includeAttachments = true, bool $includeDeliveryStatus = true): array
     {
-        return [
+        $row = [
             'id' => $m->id,
             'sender' => $m->sender,
             'body' => $m->body,
             'admin_name' => $m->adminUser?->name,
-            'email_opened_at' => $m->email_opened_at?->toIso8601String(),
-            'email_opened_at_human' => $m->email_opened_at?->diffForHumans(),
-            'page_viewed_at' => $m->page_viewed_at?->toIso8601String(),
-            'page_viewed_at_human' => $m->page_viewed_at?->diffForHumans(),
-            'delivery_status' => $m->sender === 'admin'
-                ? ($m->page_viewed_at ? 'chat_opened' : ($m->email_opened_at ? 'email_opened' : 'sent'))
-                : null,
             'attachments' => $includeAttachments ? $this->formatAttachments($m) : [],
             'created_at' => $m->created_at->toIso8601String(),
             'created_at_human' => $m->created_at->diffForHumans(),
         ];
+
+        // Seen / opened ticks are for shop admin only — never expose to the customer chat API.
+        if ($includeDeliveryStatus) {
+            $row['email_opened_at'] = $m->email_opened_at?->toIso8601String();
+            $row['email_opened_at_human'] = $m->email_opened_at?->diffForHumans();
+            $row['page_viewed_at'] = $m->page_viewed_at?->toIso8601String();
+            $row['page_viewed_at_human'] = $m->page_viewed_at?->diffForHumans();
+            $row['delivery_status'] = $m->sender === 'admin'
+                ? ($m->page_viewed_at ? 'chat_opened' : ($m->email_opened_at ? 'email_opened' : 'sent'))
+                : null;
+        }
+
+        return $row;
     }
 
     public function chatAttachmentsReady(): bool

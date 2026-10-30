@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ArrowLeft, CalendarDays, Check, CheckCheck, Loader2, MessageSquare, Paperclip, Send } from "lucide-react";
+import { ArrowLeft, CalendarDays, Check, CheckCheck, Loader2, MessageSquare, Paperclip, Send, Trash2 } from "lucide-react";
 import { ChatMedia, MediaLightbox, PendingChatFiles, type ChatAttachment } from "@/components/chat/ChatMedia";
 import { useSettings } from "@/lib/useSettings";
 
@@ -294,11 +294,31 @@ function ReceiptTicks({ status }: { status?: ChatMessage["delivery_status"] }) {
   );
 }
 
-function ChatBubble({ msg }: { msg: ChatMessage }) {
+function ChatBubble({
+  msg,
+  onDelete,
+  deleting,
+}: {
+  msg: ChatMessage;
+  onDelete?: (msg: ChatMessage) => void;
+  deleting?: boolean;
+}) {
   const isAdmin = msg.sender === "admin";
 
   return (
-    <div className={`flex ${isAdmin ? "justify-end" : "justify-start"}`}>
+    <div className={`group flex items-end gap-1 ${isAdmin ? "justify-end" : "justify-start"}`}>
+      {onDelete && !isAdmin ? (
+        <button
+          type="button"
+          onClick={() => onDelete(msg)}
+          disabled={deleting}
+          className="mb-1 min-h-9 min-w-9 flex items-center justify-center rounded-full text-[#667781] hover:bg-black/5 hover:text-red-600 opacity-70 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity disabled:opacity-40"
+          aria-label="Delete message for everyone"
+          title="Delete for everyone"
+        >
+          {deleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+        </button>
+      ) : null}
       <div
         className={`max-w-[88%] sm:max-w-[75%] rounded-2xl px-3.5 py-2 shadow-sm ${
           isAdmin ? "bg-[#d9fdd3] text-[#111b21] rounded-br-sm" : "bg-white text-[#111b21] rounded-bl-sm"
@@ -316,6 +336,18 @@ function ChatBubble({ msg }: { msg: ChatMessage }) {
           {isAdmin ? <ReceiptTicks status={msg.delivery_status} /> : null}
         </div>
       </div>
+      {onDelete && isAdmin ? (
+        <button
+          type="button"
+          onClick={() => onDelete(msg)}
+          disabled={deleting}
+          className="mb-1 min-h-9 min-w-9 flex items-center justify-center rounded-full text-[#667781] hover:bg-black/5 hover:text-red-600 opacity-70 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity disabled:opacity-40"
+          aria-label="Delete message for everyone"
+          title="Delete for everyone"
+        >
+          {deleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+        </button>
+      ) : null}
     </div>
   );
 }
@@ -345,6 +377,7 @@ export function SubmissionChatPanel({
   const [composerFocused, setComposerFocused] = useState(false);
   const [pendingFiles, setPendingFiles] = useState<{ file: File; url: string }[]>([]);
   const [previewFile, setPreviewFile] = useState<SubmissionFile | null>(null);
+  const [deletingMessageId, setDeletingMessageId] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const settings = useSettings();
   const keyboardInset = useKeyboardInset();
@@ -469,6 +502,41 @@ export function SubmissionChatPanel({
       if (removed) URL.revokeObjectURL(removed.url);
       return copy;
     });
+  }
+
+  async function deleteMessage(msg: ChatMessage) {
+    if (deletingMessageId) return;
+    const hasFiles = (msg.attachments?.length ?? 0) > 0;
+    const ok = window.confirm(
+      hasFiles
+        ? "Delete this message and its photos for everyone? The customer will not see it."
+        : "Delete this message for everyone? The customer will not see it."
+    );
+    if (!ok) return;
+
+    setDeletingMessageId(msg.id);
+    try {
+      const res = await fetch(`${API_URL}/admin/submissions/${submissionId}/messages/${msg.id}`, {
+        method: "DELETE",
+        headers: getAuthHeaders(),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json.message || "Failed to delete");
+      setDetail((current) =>
+        current
+          ? { ...current, messages: current.messages.filter((item) => item.id !== msg.id) }
+          : current
+      );
+      messageIdsRef.current = messageIdsRef.current
+        .split(",")
+        .filter((id) => id && id !== String(msg.id))
+        .join(",");
+      showToast("Message deleted", "success");
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "Failed to delete message", "error");
+    } finally {
+      setDeletingMessageId(null);
+    }
   }
 
   async function sendReply(e: React.FormEvent) {
@@ -629,7 +697,12 @@ export function SubmissionChatPanel({
             </p>
           )}
           {detail.messages.map((msg) => (
-            <ChatBubble key={msg.id} msg={msg} />
+            <ChatBubble
+              key={msg.id}
+              msg={msg}
+              onDelete={deleteMessage}
+              deleting={deletingMessageId === msg.id}
+            />
           ))}
           {customerTyping && (
             <div className="flex justify-start">

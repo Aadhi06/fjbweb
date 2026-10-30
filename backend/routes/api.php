@@ -110,6 +110,7 @@ Route::middleware('auth:sanctum')->prefix('admin')->group(function () {
     Route::get('/submissions', [FormController::class, 'adminIndex']);
     Route::get('/submissions/{submission}', [FormController::class, 'adminShow']);
     Route::post('/submissions/{submission}/messages', [FormController::class, 'adminReply']);
+    Route::delete('/submissions/{submission}/messages/{message}', [FormController::class, 'adminDeleteMessage']);
     Route::post('/submissions/{submission}/typing', [FormController::class, 'adminTyping']);
     Route::post('/submissions/{submission}/mark-read', [FormController::class, 'markSubmissionRead']);
 

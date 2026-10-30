@@ -317,6 +317,21 @@ class FormController extends Controller
         ]);
     }
 
+    public function adminDeleteMessage(FormSubmission $submission, FormSubmissionMessage $message): JsonResponse
+    {
+        try {
+            $this->conversationService->deleteMessage($submission, $message);
+        } catch (\Symfony\Component\HttpKernel\Exception\HttpException $e) {
+            return response()->json(['message' => $e->getMessage()], $e->getStatusCode());
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('adminDeleteMessage failed: '.$e->getMessage());
+
+            return response()->json(['message' => 'Could not delete message.'], 500);
+        }
+
+        return response()->json(['message' => 'Message deleted.']);
+    }
+
     public function conversationShow(string $token): JsonResponse
     {
         $submission = $this->conversationService->findSubmissionByPublicToken($token);
@@ -333,7 +348,7 @@ class FormController extends Controller
 
         $messages = [];
         try {
-            $messages = $this->conversationService->formatMessages($submission->fresh());
+            $messages = $this->conversationService->formatMessages($submission->fresh(), false);
         } catch (\Throwable $e) {
             \Illuminate\Support\Facades\Log::error('conversationShow messages failed: '.$e->getMessage());
         }
@@ -405,7 +420,7 @@ class FormController extends Controller
 
         $messages = [];
         try {
-            $messages = $this->conversationService->formatMessages($submission->fresh());
+            $messages = $this->conversationService->formatMessages($submission->fresh(), false);
         } catch (\Throwable $e) {
             $messages = [];
         }
