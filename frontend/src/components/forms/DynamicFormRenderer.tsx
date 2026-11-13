@@ -3,6 +3,7 @@
 import { useState, FormEvent, ChangeEvent } from "react";
 import type { DynamicForm, FormField } from "@/lib/types";
 import { showFormError, showFormSuccess, showFormWarning } from "@/lib/alerts";
+import { trackFormSubmission } from "@/lib/analytics";
 
 const MAX_PHOTOS = 5;
 
@@ -124,9 +125,7 @@ export function DynamicFormRenderer({
       );
       formEl.reset();
       setFormKey((key) => key + 1);
-      if (typeof window !== "undefined" && (window as unknown as Record<string, unknown>).gtag) {
-        (window as unknown as { gtag: (...args: unknown[]) => void }).gtag("event", "conversion", { send_to: "form_submission", event_category: "form", event_label: form.slug });
-      }
+      trackFormSubmission(form.slug);
     } catch {
       setError("Something went wrong. Please try again or call us directly.");
       await showFormError("Submission Failed", "Something went wrong. Please try again or call us directly.");

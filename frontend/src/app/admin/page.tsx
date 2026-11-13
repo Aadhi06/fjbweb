@@ -664,7 +664,7 @@ function SettingsContent() {
               label="Social share image URL (WhatsApp / Facebook)"
               value={settings.social_share_image ?? ""}
               onChange={(v) => update("social_share_image", v)}
-              placeholder="https://finejewellerybuyers.co.uk/images/og-share.jpg"
+              placeholder="https://www.finejewellerybuyers.co.uk/images/og-share.jpg"
             />
             <p className="md:col-span-2 text-xs text-gray-500">
               Social image: 1200×630 px JPG or PNG. Upload your logo above and paste the URL here, or deploy{" "}
@@ -967,7 +967,15 @@ function SettingsContent() {
         <CollapsibleSection title="Tracking & Ads" icon={BarChart3}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
             <FormInput label="Google Tag Manager ID" value={settings.gtm_id ?? ""} onChange={(v) => update("gtm_id", v)} placeholder="GTM-XXXXXXX" />
-            <FormInput label="Google Analytics ID" value={settings.ga_id ?? ""} onChange={(v) => update("ga_id", v)} placeholder="G-XXXXXXXXXX" />
+            <FormInput
+              label="Google Analytics / Ads ID"
+              value={settings.ga_id ?? ""}
+              onChange={(v) => update("ga_id", v)}
+              placeholder="G-XXXXXXXXXX or AW-XXXXXXXXXX"
+            />
+            <p className="text-xs text-gray-500 -mt-2 mb-2">
+              Prefer GA4 (G-…). Google Ads is already loaded via GTM (AW-16660342606) — leave this blank or use G- only to avoid a second Ads tag. Digits-only values are treated as AW-.
+            </p>
             <FormInput label="Meta Pixel ID" value={settings.meta_pixel_id ?? ""} onChange={(v) => update("meta_pixel_id", v)} placeholder="123456789" />
             <FormInput
               label="Microsoft Clarity Project ID"

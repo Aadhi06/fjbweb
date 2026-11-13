@@ -1,10 +1,29 @@
 import type { Metadata } from "next";
 
 export const SITE_NAME = "Fine Jewellery Buyers";
+
+/** Live canonical origin — apex always redirects here. */
+export const CANONICAL_ORIGIN = "https://www.finejewellerybuyers.co.uk";
+
+/** Force www even if NEXT_PUBLIC_SITE_URL is set to apex. */
+export function normalizeSiteUrl(raw?: string | null): string {
+  const value = (raw || CANONICAL_ORIGIN).trim().replace(/\/$/, "");
+  try {
+    const url = new URL(value.includes("://") ? value : `https://${value}`);
+    if (
+      url.hostname === "finejewellerybuyers.co.uk" ||
+      url.hostname === "www.finejewellerybuyers.co.uk"
+    ) {
+      return CANONICAL_ORIGIN;
+    }
+    return url.origin;
+  } catch {
+    return CANONICAL_ORIGIN;
+  }
+}
+
 /** Canonical host must match the live redirect target (www). */
-export const SITE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ||
-  "https://www.finejewellerybuyers.co.uk";
+export const SITE_URL = normalizeSiteUrl(process.env.NEXT_PUBLIC_SITE_URL);
 
 export const DEFAULT_OG_IMAGE = `${SITE_URL}/images/logo.png`;
 export const DEFAULT_FAVICON = `${SITE_URL}/images/logo.png`;

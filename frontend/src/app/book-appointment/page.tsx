@@ -20,6 +20,7 @@ import {
 import { API_BASE_URL } from "@/lib/utils";
 import { useSettings } from "@/lib/useSettings";
 import { showBookingSuccess, showFormError, showFormWarning } from "@/lib/alerts";
+import { trackBookingConversion } from "@/lib/analytics";
 import { VisitDirections } from "@/components/sections/VisitDirections";
 
 interface TimeSlot {
@@ -190,6 +191,7 @@ function BookAppointmentContent() {
       const data = await res.json();
 
       if (res.ok) {
+        trackBookingConversion(data.booking?.id);
         await showBookingSuccess(data.booking);
         setConfirmation(data.booking);
       } else {

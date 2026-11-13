@@ -15,6 +15,7 @@ import {
   siteNavigationJsonLd,
   websiteJsonLd,
 } from "@/lib/seo";
+import { normalizeMeasurementId } from "@/lib/analytics";
 import { getSettings } from "@/lib/settings";
 
 export const viewport: Viewport = {
@@ -82,7 +83,15 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const settings = await getSettings();
   const gtmId = (settings.gtm_id || process.env.NEXT_PUBLIC_GTM_ID || "GTM-TW2L228T").trim();
-  const gaId = (settings.ga_id || process.env.NEXT_PUBLIC_GA_ID || "").trim();
+  // Normalize bare Ads digits → AW-…. When GTM is present, skip AW-* here — GTM already loads AW-16660342606.
+  const measurementId = normalizeMeasurementId(
+    settings.ga_id || process.env.NEXT_PUBLIC_GOOGLE_ADS_ID || process.env.NEXT_PUBLIC_GA_ID || ""
+  );
+  const standaloneGtagId =
+    measurementId &&
+    (!gtmId || measurementId.startsWith("G-"))
+      ? measurementId
+      : "";
   const clarityId = (settings.clarity_id || process.env.NEXT_PUBLIC_CLARITY_ID || "").trim();
 
   return (
@@ -107,14 +116,14 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
         <link rel="alternate" type="text/plain" href={`${SITE_URL}/llms.txt`} title="LLM-readable site summary" />
         <link rel="alternate" type="text/plain" href={`${SITE_URL}/llms-full.txt`} title="Full LLM-readable site summary" />
         <link rel="describedby" href={`${SITE_URL}/.well-known/llms.txt`} />
-        {gaId ? (
+        {standaloneGtagId ? (
           <>
-            <Script src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`} strategy="afterInteractive" />
+            <Script src={`https://www.googletagmanager.com/gtag/js?id=${standaloneGtagId}`} strategy="afterInteractive" />
             <Script id="ga" strategy="afterInteractive">{`
               window.dataLayer = window.dataLayer || [];
               function gtag(){dataLayer.push(arguments);}
               gtag('js', new Date());
-              gtag('config', '${gaId}');
+              gtag('config', '${standaloneGtagId}');
             `}</Script>
           </>
         ) : null}

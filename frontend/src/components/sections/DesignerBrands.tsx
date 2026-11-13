@@ -97,7 +97,7 @@ const brandJsonLd = {
     "@type": "ListItem",
     position: i + 1,
     name: b.seoLabel,
-    url: `https://finejewellerybuyers.co.uk${b.href || "/services/sell-jewellery"}`,
+    url: `https://www.finejewellerybuyers.co.uk${b.href || "/services/sell-jewellery"}`,
   })),
 };
 
