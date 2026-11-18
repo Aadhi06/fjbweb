@@ -79,6 +79,20 @@ export function Footer() {
       </div>
 
       <div className="border-t border-white/10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col items-center gap-4 text-center">
+          <p className="text-xs font-semibold uppercase tracking-wider text-white/50">We are member of</p>
+          <img
+            src="/images/london-diamond-bourse.png"
+            alt="London Diamond Bourse"
+            width={532}
+            height={248}
+            loading="lazy"
+            className="h-14 w-auto opacity-80 brightness-0 invert"
+          />
+        </div>
+      </div>
+
+      <div className="border-t border-white/10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 grid grid-cols-1 md:grid-cols-[1fr_auto] gap-4 text-xs text-white/40 items-center">
           <div className="space-y-1 text-center">
             <p>Copyright &copy; {new Date().getFullYear()} Fine Jewellery Buyers. All rights reserved.</p>
