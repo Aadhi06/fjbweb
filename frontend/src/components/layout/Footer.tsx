@@ -87,7 +87,7 @@ export function Footer() {
             width={532}
             height={248}
             loading="lazy"
-            className="h-14 w-auto opacity-80 brightness-0 invert"
+            className="h-14 w-auto opacity-80"
           />
         </div>
       </div>
