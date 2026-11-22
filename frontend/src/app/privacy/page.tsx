@@ -134,9 +134,11 @@ export default async function PrivacyPolicyPage() {
 
       <LegalSection title="8. Cookies">
         <p>
-          Our website uses essential cookies to function and may use analytics cookies (such as Google Analytics) to
-          understand how visitors use the site. You can control non-essential cookies through your browser settings.
-          Continued use of our site after being informed of cookies constitutes acceptance of essential cookies.
+          Our website uses essential cookies to function and may use analytics cookies (such as Google Analytics and
+          Microsoft Clarity) to understand how visitors use the site. Clarity may record anonymised session replays and
+          heatmaps to help us improve the experience; sensitive form fields are masked by default. You can control
+          non-essential cookies through your browser settings. Continued use of our site after being informed of cookies
+          constitutes acceptance of essential cookies.
         </p>
       </LegalSection>
 
