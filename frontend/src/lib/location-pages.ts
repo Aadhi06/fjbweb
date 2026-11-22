@@ -1,7 +1,7 @@
 export type LocationFaq = { question: string; answer: string };
 
 export type LocationPageContent = {
-  slug: "sell-gold-london" | "sell-jewellery-hatton-garden";
+  slug: string;
   label: string;
   h1: string;
   lead: string;
@@ -13,6 +13,11 @@ export type LocationPageContent = {
   faqs: LocationFaq[];
   heroImage: string;
   related: { name: string; href: string }[];
+  /** Defaults to book-appointment when omitted */
+  primaryCta?: { href: string; label: string };
+  /** Defaults to free-valuation when omitted */
+  secondaryCta?: { href: string; label: string };
+  path?: string;
 };
 
 const FIND_US_FAQ: LocationFaq = {
@@ -117,6 +122,7 @@ export const LOCATION_PAGES: Record<LocationPageContent["slug"], LocationPageCon
     faqs: LONDON_GOLD_FAQS,
     heroImage: "/images/service-hero-sell-gold.png",
     related: [
+      { name: "Free Valuation", href: "/free-valuation" },
       { name: "Sell Gold", href: "/sell-gold" },
       { name: "Sell Gold Bars", href: "/sell-gold-bars" },
       { name: "Sell Gold Coins", href: "/sell-gold-coins" },
@@ -124,6 +130,9 @@ export const LOCATION_PAGES: Record<LocationPageContent["slug"], LocationPageCon
       { name: "Live Rates", href: "/live-rates" },
       { name: "Sell Jewellery in Hatton Garden", href: "/sell-jewellery-hatton-garden" },
     ],
+    primaryCta: { href: "/free-valuation", label: "Get a free valuation" },
+    secondaryCta: { href: "/book-appointment", label: "Book a valuation visit" },
+    path: "/sell-gold-london",
   },
   "sell-jewellery-hatton-garden": {
     slug: "sell-jewellery-hatton-garden",
@@ -152,10 +161,13 @@ export const LOCATION_PAGES: Record<LocationPageContent["slug"], LocationPageCon
     faqs: HATTON_GARDEN_JEWELLERY_FAQS,
     heroImage: "/images/service-hero-sell-jewellery.png",
     related: [
+      { name: "Free Valuation", href: "/free-valuation" },
       { name: "Sell Jewellery", href: "/services/sell-jewellery" },
       { name: "Sell Gold in London", href: "/sell-gold-london" },
       { name: "Book Appointment", href: "/book-appointment" },
-      { name: "Free Valuation", href: "/free-valuation" },
     ],
+    primaryCta: { href: "/free-valuation", label: "Get a free valuation" },
+    secondaryCta: { href: "/book-appointment", label: "Book a valuation visit" },
+    path: "/sell-jewellery-hatton-garden",
   },
 };

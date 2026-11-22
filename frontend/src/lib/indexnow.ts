@@ -1,4 +1,5 @@
 import { highValueBlogSlugs } from "@/lib/high-value-blogs";
+import { sellGoldCitySlugs } from "@/lib/sell-gold-cities";
 import { SITE_URL } from "@/lib/seo";
 
 /** Public IndexNow key (also served as /{key}.txt). Used so Bing — and therefore ChatGPT Search — can pick up new pages quickly. */
@@ -12,6 +13,7 @@ const PRIORITY_PATHS = [
   "/sell-gold-coins",
   "/sell-inherited-gold",
   "/sell-jewellery-hatton-garden",
+  "/free-valuation",
   "/services/sell-jewellery",
   "/faq",
   "/prepaid-delivery",
@@ -19,6 +21,7 @@ const PRIORITY_PATHS = [
   "/llms.txt",
   "/llms-full.txt",
   "/blog",
+  ...sellGoldCitySlugs().map((city) => `/sell-gold/${city}`),
   ...highValueBlogSlugs().map((slug) => `/blog/${slug}`),
 ];
 

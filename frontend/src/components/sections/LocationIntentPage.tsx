@@ -23,6 +23,8 @@ type Props = {
 export function LocationIntentPage({ content, settings }: Props) {
   const address = parseAddress(settings.address);
   const phoneHref = `tel:${settings.phone.replace(/\s/g, "")}`;
+  const primaryCta = content.primaryCta ?? { href: "/free-valuation", label: "Get a free valuation" };
+  const secondaryCta = content.secondaryCta ?? { href: "/book-appointment", label: "Book a valuation visit" };
 
   return (
     <>
@@ -48,16 +50,16 @@ export function LocationIntentPage({ content, settings }: Props) {
           </p>
           <div className="flex flex-col sm:flex-row gap-4">
             <Link
-              href="/book-appointment"
+              href={primaryCta.href}
               className="inline-flex items-center justify-center px-8 py-4 bg-gold text-black font-bold rounded-full hover:bg-gold-light transition-colors shadow-lg cursor-pointer min-h-12"
             >
-              Book a valuation <ArrowRight className="w-5 h-5 ml-2" />
+              {primaryCta.label} <ArrowRight className="w-5 h-5 ml-2" />
             </Link>
             <Link
-              href="/free-valuation"
+              href={secondaryCta.href}
               className="inline-flex items-center justify-center px-8 py-4 border-2 border-white/30 text-white font-semibold rounded-full hover:bg-white/10 transition-colors cursor-pointer min-h-12"
             >
-              Get a free online estimate
+              {secondaryCta.label}
             </Link>
           </div>
         </div>
@@ -133,10 +135,16 @@ export function LocationIntentPage({ content, settings }: Props) {
                     Get directions
                   </a>
                   <Link
-                    href="/book-appointment"
+                    href="/free-valuation"
                     className="inline-flex items-center justify-center gap-2 px-5 py-3 border-2 border-gold/40 text-gold-dark font-semibold rounded-full hover:bg-gold/10 transition-colors text-sm min-h-12"
                   >
                     <CalendarDays className="w-4 h-4" />
+                    Free valuation
+                  </Link>
+                  <Link
+                    href="/book-appointment"
+                    className="inline-flex items-center justify-center gap-2 px-5 py-3 border border-border text-black font-semibold rounded-full hover:bg-white transition-colors text-sm min-h-12"
+                  >
                     Book appointment
                   </Link>
                 </div>
@@ -198,22 +206,21 @@ export function LocationIntentPage({ content, settings }: Props) {
           <Banknote className="w-10 h-10 text-white mx-auto mb-4" />
           <h2 className="text-3xl font-serif font-bold text-white mb-4">Ready to sell?</h2>
           <p className="text-white/90 mb-8 text-lg">
-            Free valuation in Hatton Garden or online — no obligation, same-day payment if you accept.
+            Free valuation online or in Hatton Garden — no obligation, same-day payment if you accept.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
-              href="/book-appointment"
+              href="/free-valuation"
               className="inline-flex items-center justify-center px-8 py-4 bg-black text-white font-bold rounded-full hover:bg-black/80 transition-colors cursor-pointer min-h-12"
             >
-              Visit Hatton Garden <ArrowRight className="w-5 h-5 ml-2" />
+              Free valuation <ArrowRight className="w-5 h-5 ml-2" />
             </Link>
-            <a
-              href={phoneHref}
+            <Link
+              href="/book-appointment"
               className="inline-flex items-center justify-center px-8 py-4 border-2 border-white text-white font-bold rounded-full hover:bg-white/10 transition-colors cursor-pointer min-h-12"
             >
-              <Phone className="w-4 h-4 mr-2" />
-              Call {settings.phone}
-            </a>
+              Book appointment
+            </Link>
           </div>
         </div>
       </section>

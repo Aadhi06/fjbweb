@@ -1,0 +1,21 @@
+# UK sell-gold demand pages + Ads locations
+# Primary CTA on each page: /free-valuation
+
+## Pages (live after deploy)
+- /sell-gold-london (existing)
+- /sell-gold/manchester
+- /sell-gold/birmingham
+- /sell-gold/leeds
+- /sell-gold/glasgow
+- /sell-gold/liverpool
+- /sell-gold/bristol
+- /sell-gold/newcastle
+- /sell-gold/slough
+- /sell-gold/reading
+- /sell-gold/romford
+- /sell-gold/croydon
+
+## Lead_Search_Campaign locations (saved)
+London, Greater London, Reading, Slough, Romford,
+Manchester, Birmingham, Leeds, Glasgow, Liverpool,
+Bristol, Newcastle upon Tyne, Croydon

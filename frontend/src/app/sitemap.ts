@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 import { HIGH_VALUE_BLOGS } from "@/lib/high-value-blogs";
 import { pingIndexNow } from "@/lib/indexnow";
+import { sellGoldCitySlugs } from "@/lib/sell-gold-cities";
 import { SITE_URL, SERVICE_SLUGS } from "@/lib/seo";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8002";
@@ -65,6 +66,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.9,
   }));
 
+  const cityEntries: MetadataRoute.Sitemap = sellGoldCitySlugs().map((city) => ({
+    url: `${SITE_URL}/sell-gold/${city}`,
+    lastModified: now,
+    changeFrequency: "weekly" as const,
+    priority: 0.9,
+  }));
+
   const blogBySlug = new Map<string, { slug: string; updated_at?: string }>();
   for (const post of HIGH_VALUE_BLOGS) {
     blogBySlug.set(post.slug, { slug: post.slug, updated_at: post.published_at });
@@ -80,7 +88,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.75,
   }));
 
-  const entries = [...staticEntries, ...serviceEntries, ...blogEntries];
+  const entries = [...staticEntries, ...serviceEntries, ...cityEntries, ...blogEntries];
   await pingIndexNow();
   return entries;
 }

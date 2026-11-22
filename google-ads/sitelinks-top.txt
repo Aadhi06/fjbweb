@@ -1,0 +1,46 @@
+# Lead_Search_Campaign sitelinks (conversion-focused)
+# Keep Book Appointment + How It Works; replace brand/generic Sell Gold
+
+1. Book Appointment
+   URL: https://www.finejewellerybuyers.co.uk/book-appointment
+   Desc1: Get Paid for Gold Today
+   Desc2: Book a Free Valuation Visit
+
+2. Sell Scrap Gold
+   URL: https://www.finejewellerybuyers.co.uk/sell-gold-london
+   Desc1: Scrap Gold Buyers London
+   Desc2: Fair Rates at Hatton Garden
+
+3. Sell Gold Bars
+   URL: https://www.finejewellerybuyers.co.uk/sell-gold-bars
+   Desc1: Gold Bar Buyers Hatton Garden
+   Desc2: Live Rates · Same-Day Payment
+
+4. Sell Gold Coins
+   URL: https://www.finejewellerybuyers.co.uk/sell-gold-coins
+   Desc1: Sovereigns · Britannias · Krugerrands
+   Desc2: Expert Coin Valuation
+
+5. Sell Engagement Ring
+   URL: https://www.finejewellerybuyers.co.uk/sell-jewellery-hatton-garden
+   Desc1: Natural Diamond Rings Bought
+   Desc2: Private Hatton Garden Valuation
+
+6. How It Works
+   URL: https://www.finejewellerybuyers.co.uk/how-it-works
+   Desc1: Simple 3-Step Selling Process
+   Desc2: Free Valuation · Fast Payment
+
+7. Gold Calculator
+   URL: https://www.finejewellerybuyers.co.uk/gold-calculator
+   Desc1: Estimate Your Gold Value
+   Desc2: Live UK Rates, Instant Quote
+
+8. Sell Cartier & Tiffany
+   URL: https://www.finejewellerybuyers.co.uk/services/sell-jewellery
+   Desc1: Cartier, Tiffany & Boodles
+   Desc2: Above Scrap When Authenticated
+
+# REMOVE / PAUSE
+- Fine Jewellery Buyers (brand-only)
+- Sell Gold (too generic vs scrap/bars/coins)
