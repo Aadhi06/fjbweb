@@ -66,14 +66,16 @@ import { AdminSplash } from "./AdminSplash";
 import { AdminMessagesFab, useAdminUnreadCount } from "./AdminMessagesFab";
 import { AdminPushNotifications } from "./AdminPushNotifications";
 import { MetalBuyingRates } from "./MetalBuyingRates";
+import { VisitorsContent } from "./VisitorsContent";
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8002") + "/api";
 
 type AdminUser = { name: string; email: string };
-type ActiveTab = "dashboard" | "settings" | "reviews" | "bookings" | "forms" | "submissions" | "messages" | "marketing" | "blogs" | "users" | "about";
+type ActiveTab = "dashboard" | "visitors" | "settings" | "reviews" | "bookings" | "forms" | "submissions" | "messages" | "marketing" | "blogs" | "users" | "about";
 
 const navItems: { id: ActiveTab; label: string; icon: typeof LayoutDashboard }[] = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { id: "visitors", label: "Visitors", icon: Eye },
   { id: "settings", label: "Settings", icon: Settings },
   { id: "reviews", label: "Reviews", icon: Star },
   { id: "bookings", label: "Bookings", icon: CalendarDays },
@@ -981,14 +983,16 @@ function SettingsContent() {
               label="Microsoft Clarity Project ID"
               value={settings.clarity_id ?? ""}
               onChange={(v) => update("clarity_id", v)}
-              placeholder="abcdefghij"
+              placeholder="n7prrt2s5b"
             />
             <p className="md:col-span-2 text-xs text-gray-500">
-              Clarity records session replays and heatmaps. Get the ID from{" "}
-              <a href="https://clarity.microsoft.com/" target="_blank" rel="noopener noreferrer" className="text-gold underline">
-                clarity.microsoft.com
-              </a>{" "}
-              → Settings → Overview.
+              Tracking is live on the website. Open Admin → <strong>Visitors</strong> for sessions, clicks and live
+              recordings. Project ID from{" "}
+              <a href="https://clarity.microsoft.com/projects/view/n7prrt2s5b/settings" target="_blank" rel="noopener noreferrer" className="text-gold underline">
+                Clarity Settings
+              </a>
+              . Optional: set Vercel env <code className="bg-gray-100 px-1 rounded">CLARITY_API_TOKEN</code> (Data Export
+              token) to show session counts inside Visitors.
             </p>
           </div>
           <SaveButton keys={trackingKeys} />
@@ -2366,7 +2370,7 @@ type DashboardData = {
   recent_submissions: { id: number; form: string; status: string; data: Record<string, string>; created_at: string }[];
 };
 
-function DashboardContent() {
+function DashboardContent({ onOpenVisitors }: { onOpenVisitors?: () => void }) {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -2392,6 +2396,25 @@ function DashboardContent() {
     <div>
       <h2 className="text-2xl font-bold text-black mb-1">Dashboard</h2>
       <p className="text-gray-500 mb-8">Overview of your business metrics</p>
+
+      <button
+        type="button"
+        onClick={onOpenVisitors}
+        className="w-full mb-6 text-left rounded-xl border border-amber-200 bg-gradient-to-r from-amber-50 to-white p-4 sm:p-5 hover:border-amber-300 transition-colors"
+      >
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-11 h-11 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+              <Eye className="w-5 h-5" />
+            </div>
+            <div className="min-w-0">
+              <p className="font-semibold text-black">Website visitors</p>
+              <p className="text-sm text-gray-500 truncate">Live sessions, clicks, heatmaps — see what people are doing</p>
+            </div>
+          </div>
+          <ChevronRight className="w-5 h-5 text-amber-600 shrink-0" />
+        </div>
+      </button>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <StatCard icon={CalendarDays} label="Total Bookings" value={stats?.total_bookings ?? 0} color="bg-[#D97706]" />
@@ -2515,7 +2538,9 @@ export default function AdminDashboardPage() {
   function renderContent() {
     switch (activeTab) {
       case "dashboard":
-        return <DashboardContent />;
+        return <DashboardContent onOpenVisitors={() => setActiveTab("visitors")} />;
+      case "visitors":
+        return <VisitorsContent />;
       case "settings":
         return <SettingsContent />;
       case "reviews":
