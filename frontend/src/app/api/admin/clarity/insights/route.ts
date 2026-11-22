@@ -23,14 +23,17 @@ function summarise(metrics: ClarityMetric[]) {
   const devices = byName.Device || [];
   const countries = byName["Country/Region"] || byName.Country || [];
 
-  const sessions = sumField(traffic, "totalSessionCount");
+  const sessions = sumField(traffic, "totalSessionCount") || sumField(traffic, "sessionsCount");
   const bots = sumField(traffic, "totalBotSessionCount");
-  const users = sumField(traffic, "distantUserCount");
+  const users = sumField(traffic, "distinctUserCount") || sumField(traffic, "distantUserCount");
+
+  const rowSessions = (row: Record<string, string | number>) =>
+    Number(row.totalSessionCount || row.sessionsCount || row.Sessions || row.sessions || row.subTotal || 0);
 
   const topPages = [...popular]
     .map((row) => ({
       url: String(row.URL || row.Url || row.url || row["Page Title"] || row.PageTitle || "—"),
-      sessions: Number(row.totalSessionCount || row.Sessions || row.sessions || 0),
+      sessions: rowSessions(row),
     }))
     .sort((a, b) => b.sessions - a.sessions)
     .slice(0, 8);
@@ -38,7 +41,7 @@ function summarise(metrics: ClarityMetric[]) {
   const topDevices = [...devices]
     .map((row) => ({
       name: String(row.Device || row.device || "Other"),
-      sessions: Number(row.totalSessionCount || 0),
+      sessions: rowSessions(row),
     }))
     .sort((a, b) => b.sessions - a.sessions)
     .slice(0, 5);
@@ -46,15 +49,18 @@ function summarise(metrics: ClarityMetric[]) {
   const topCountries = [...countries]
     .map((row) => ({
       name: String(row["Country/Region"] || row.Country || row.country || "Other"),
-      sessions: Number(row.totalSessionCount || 0),
+      sessions: rowSessions(row),
     }))
     .sort((a, b) => b.sessions - a.sessions)
     .slice(0, 5);
 
   const avgEngagement =
     engagement.length > 0
-      ? engagement.reduce((acc, row) => acc + (Number(row.averageEngagementTime || row.EngagementTime || 0) || 0), 0) /
-        engagement.length
+      ? engagement.reduce(
+          (acc, row) =>
+            acc + (Number(row.averageEngagementTime || row.activeTime || row.totalTime || row.EngagementTime || 0) || 0),
+          0
+        ) / engagement.length
       : 0;
 
   return {
@@ -62,11 +68,12 @@ function summarise(metrics: ClarityMetric[]) {
     botSessions: bots,
     humanSessions: Math.max(0, sessions - bots),
     users,
-    rageClicks: sumField(rage, "totalSessionCount") || sumField(rage, "RageClickCount") || sumField(rage, "count"),
-    deadClicks: sumField(dead, "totalSessionCount") || sumField(dead, "DeadClickCount") || sumField(dead, "count"),
+    rageClicks: sumField(rage, "sessionsCount") || sumField(rage, "subTotal") || sumField(rage, "totalSessionCount"),
+    deadClicks: sumField(dead, "sessionsCount") || sumField(dead, "subTotal") || sumField(dead, "totalSessionCount"),
     pagesPerSession:
       traffic.length > 0
-        ? traffic.reduce((acc, row) => acc + (Number(row.PagesPerSessionPercentage) || 0), 0) / traffic.length
+        ? traffic.reduce((acc, row) => acc + (Number(row.pagesPerSessionPercentage || row.PagesPerSessionPercentage) || 0), 0) /
+          traffic.length
         : 0,
     avgEngagementSeconds: avgEngagement,
     topPages,
@@ -75,7 +82,13 @@ function summarise(metrics: ClarityMetric[]) {
   };
 }
 
-async function resolveClarityToken(authHeader: string | null): Promise<string> {
+async function resolveClarityToken(
+  authHeader: string | null,
+  request: NextRequest
+): Promise<string> {
+  const headerToken = (request.headers.get("x-clarity-api-token") || "").trim();
+  if (headerToken) return headerToken;
+
   const envToken = (process.env.CLARITY_API_TOKEN || "").trim();
   if (envToken) return envToken;
 
@@ -113,7 +126,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ message: "Auth check failed" }, { status: 502 });
   }
 
-  const token = await resolveClarityToken(authHeader);
+  const token = await resolveClarityToken(authHeader, request);
   const projectId =
     (process.env.NEXT_PUBLIC_CLARITY_ID || "").trim() ||
     request.nextUrl.searchParams.get("projectId") ||

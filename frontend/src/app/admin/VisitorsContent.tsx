@@ -141,18 +141,39 @@ const FALLBACK_LINKS: ClarityLinks = {
   dashboard: "https://clarity.microsoft.com/projects/view/n7prrt2s5b/dashboard",
 };
 
+const TOKEN_STORAGE_KEY = "clarity_api_token";
+
+function readStoredClarityToken(): string {
+  if (typeof window === "undefined") return "";
+  return (localStorage.getItem(TOKEN_STORAGE_KEY) || "").trim();
+}
+
 export function VisitorsContent() {
   const [data, setData] = useState<ClarityResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [days, setDays] = useState<"1" | "2" | "3">("1");
   const [error, setError] = useState("");
+  const [tokenInput, setTokenInput] = useState("");
+  const [tokenSaved, setTokenSaved] = useState(false);
+  const [savingToken, setSavingToken] = useState(false);
+
+  useEffect(() => {
+    setTokenInput(readStoredClarityToken());
+    setTokenSaved(Boolean(readStoredClarityToken()));
+  }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError("");
     try {
+      const clarityToken = readStoredClarityToken();
+      const headers: Record<string, string> = {
+        ...getAuthHeaders(),
+      };
+      if (clarityToken) headers["X-Clarity-Api-Token"] = clarityToken;
+
       const res = await fetch(`/api/admin/clarity/insights?days=${days}`, {
-        headers: getAuthHeaders(),
+        headers,
         cache: "no-store",
       });
       const json = (await res.json()) as ClarityResponse;
@@ -171,6 +192,19 @@ export function VisitorsContent() {
   useEffect(() => {
     load();
   }, [load]);
+
+  const saveToken = async () => {
+    const next = tokenInput.trim();
+    setSavingToken(true);
+    try {
+      if (next) localStorage.setItem(TOKEN_STORAGE_KEY, next);
+      else localStorage.removeItem(TOKEN_STORAGE_KEY);
+      setTokenSaved(Boolean(next));
+      await load();
+    } finally {
+      setSavingToken(false);
+    }
+  };
 
   const links = data?.links || FALLBACK_LINKS;
   const summary = data?.summary;
@@ -251,18 +285,52 @@ export function VisitorsContent() {
         <div className="rounded-xl border border-amber-200 bg-amber-50 p-5 mb-6">
           <p className="font-semibold text-amber-900 mb-1">Enable metrics in this panel</p>
           <p className="text-sm text-amber-800 leading-relaxed mb-3">
-            Tracking is live on the website. To show sessions and clicks here, create an API token in Clarity → Settings →
-            Data Export, then add it as <code className="bg-amber-100 px-1 rounded">CLARITY_API_TOKEN</code> in Vercel
-            (Production). Live sessions above work immediately without a token.
+            Tracking is live. Paste your Clarity Data Export API token below (Clarity → Settings → Data Export). Live
+            sessions above work without a token.
           </p>
+          <div className="flex flex-col sm:flex-row gap-2 mb-3">
+            <input
+              type="password"
+              value={tokenInput}
+              onChange={(e) => setTokenInput(e.target.value)}
+              placeholder="Paste Clarity API token"
+              className="flex-1 rounded-lg border border-amber-200 bg-white px-3 py-2 text-sm text-black"
+              autoComplete="off"
+            />
+            <button
+              type="button"
+              onClick={saveToken}
+              disabled={savingToken || !tokenInput.trim()}
+              className="rounded-lg bg-amber-900 text-white px-4 py-2 text-sm font-semibold hover:bg-amber-800 disabled:opacity-50"
+            >
+              {savingToken ? "Saving…" : "Save & load metrics"}
+            </button>
+          </div>
           <a
-            href={`https://clarity.microsoft.com/projects/view/${data.projectId}/settings`}
+            href={`https://clarity.microsoft.com/projects/view/${data.projectId}/settings#apiTokens`}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1.5 text-sm font-semibold text-amber-900 underline"
           >
-            Open Clarity settings <ExternalLink className="w-3.5 h-3.5" />
+            Open Clarity API tokens <ExternalLink className="w-3.5 h-3.5" />
           </a>
+        </div>
+      ) : null}
+
+      {data?.configured && tokenSaved ? (
+        <div className="mb-4 flex justify-end">
+          <button
+            type="button"
+            onClick={() => {
+              localStorage.removeItem(TOKEN_STORAGE_KEY);
+              setTokenInput("");
+              setTokenSaved(false);
+              load();
+            }}
+            className="text-xs text-gray-400 hover:text-gray-600 underline"
+          >
+            Clear saved Clarity token
+          </button>
         </div>
       ) : null}
 
