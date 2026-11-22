@@ -46,8 +46,8 @@ export interface SiteSettings {
 export const defaultSettings: SiteSettings = {
   business_name: "Fine Jewellery Buyers",
   tagline: "UK's Trusted Buyer of Gold, Diamonds & Watches",
-  phone: "020 3123 4567",
-  whatsapp: "442031234567",
+  phone: "020 3411 1438",
+  whatsapp: "442034111438",
   email: "info@finejewellerybuyers.co.uk",
   address: "Suite 39, 4th Floor, 88–90 Hatton Garden, London EC1N 8PN",
   opening_hours: "Mon–Sat: 10am–6pm",

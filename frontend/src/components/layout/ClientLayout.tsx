@@ -6,8 +6,8 @@ import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { MaintenancePage } from "@/components/layout/MaintenancePage";
 import { WhatsAppButton } from "@/components/ui/WhatsAppButton";
-import { IdleHelpAssistant } from "@/components/ui/IdleHelpAssistant";
 import { NewsletterPopup } from "@/components/ui/NewsletterPopup";
+import { SellGoldIdlePopup } from "@/components/ui/SellGoldIdlePopup";
 import {
   API_SETTINGS_URL,
   defaultSettings,
@@ -72,7 +72,7 @@ export function ClientLayout({
       <Footer />
       <WhatsAppButton />
       <NewsletterPopup />
-      <IdleHelpAssistant />
+      <SellGoldIdlePopup />
     </>
   );
 }
