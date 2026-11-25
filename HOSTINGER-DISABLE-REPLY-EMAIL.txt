@@ -1,0 +1,19 @@
+DISABLE ADMIN EMAIL ON CUSTOMER REPLY — Hostinger API update
+============================================================
+
+Upload zip to: public_html/api/
+Extract into api/ so this file replaces:
+  app/Services/SubmissionConversationService.php
+
+What changes
+------------
+- When a customer replies to an enquiry chat: push notification STILL fires
+- Admin email for that customer reply is DISABLED for now
+- Admin → customer reply emails are unchanged
+
+AFTER UPLOAD
+------------
+1. https://api.finejewellerybuyers.co.uk/clear-cache.php?key=YOUR_CRON_SECRET
+   (or php artisan config:clear / optimize:clear on SSH)
+
+No migration needed.

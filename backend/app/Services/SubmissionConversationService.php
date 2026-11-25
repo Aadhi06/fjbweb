@@ -129,11 +129,12 @@ class SubmissionConversationService
             Log::error('Customer reply follow-up failed: '.$e->getMessage());
         }
 
-        try {
-            $this->emailAdmin($submission, $body);
-        } catch (\Throwable $e) {
-            Log::error('Customer reply email failed: '.$e->getMessage());
-        }
+        // Email to admin on customer reply disabled for now — push only.
+        // try {
+        //     $this->emailAdmin($submission, $body);
+        // } catch (\Throwable $e) {
+        //     Log::error('Customer reply email failed: '.$e->getMessage());
+        // }
 
         try {
             $this->pushAdmin($submission, $body);
