@@ -8,6 +8,7 @@ import { MaintenancePage } from "@/components/layout/MaintenancePage";
 import { WhatsAppButton } from "@/components/ui/WhatsAppButton";
 import { NewsletterPopup } from "@/components/ui/NewsletterPopup";
 import { SellGoldIdlePopup } from "@/components/ui/SellGoldIdlePopup";
+import { LeadClickTracker } from "@/components/analytics/LeadClickTracker";
 import {
   API_SETTINGS_URL,
   defaultSettings,
@@ -65,6 +66,7 @@ export function ClientLayout({
 
   return (
     <>
+      <LeadClickTracker />
       <Header />
       <main className="flex-1" suppressHydrationWarning>
         {children}

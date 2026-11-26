@@ -36,6 +36,7 @@ export function WhatsAppButton() {
       target="_blank"
       rel="noopener noreferrer"
       aria-label="Chat on WhatsApp"
+      data-track-source="floating_whatsapp"
       className="fixed bottom-6 right-6 z-50 flex items-center gap-3 group cursor-pointer"
     >
       <span className="hidden sm:block bg-white text-secondary text-sm px-4 py-2 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 border border-border">
